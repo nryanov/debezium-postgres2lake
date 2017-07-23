@@ -1,0 +1,11 @@
+<component name="libraryTable">
+  <library name="Maven: org.apache.ignite:ignite-spring-data:{ignite.version}">
+    <CLASSES />
+    <JAVADOC>
+      <root url="jar://$MAVEN_REPOSITORY$/org/apache/ignite/ignite-spring-data/{ignite.version}/ignite-spring-data-{ignite.version}-javadoc.jar!/" />
+    </JAVADOC>
+    <SOURCES>
+      <root url="jar://$MAVEN_REPOSITORY$/org/apache/ignite/ignite-spring-data/{ignite.version}/ignite-spring-data-{ignite.version}-sources.jar!/" />
+    </SOURCES>
+  </library>
+</component>
