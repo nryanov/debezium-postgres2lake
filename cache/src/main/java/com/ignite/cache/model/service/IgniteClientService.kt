@@ -25,6 +25,7 @@ class IgniteClientService : IClientServiceIgnite {
 
     override fun deleteAll(p0: MutableIterable<Long>?) {
         clientRepository.deleteAll(p0)
+
     }
 
     override fun findAll(p0: MutableIterable<Long>?): MutableIterable<Client> = clientRepository.findAll(p0)

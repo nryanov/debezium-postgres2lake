@@ -5,6 +5,8 @@
       <configuration>
         <fileset id="fileset" name="Spring Application Context" removed="false">
           <file>file://$MODULE_DIR$/src/main/java/com/ignite/cache/configuration/AppConfiguration.kt</file>
+          <file>file://$MODULE_DIR$/src/main/java/com/ignite/cache/configuration/ignite.xml</file>
+          <file>file://$MODULE_DIR$/src/main/resources/context.xml</file>
           <file>file://$MODULE_DIR$/src/main/java/com/ignite/cache/configuration/DataSourceConfiguration.kt</file>
         </fileset>
       </configuration>

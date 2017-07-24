@@ -5,12 +5,14 @@ import com.ignite.cache.model.repositories.springdatarepository.ClientRepository
 import com.ignite.cache.model.service.interfaces.IClientService
 import org.apache.log4j.Logger
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.io.Serializable
 
 /**
  * Created by GrIfOn on 23.07.2017.
  */
+@Service
 @Transactional
 class ClientService : IClientService, Serializable {
     private val logger: Logger = Logger.getLogger(ClientService::class.java)

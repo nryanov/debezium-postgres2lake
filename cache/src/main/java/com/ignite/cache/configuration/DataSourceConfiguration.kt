@@ -23,7 +23,7 @@ import javax.sql.DataSource
 @EnableTransactionManagement
 @EnableJpaRepositories(basePackages = arrayOf("com.ignite.cache.model.repositories.springdatarepository"))
 @EnableIgniteRepositories(basePackages = arrayOf("com.ignite.cache.model.repositories.igniterepository"))
-@ComponentScan(basePackages = arrayOf("com.ignite.cache.model"))
+//@ComponentScan(basePackages = arrayOf("com.ignite.cache.model"))
 open class DataSourceConfiguration : Serializable {
 
     @Bean

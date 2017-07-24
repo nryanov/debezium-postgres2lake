@@ -4,9 +4,12 @@ import com.ignite.cache.model.entity.Client;
 import com.ignite.cache.model.service.interfaces.IClientService;
 import org.apache.ignite.cache.store.CacheStore;
 import org.apache.ignite.lang.IgniteBiInClosure;
+import org.apache.ignite.resources.SpringApplicationContextResource;
 import org.apache.ignite.resources.SpringResource;
 import org.apache.log4j.Logger;
 import org.jetbrains.annotations.Nullable;
+import org.springframework.context.ApplicationContext;
+import org.springframework.data.annotation.Transient;
 
 import javax.cache.Cache;
 import javax.cache.integration.CacheLoaderException;
@@ -22,11 +25,15 @@ import java.util.Map;
 public class ClientStore implements CacheStore<Long, Client>, Serializable {
     private Logger logger = Logger.getLogger(ClientStore.class);
 
-    @SpringResource(resourceName = "clientService")
-    private IClientService clientRepository;
+//    @SpringResource(resourceClass = ClientService.class)
+    private transient IClientService clientRepository;
+
+    @SpringApplicationContextResource
+    private ApplicationContext context;
 
     @Override
     public void loadCache(IgniteBiInClosure<Long, Client> igniteBiInClosure, @Nullable Object... objects) throws CacheLoaderException {
+        clientRepository = context.getBean(ClientService.class);
         Iterable<Client> clients = clientRepository.findAll();
 
         for(Client client : clients) {
