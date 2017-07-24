@@ -15,6 +15,6 @@ import org.springframework.context.annotation.Configuration
 open class AppConfiguration {
     private val logger: Logger = Logger.getLogger(AppConfiguration::class.java)
 
-    @Bean
-    open fun ignite() : Ignite = Ignition.start("ignite-cache.xml")
+//    @Bean
+//    open fun ignite() : Ignite = Ignition.start("ignite-ehcache.xml")
 }

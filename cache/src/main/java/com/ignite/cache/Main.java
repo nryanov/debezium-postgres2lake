@@ -1,7 +1,6 @@
 package com.ignite.cache;
 
 import com.ignite.cache.configuration.AppConfiguration;
-import com.ignite.cache.configuration.DataSourceConfiguration;
 import com.ignite.cache.model.entity.Client;
 import com.ignite.cache.model.service.interfaces.IClientService;
 import org.apache.log4j.Logger;
@@ -15,21 +14,17 @@ public class Main {
     private static Logger logger = Logger.getLogger(Main.class);
 
     public static void main(String[] args) {
-        ApplicationContext context = new AnnotationConfigApplicationContext(AppConfiguration.class, DataSourceConfiguration.class);
+        ApplicationContext context = new AnnotationConfigApplicationContext(AppConfiguration.class);
         IClientService clientService = context.getBean(IClientService.class);
 
         logger.info("First query");
-        Iterable<Client> clients = clientService.findAll();
+        Client clients = clientService.findOne(1l);
 
-        for(Client client : clients) {
-            logger.info(client);
-        }
+        logger.info(clients);
 
         logger.info("Cached query");
-        clients = clientService.findAll();
+        clients = clientService.findOne(1l);
 
-        for(Client client : clients) {
-            logger.info(client);
-        }
+        logger.info(clients);
     }
 }

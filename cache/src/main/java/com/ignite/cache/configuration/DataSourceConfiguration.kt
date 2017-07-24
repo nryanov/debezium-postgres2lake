@@ -46,12 +46,15 @@ open class DataSourceConfiguration : Serializable {
                 put("hibernate.globally_quoted_identifiers", "false")
                 put("hibernate.enable_lazy_load_no_trans", "true")
                 put("hibernate.show_sql", "true")
-                // CACHE L2 Ignite
+                // CACHE L2
                 put("hibernate.cache.use_second_level_cache", "true")
                 put("hibernate.cache.use_query_cache", "true")
-                put("hibernate.cache.region.factory_class", "org.apache.ignite.cache.hibernate.HibernateRegionFactory")
-                put("org.apache.ignite.hibernate.ignite_instance_name", "clientGrid")
-                put("org.apache.ignite.hibernate.default_access_type", "READ_ONLY")
+                put("hibernate.cache.region.factory_class", "org.hibernate.cache.ehcache.EhCacheRegionFactory")
+                put("org.hibernate.cache.ehcache.configurationResourceName", "ehcache.xml")
+                // Ignite cache
+//                put("hibernate.cache.region.factory_class", "org.apache.ignite.cache.hibernate.HibernateRegionFactory")
+//                put("org.apache.ignite.hibernate.ignite_instance_name", "clientGrid")
+//                put("org.apache.ignite.hibernate.default_access_type", "READ_ONLY")
             }
 
             jpaVendorAdapter = vendorAdapter
