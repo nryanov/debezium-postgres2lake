@@ -1,4 +1,4 @@
-package com.ignite.cache.model.repositories.springdatarepository
+package com.ignite.cache.model.repositories
 
 import com.ignite.cache.model.entity.Client
 import org.springframework.data.repository.CrudRepository

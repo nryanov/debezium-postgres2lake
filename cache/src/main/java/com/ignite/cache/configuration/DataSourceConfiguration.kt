@@ -1,7 +1,6 @@
 package com.ignite.cache.configuration
 
 import com.mchange.v2.c3p0.ComboPooledDataSource
-import org.apache.ignite.springdata.repository.config.EnableIgniteRepositories
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.ComponentScan
 import org.springframework.context.annotation.Configuration
@@ -21,9 +20,8 @@ import javax.sql.DataSource
  */
 @Configuration
 @EnableTransactionManagement
-@EnableJpaRepositories(basePackages = arrayOf("com.ignite.cache.model.repositories.springdatarepository"))
-@EnableIgniteRepositories(basePackages = arrayOf("com.ignite.cache.model.repositories.igniterepository"))
-//@ComponentScan(basePackages = arrayOf("com.ignite.cache.model"))
+@EnableJpaRepositories(basePackages = arrayOf("com.ignite.cache.model.repositories"))
+@ComponentScan(basePackages = arrayOf("com.ignite.cache.model"))
 open class DataSourceConfiguration : Serializable {
 
     @Bean
@@ -44,10 +42,16 @@ open class DataSourceConfiguration : Serializable {
             var properties: Properties = Properties()
 
             properties.apply {
-                put("database.dialet", "org.hibernate.dialect.PostgreSQL95Dialect")
-                put("database.globally_quoted_identifiers", "false")
-                put("database.enable_lazy_load_no_trans", "true")
-                put("database.show_sql", "true")
+                put("hibernate.dialet", "org.hibernate.dialect.PostgreSQL95Dialect")
+                put("hibernate.globally_quoted_identifiers", "false")
+                put("hibernate.enable_lazy_load_no_trans", "true")
+                put("hibernate.show_sql", "true")
+                // CACHE L2 Ignite
+                put("hibernate.cache.use_second_level_cache", "true")
+                put("hibernate.cache.use_query_cache", "true")
+                put("hibernate.cache.region.factory_class", "org.apache.ignite.cache.hibernate.HibernateRegionFactory")
+                put("org.apache.ignite.hibernate.ignite_instance_name", "clientGrid")
+                put("org.apache.ignite.hibernate.default_access_type", "READ_ONLY")
             }
 
             jpaVendorAdapter = vendorAdapter

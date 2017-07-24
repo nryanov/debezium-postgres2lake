@@ -4,10 +4,9 @@
     <facet type="Spring" name="Spring">
       <configuration>
         <fileset id="fileset" name="Spring Application Context" removed="false">
-          <file>file://$MODULE_DIR$/src/main/java/com/ignite/cache/configuration/AppConfiguration.kt</file>
-          <file>file://$MODULE_DIR$/src/main/java/com/ignite/cache/configuration/ignite.xml</file>
-          <file>file://$MODULE_DIR$/src/main/resources/context.xml</file>
           <file>file://$MODULE_DIR$/src/main/java/com/ignite/cache/configuration/DataSourceConfiguration.kt</file>
+          <file>file://$MODULE_DIR$/src/main/resources/ignite-cache.xml</file>
+          <file>file://$MODULE_DIR$/src/main/java/com/ignite/cache/configuration/AppConfiguration.kt</file>
         </fileset>
       </configuration>
     </facet>
@@ -51,6 +50,7 @@
     <orderEntry type="library" name="Maven: org.springframework.data:spring-data-commons:1.13.1.RELEASE" level="project" />
     <orderEntry type="library" name="Maven: org.apache.ignite:ignite-spring:2.0.0" level="project" />
     <orderEntry type="library" name="Maven: commons-logging:commons-logging:1.1.1" level="project" />
+    <orderEntry type="library" name="Maven: org.apache.ignite:ignite-hibernate_5.1:2.0.0" level="project" />
     <orderEntry type="library" name="Maven: org.springframework:spring-core:4.3.9.RELEASE" level="project" />
     <orderEntry type="library" name="Maven: org.springframework:spring-context-support:4.3.9.RELEASE" level="project" />
     <orderEntry type="library" name="Maven: org.springframework:spring-beans:4.3.9.RELEASE" level="project" />

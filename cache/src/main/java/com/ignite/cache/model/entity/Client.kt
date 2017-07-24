@@ -1,5 +1,7 @@
 package com.ignite.cache.model.entity
 
+import org.hibernate.annotations.Cache
+import org.hibernate.annotations.CacheConcurrencyStrategy
 import org.hibernate.annotations.GenericGenerator
 import java.io.Serializable
 import javax.persistence.*
@@ -9,6 +11,8 @@ import javax.persistence.*
  */
 @Entity
 @Table(name = "client")
+@Cacheable
+@Cache(usage = CacheConcurrencyStrategy.READ_ONLY, region = "com.ignite.cache.model.entity.Client")
 data class Client
 (
         @Id

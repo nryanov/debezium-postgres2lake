@@ -1,8 +1,9 @@
 package com.ignite.cache.model.service
 
 import com.ignite.cache.model.entity.Client
-import com.ignite.cache.model.repositories.springdatarepository.ClientRepository
+import com.ignite.cache.model.repositories.ClientRepository
 import com.ignite.cache.model.service.interfaces.IClientService
+import org.apache.ignite.resources.SpringResource
 import org.apache.log4j.Logger
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
