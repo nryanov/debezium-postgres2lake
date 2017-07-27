@@ -22,7 +22,7 @@
         <property name="cacheConfiguration">
             <list>
                 <bean parent="transactional-cache">
-                    <property name="name" value="com.ignite.cache.model.entity.Client"/>
+                    <property name="name" value="com.hibernate.cache.model.entity.Client"/>
                 </bean>
                 <bean parent="atomic-cache">
                     <property name="name" value="org.hibernate.cache.spi.UpdateTimestampsCache"/>

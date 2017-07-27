@@ -8,6 +8,10 @@
           <file>file://$MODULE_DIR$/src/main/resources/ignite-cache.xml</file>
           <file>file://$MODULE_DIR$/src/main/java/com/ignite/cache/configuration/AppConfiguration.kt</file>
         </fileset>
+        <fileset id="fileset2" name="SpringCache" removed="false">
+          <file>file://$MODULE_DIR$/src/main/java/springcache/configuration/AppConfiguration.kt</file>
+          <file>file://$MODULE_DIR$/src/main/java/springcache/configuration/DataSourceConfiguration.kt</file>
+        </fileset>
       </configuration>
     </facet>
     <facet type="kotlin-language" name="Kotlin">
