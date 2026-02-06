@@ -1,19 +1,45 @@
 plugins {
-    id("java")
+    id("java-platform")
+    id("io.quarkus") version "3.31.2" apply false
 }
 
-group = "com.nryanov.kafka.connect.toolkit"
-version = "1.0-SNAPSHOT"
+allprojects {
+    group = "com.nryanov.debezium.server.lake"
+    version = "0.1.0"
 
-repositories {
-    mavenCentral()
+    repositories {
+        mavenCentral()
+        maven {
+            name = "Confluent"
+            url = uri("https://packages.confluent.io/maven/")
+        }
+    }
 }
 
 dependencies {
-    testImplementation(platform("org.junit:junit-bom:5.10.0"))
-    testImplementation("org.junit.jupiter:junit-jupiter")
+    constraints {
+        api(platform(libs.debezium.server.bom))
+        api(platform(libs.debezium.bom))
+        api(platform(libs.iceberg.bom))
+        api(platform(libs.testcontainers.bom))
+    }
 }
 
-tasks.test {
-    useJUnitPlatform()
+subprojects {
+    apply(plugin = "java")
+    apply(plugin = "io.quarkus")
+
+    extensions.configure<JavaPluginExtension> {
+        toolchain {
+            languageVersion.set(JavaLanguageVersion.of(21))
+        }
+    }
+
+    tasks.withType<JavaCompile>().configureEach {
+        options.encoding = "UTF-8"
+    }
+
+    tasks.withType<Test> {
+        useJUnitPlatform()
+    }
 }
