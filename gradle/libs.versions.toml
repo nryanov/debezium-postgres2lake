@@ -1,0 +1,14 @@
+[versions]
+quarkus = "3.31.2"
+# test dependencies
+junit = "5.12.2"
+testcontsiners = "2.0.3"
+
+[libraries]
+quarkus-platform = { group = "io.quarkus.platform", name = "quarkus-bom", version.ref = "quarkus" }
+
+# test dependencies
+junit-bom = { group = "org.junit", name = "junit-bom", version.ref = "junit" }
+testcontainers-bom = { group = "org.testcontainers", name = "testcontainers-bom", version.ref = "testcontsiners" }
+
+[plugins]
