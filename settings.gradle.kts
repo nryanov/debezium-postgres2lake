@@ -9,12 +9,4 @@ pluginManagement {
     }
 }
 
-rootProject.name = "debezium-server-lake"
-
-include(
-    ":debezium-server-lake-dist",
-    ":debezium-server-parquet-sink",
-    ":debezium-server-orc-sink",
-    ":debezium-server-iceberg-sink",
-    ":debezium-server-paimon-sink"
-)
+rootProject.name = "debezium-postgres2lake"

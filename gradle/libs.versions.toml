@@ -1,19 +1,14 @@
 [versions]
-debezium = "3.4.1.Final"
-iceberg = "1.10.1"
-# tests
-testcontainers = "2.0.3"
+quarkus = "3.31.2"
+# test dependencies
+junit = "5.12.2"
+testcontsiners = "2.0.3"
 
 [libraries]
-debezium-server-bom = { group = "io.debezium", name = "debezium-server-bom", version.ref = "debezium" }
-debezium-bom = { group = "io.debezium", name = "debezium-bom", version.ref = "debezium" }
+quarkus-platform = { group = "io.quarkus.platform", name = "quarkus-bom", version.ref = "quarkus" }
 
-debezium-server-dist = { group = "io.debezium", name = "debezium-server-dist", version.ref = "debezium" }
-
-iceberg-bom = { group = "org.apache.iceberg", name = "iceberg-bom", version.ref = "iceberg" }
-
-# tests
-testcontainers-bom = { group = "org.testcontainers", name = "testcontainers-bom", version.ref = "testcontainers" }
+# test dependencies
+junit-bom = { group = "org.junit", name = "junit-bom", version.ref = "junit" }
+testcontainers-bom = { group = "org.testcontainers", name = "testcontainers-bom", version.ref = "testcontsiners" }
 
 [plugins]
-

@@ -1,7 +1,6 @@
-.gradle/
-.idea/
+.gradle
 build/
 target/
+.idea/
 *.iml
-gradle/wrapper/gradle-wrapper.jar
 .DS_Store
