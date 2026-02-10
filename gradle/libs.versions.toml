@@ -1,11 +1,13 @@
 [versions]
 quarkus = "3.31.2"
+debezium = "3.4.1.Final"
 # test dependencies
 junit = "5.12.2"
 testcontsiners = "2.0.3"
 
 [libraries]
 quarkus-platform = { group = "io.quarkus.platform", name = "quarkus-bom", version.ref = "quarkus" }
+debezium-platform = { group = "io.debezium", name = "debezium-bom", version.ref = "debezium" }
 
 # test dependencies
 junit-bom = { group = "org.junit", name = "junit-bom", version.ref = "junit" }

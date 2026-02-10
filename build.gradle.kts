@@ -12,9 +12,28 @@ repositories {
 }
 
 dependencies {
-    implementation(enforcedPlatform(libs.quarkus.platform))
+    implementation(enforcedPlatform(libs.quarkus.platform)) {
+        // prefer debezium versions
+        exclude(group = "com.google.protobuf", module = "protobuf-java")
+    }
+    implementation(enforcedPlatform(libs.debezium.platform)) {
+        // prefer quarkus versions
+        exclude(group = "org.slf4j", module = "slf4j-api")
+        exclude(group = "com.fasterxml.jackson.core")
+        exclude(group = "com.fasterxml.jackson.datatype")
+        exclude(group = "org.postgresql")
+        exclude(group = "io.netty")
+    }
+
+    // quarkus
     implementation("io.quarkus.arc:arc")
     implementation("io.quarkus:quarkus-core")
+    implementation("io.quarkus:quarkus-micrometer-registry-prometheus")
+    // debezium
+    implementation("io.debezium:debezium-core")
+    implementation("io.debezium:debezium-api")
+    implementation("io.debezium:debezium-embedded")
+    implementation("io.debezium:debezium-connector-postgres")
 
     // Test dependencies
     testImplementation(platform(libs.junit.bom))
