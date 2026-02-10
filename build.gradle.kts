@@ -34,6 +34,10 @@ dependencies {
     implementation("io.debezium:debezium-api")
     implementation("io.debezium:debezium-embedded")
     implementation("io.debezium:debezium-connector-postgres")
+    // parquet
+    implementation(libs.parquet.avro) {
+        exclude(group = "org.slf4j", module = "slf4j-api")
+    }
 
     // Test dependencies
     testImplementation(platform(libs.junit.bom))
