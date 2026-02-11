@@ -4,10 +4,12 @@ import io.debezium.connector.postgresql.PostgresConnector;
 import io.debezium.engine.ChangeEvent;
 import io.debezium.engine.DebeziumEngine;
 import io.debezium.engine.format.Json;
+import io.debezium.postgres2lake.engine.avro.AvroBinaryConverter;
 import io.quarkus.runtime.ShutdownEvent;
 import io.quarkus.runtime.StartupEvent;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Observes;
+import org.apache.kafka.connect.storage.MemoryOffsetBackingStore;
 import org.jboss.logging.Logger;
 
 import java.io.IOException;
@@ -79,6 +81,12 @@ public class DebeziumEngineFactory {
         properties.setProperty("plugin.name", "pgoutput");
         properties.setProperty("snapshot.mode", "NO_DATA");
         properties.setProperty("topic.prefix", "default");
+
+        // offset storage
+        properties.setProperty("offset.storage", MemoryOffsetBackingStore.class.getName());
+        // avro
+        properties.setProperty("key.converter.delegate.converter.type", AvroBinaryConverter.class.getName());
+        properties.setProperty("value.converter.delegate.converter.type", AvroBinaryConverter.class.getName());
 
         return properties;
     }

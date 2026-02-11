@@ -9,6 +9,9 @@ version = "0.1.0"
 repositories {
     mavenCentral()
     mavenLocal()
+    maven {
+        url = uri("https://packages.confluent.io/maven")
+    }
 }
 
 dependencies {
@@ -38,6 +41,8 @@ dependencies {
     implementation(libs.parquet.avro) {
         exclude(group = "org.slf4j", module = "slf4j-api")
     }
+    // avro
+    implementation(libs.confluent.avro)
 
     // Test dependencies
     testImplementation(platform(libs.junit.bom))

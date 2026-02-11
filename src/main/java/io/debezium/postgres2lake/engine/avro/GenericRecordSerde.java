@@ -2,6 +2,7 @@ package io.debezium.postgres2lake.engine.avro;
 
 import io.debezium.engine.ChangeEvent;
 import io.debezium.postgres2lake.engine.EventRecord;
+import jakarta.enterprise.context.ApplicationScoped;
 import org.apache.avro.file.DataFileReader;
 import org.apache.avro.file.SeekableByteArrayInput;
 import org.apache.avro.generic.GenericDatumReader;
@@ -9,8 +10,9 @@ import org.apache.avro.generic.GenericRecord;
 
 import java.io.IOException;
 
-public class GenericRecordConverter {
-    public EventRecord convert(ChangeEvent<Object, Object> event) {
+@ApplicationScoped
+public class GenericRecordSerde {
+    public EventRecord deserialize(ChangeEvent<Object, Object> event) {
         var keyPart = (byte[]) event.key();
         var valuePart = (byte[]) event.value();
 
