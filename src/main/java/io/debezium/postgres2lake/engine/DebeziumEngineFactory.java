@@ -3,7 +3,7 @@ package io.debezium.postgres2lake.engine;
 import io.debezium.connector.postgresql.PostgresConnector;
 import io.debezium.engine.ChangeEvent;
 import io.debezium.engine.DebeziumEngine;
-import io.debezium.engine.format.Json;
+import io.debezium.engine.format.Binary;
 import io.debezium.postgres2lake.engine.avro.AvroBinaryConverter;
 import io.quarkus.runtime.ShutdownEvent;
 import io.quarkus.runtime.StartupEvent;
@@ -22,25 +22,20 @@ import java.util.concurrent.TimeUnit;
 public class DebeziumEngineFactory {
     private static final Logger logger = Logger.getLogger(DebeziumEngineFactory.class);
 
-    private DebeziumEngine<ChangeEvent<String, String>> engine;
+    private DebeziumEngine<ChangeEvent<Object, Object>> engine;
     private ExecutorService executor;
+
+    private final EventConsumer eventConsumer;
+
+    public DebeziumEngineFactory(EventConsumer eventConsumer) {
+        this.eventConsumer = eventConsumer;
+    }
 
     public void initialize() {
         var properties = properties();
-        engine = DebeziumEngine.create(Json.class)
+        engine = DebeziumEngine.create(Binary.class)
                 .using(properties)
-                .notifying((records, committer) -> {
-                    records.forEach(record -> {
-                        logger.infof("Record: %s", record.value());
-                        try {
-                            committer.markProcessed(record);
-                        } catch (InterruptedException e) {
-                            throw new RuntimeException(e);
-                        }
-                    });
-
-                    committer.markBatchFinished();
-                })
+                .notifying(eventConsumer)
                 .build();
 
         executor = Executors.newSingleThreadExecutor();

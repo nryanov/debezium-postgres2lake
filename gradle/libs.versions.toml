@@ -3,6 +3,8 @@ quarkus = "3.31.2"
 debezium = "3.4.1.Final"
 parquet = "1.17.0"
 confluent = "8.1.1"
+awssdk = "2.41.24"
+hadoop = "3.4.1"
 # test dependencies
 junit = "5.12.2"
 testcontsiners = "2.0.3"
@@ -10,9 +12,13 @@ testcontsiners = "2.0.3"
 [libraries]
 quarkus-platform = { group = "io.quarkus.platform", name = "quarkus-bom", version.ref = "quarkus" }
 debezium-platform = { group = "io.debezium", name = "debezium-bom", version.ref = "debezium" }
+aws-platform = { group = "software.amazon.awssdk", name = "bom", version.ref = "awssdk" }
 
 parquet-avro = { group = "org.apache.parquet", name = "parquet-avro", version.ref = "parquet" }
 confluent-avro = { group = "io.confluent", name = "kafka-connect-avro-converter", version.ref = "confluent" }
+
+hadoop-common = { group = "org.apache.hadoop", name = "hadoop-common", version.ref = "hadoop" }
+hadoop-aws = { group = "org.apache.hadoop", name = "hadoop-aws", version.ref = "hadoop" }
 
 # test dependencies
 junit-bom = { group = "org.junit", name = "junit-bom", version.ref = "junit" }

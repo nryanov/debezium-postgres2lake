@@ -24,10 +24,25 @@ dependencies {
         exclude(group = "org.slf4j", module = "slf4j-api")
         exclude(group = "com.fasterxml.jackson.core")
         exclude(group = "com.fasterxml.jackson.datatype")
+        exclude(group = "com.fasterxml.jackson.dataformat")
         exclude(group = "org.postgresql")
         exclude(group = "io.netty")
     }
+    implementation(enforcedPlatform(libs.aws.platform))
 
+    // s3
+    implementation("software.amazon.awssdk:aws-core")
+    implementation("software.amazon.awssdk:regions")
+    implementation("software.amazon.awssdk:auth")
+    implementation("software.amazon.awssdk:sdk-core")
+    implementation("software.amazon.awssdk:http-auth")
+    implementation("software.amazon.awssdk:s3-transfer-manager")
+    implementation("software.amazon.awssdk:netty-nio-client")
+    // hadoop
+    implementation(libs.hadoop.common)
+    implementation(libs.hadoop.aws) {
+        exclude(group = "software.amazon.awssdk", module = "bundle")
+    }
     // quarkus
     implementation("io.quarkus.arc:arc")
     implementation("io.quarkus:quarkus-core")
