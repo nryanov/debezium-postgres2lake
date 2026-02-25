@@ -22,6 +22,8 @@ dependencies {
     implementation(enforcedPlatform(libs.debezium.platform)) {
         // prefer quarkus versions
         exclude(group = "org.slf4j", module = "slf4j-api")
+        exclude(group = "io.grpc")
+        exclude(group = "com.google.api.grpc")
         exclude(group = "com.fasterxml.jackson.core")
         exclude(group = "com.fasterxml.jackson.datatype")
         exclude(group = "com.fasterxml.jackson.dataformat")
@@ -40,8 +42,13 @@ dependencies {
     implementation("software.amazon.awssdk:netty-nio-client")
     // hadoop
     implementation(libs.hadoop.common)
+    implementation(libs.hadoop.client)
     implementation(libs.hadoop.aws) {
         exclude(group = "software.amazon.awssdk", module = "bundle")
+    }
+    // hive
+    implementation("org.apache.hive:hive-exec:4.2.0") {
+        exclude(group = "org.slf4j", module = "slf4j-api")
     }
     // quarkus
     implementation("io.quarkus.arc:arc")
@@ -54,6 +61,10 @@ dependencies {
     implementation("io.debezium:debezium-connector-postgres")
     // parquet
     implementation(libs.parquet.avro) {
+        exclude(group = "org.slf4j", module = "slf4j-api")
+    }
+    // orc
+    implementation(libs.orc.core) {
         exclude(group = "org.slf4j", module = "slf4j-api")
     }
     // avro

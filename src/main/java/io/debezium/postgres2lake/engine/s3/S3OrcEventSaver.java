@@ -2,20 +2,16 @@ package io.debezium.postgres2lake.engine.s3;
 
 import io.debezium.postgres2lake.engine.EventCommitter;
 import io.debezium.postgres2lake.engine.EventRecord;
-import jakarta.enterprise.context.ApplicationScoped;
 import org.apache.avro.Schema;
-import org.apache.avro.generic.GenericRecord;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
-import org.apache.parquet.avro.AvroParquetWriter;
-import org.apache.parquet.hadoop.ParquetWriter;
-import org.apache.parquet.hadoop.metadata.CompressionCodecName;
-import org.apache.parquet.hadoop.util.HadoopOutputFile;
+import org.apache.orc.CompressionKind;
+import org.apache.orc.OrcFile;
+import org.apache.orc.TypeDescription;
+import org.apache.orc.Writer;
 import org.jboss.logging.Logger;
 
 import java.io.IOException;
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -26,12 +22,11 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
-@ApplicationScoped
-public class S3ParquetEventSaver implements EventSaver {
-    private static final Logger logger = Logger.getLogger(S3ParquetEventSaver.class);
+public class S3OrcEventSaver implements EventSaver {
+    private static final Logger logger = Logger.getLogger(S3OrcEventSaver.class);
 
     private final List<EventCommitter> committers;
-    private final Map<String, ParquetWriter> openedDescriptors;
+    private final Map<String, Writer> openedDescriptors;
 
     private final Duration timeoutThreshold;
     private final int totalRecordsThreshold;
@@ -40,7 +35,7 @@ public class S3ParquetEventSaver implements EventSaver {
 
     private int currentRecords;
 
-    public S3ParquetEventSaver() {
+    public S3OrcEventSaver() {
         this.committers = new ArrayList<>();
         this.openedDescriptors = new HashMap<>();
 
@@ -66,12 +61,14 @@ public class S3ParquetEventSaver implements EventSaver {
             events.forEach(event -> {
                 var destination = event.destination();
                 var location = generateLocation("warehouse", event.destination());
-                var currentEvents = openedDescriptors.computeIfAbsent(destination, ignored -> createWriter(location, event.value().getSchema()));
+                var currentEvents = openedDescriptors.computeIfAbsent(destination, ignored -> createFileWriter(location, fromAvro(event.value().getSchema())));
 
                 try {
-                    currentEvents.write(event.value());
+                    var schema = currentEvents.getSchema();
+                    var batch = schema.createRowBatch(10 * 1000); // todo: configure batch size according to max batch from WAL poll
+//                    currentEvents.write(event.value());
                     currentRecords++;
-                } catch (IOException e) {
+                } catch (Exception e) {
                     logger.errorf(e, "Error happened while adding new avro to parquet writer: %s", e.getLocalizedMessage());
                     throw new RuntimeException(e);
                 }
@@ -115,11 +112,28 @@ public class S3ParquetEventSaver implements EventSaver {
         }
     }
 
-    private ParquetWriter<GenericRecord> createWriter(String location, Schema schema) {
-        try {
-            logger.infof("Opening parquet writer for `%s`", location);
-            var path = new Path(new URI(location));
+    private TypeDescription fromAvro(Schema schema) {
+        return switch (schema.getType()) {
+            case ARRAY -> null;
+            case STRING -> null;
+            case BYTES -> null;
+            case BOOLEAN -> null;
+            case MAP -> null;
+            case INT -> null;
+            case ENUM -> null;
+            case LONG -> null;
+            case FIXED -> null;
+            case FLOAT -> null;
+            case UNION -> null;
+            case DOUBLE -> null;
+            case RECORD -> null;
+            case NULL -> null;
+            case null -> throw new IllegalArgumentException("Unsupported type");
+        };
+    }
 
+    private Writer createFileWriter(String location, TypeDescription schema) {
+        try {
             // todo: get values from config
             var config = new Configuration();
             config.set("fs.s3a.access.key", "admin");
@@ -128,22 +142,31 @@ public class S3ParquetEventSaver implements EventSaver {
             config.set("fs.s3a.path.style.access", "true");
             config.set("fs.s3a.endpoint", "http://localhost:9000");
 
-            var builder = AvroParquetWriter
-                    .<GenericRecord>builder(HadoopOutputFile.fromPath(path, config))
-                    // todo: bloom, NDV, stats
-                    .withCompressionCodec(CompressionCodecName.ZSTD)
-                    .withSchema(schema);
-            var writer = builder.build();
+            var options = OrcFile.writerOptions(config)
+                    .setSchema(schema)
+                    .stripeSize(64 * 1024 * 1024) // 64 Mb
+                    .useUTCTimestamp(true)
+                    .compress(CompressionKind.ZSTD)
+                    .callback(new OrcFile.WriterCallback() {
+                        @Override
+                        public void preStripeWrite(OrcFile.WriterContext context) throws IOException {
+                            logger.infof("""
+                                    PRE-STRIPE-WRITE statistics:
+                                    rows: %s
+                                    memory: %s
+                                    """, context.getWriter().getNumberOfRows(), context.getWriter().estimateMemory());
+                        }
 
-            logger.infof("Successfully opened writer for `%s`", location);
+                        @Override
+                        public void preFooterWrite(OrcFile.WriterContext context) throws IOException {
 
+                        }
+                    });
+
+
+            var writer = OrcFile.createWriter(new Path(location), options);
             return writer;
-        } catch (URISyntaxException e) {
-            // todo: domain URI error
-            throw new RuntimeException(e);
         } catch (IOException e) {
-            // todo: domain IO error
-            logger.errorf(e, "Error happened while creating parquet writer: %s", e.getLocalizedMessage());
             throw new RuntimeException(e);
         }
     }
