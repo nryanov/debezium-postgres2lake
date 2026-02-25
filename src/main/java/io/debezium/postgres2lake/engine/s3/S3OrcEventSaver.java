@@ -2,9 +2,12 @@ package io.debezium.postgres2lake.engine.s3;
 
 import io.debezium.postgres2lake.engine.EventCommitter;
 import io.debezium.postgres2lake.engine.EventRecord;
+import jakarta.enterprise.context.ApplicationScoped;
 import org.apache.avro.Schema;
+import org.apache.avro.generic.GenericRecord;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.hive.ql.exec.vector.LongColumnVector;
 import org.apache.orc.CompressionKind;
 import org.apache.orc.OrcFile;
 import org.apache.orc.TypeDescription;
@@ -22,6 +25,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
+@ApplicationScoped
 public class S3OrcEventSaver implements EventSaver {
     private static final Logger logger = Logger.getLogger(S3OrcEventSaver.class);
 
@@ -61,14 +65,31 @@ public class S3OrcEventSaver implements EventSaver {
             events.forEach(event -> {
                 var destination = event.destination();
                 var location = generateLocation("warehouse", event.destination());
-                var currentEvents = openedDescriptors.computeIfAbsent(destination, ignored -> createFileWriter(location, fromAvro(event.value().getSchema())));
+                var currentEvents = openedDescriptors.computeIfAbsent(destination, ignored -> createFileWriter(location, fromAvro(event.flattenSchema())));
 
                 try {
                     var schema = currentEvents.getSchema();
-                    var batch = schema.createRowBatch(10 * 1000); // todo: configure batch size according to max batch from WAL poll
-//                    currentEvents.write(event.value());
+                    var batch = schema.createRowBatch(1); // todo: configure batch size according to max batch from WAL poll
+                    batch.size += 1;
+
+                    // todo: use SMT to unwrap debezium data
+                    var value = (GenericRecord) event.value().get("after");
+                    var i = 0;
+                    // todo: map types correctly. Currently only long is supported
+                    logger.infof("Fields: %s", value.getSchema().getFields());
+                    for (var field : value.getSchema().getFields()) {
+                        var fieldValue = value.get(field.name());
+                        var vector = batch.cols[i++];
+//                        vector.isNull[0] = false;
+                        var longVector = (LongColumnVector) vector;
+                        longVector.vector[0] = (Long) fieldValue;
+                    }
+
+                    logger.infof("Batch: %s", batch.count());
                     currentRecords++;
-                } catch (Exception e) {
+                    currentEvents.addRowBatch(batch);
+                    batch.reset();
+                } catch (IOException e) {
                     logger.errorf(e, "Error happened while adding new avro to parquet writer: %s", e.getLocalizedMessage());
                     throw new RuntimeException(e);
                 }
@@ -113,23 +134,27 @@ public class S3OrcEventSaver implements EventSaver {
     }
 
     private TypeDescription fromAvro(Schema schema) {
-        return switch (schema.getType()) {
-            case ARRAY -> null;
-            case STRING -> null;
+        logger.infof("Schema: %s", schema.toString());
+        var orcSchema = switch (schema.getType()) {
+            case INT -> TypeDescription.createInt();
+            case STRING -> TypeDescription.createString();
+            case BOOLEAN -> TypeDescription.createBoolean();
+            case LONG -> TypeDescription.createLong();
+            case FLOAT -> TypeDescription.createFloat();
+            case DOUBLE -> TypeDescription.createDouble();
             case BYTES -> null;
-            case BOOLEAN -> null;
             case MAP -> null;
-            case INT -> null;
             case ENUM -> null;
-            case LONG -> null;
             case FIXED -> null;
-            case FLOAT -> null;
             case UNION -> null;
-            case DOUBLE -> null;
+            case ARRAY -> null;
             case RECORD -> null;
-            case NULL -> null;
-            case null -> throw new IllegalArgumentException("Unsupported type");
+            case null, default -> throw new IllegalArgumentException("Unsupported type");
         };
+
+        logger.infof("ORC schema: %s", orcSchema);
+//        return orcSchema;
+        return TypeDescription.createLong();
     }
 
     private Writer createFileWriter(String location, TypeDescription schema) {
@@ -146,7 +171,7 @@ public class S3OrcEventSaver implements EventSaver {
                     .setSchema(schema)
                     .stripeSize(64 * 1024 * 1024) // 64 Mb
                     .useUTCTimestamp(true)
-                    .compress(CompressionKind.ZSTD)
+//                    .compress(CompressionKind.ZSTD)
                     .callback(new OrcFile.WriterCallback() {
                         @Override
                         public void preStripeWrite(OrcFile.WriterContext context) throws IOException {
@@ -173,7 +198,7 @@ public class S3OrcEventSaver implements EventSaver {
 
     private String generateLocation(String bucket, String destination) {
         return String.format(
-                "s3a://%s/%s/%s_%s.parquet",
+                "s3a://%s/%s/%s_%s.orc",
                 bucket,
                 destination, // todo: -> schema/table/[file1, file2, .., fileN]
                 destination,

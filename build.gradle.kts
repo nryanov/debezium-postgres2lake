@@ -49,6 +49,7 @@ dependencies {
     // hive
     implementation("org.apache.hive:hive-exec:4.2.0") {
         exclude(group = "org.slf4j", module = "slf4j-api")
+        exclude(group = "asm")
     }
     // quarkus
     implementation("io.quarkus.arc:arc")

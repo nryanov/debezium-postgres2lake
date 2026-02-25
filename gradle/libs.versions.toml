@@ -2,7 +2,7 @@
 quarkus = "3.31.2"
 debezium = "3.4.1.Final"
 parquet = "1.17.0"
-orc = "1.9.8"
+orc = "2.2.2" # todo: return to 1.9.8?
 confluent = "8.1.1"
 awssdk = "2.41.24"
 hadoop = "3.4.1"
