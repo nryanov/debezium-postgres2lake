@@ -8,6 +8,7 @@ import org.apache.avro.generic.GenericRecord;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hive.ql.exec.vector.LongColumnVector;
+import org.apache.hadoop.hive.ql.exec.vector.VectorizedRowBatch;
 import org.apache.orc.CompressionKind;
 import org.apache.orc.OrcFile;
 import org.apache.orc.TypeDescription;
@@ -27,10 +28,12 @@ import java.util.stream.Stream;
 
 @ApplicationScoped
 public class S3OrcEventSaver implements EventSaver {
+    private record OpenedWriter(Writer writer, VectorizedRowBatch batch) {}
+
     private static final Logger logger = Logger.getLogger(S3OrcEventSaver.class);
 
     private final List<EventCommitter> committers;
-    private final Map<String, Writer> openedDescriptors;
+    private final Map<String, OpenedWriter> openedDescriptors;
 
     private final Duration timeoutThreshold;
     private final int totalRecordsThreshold;
@@ -65,30 +68,36 @@ public class S3OrcEventSaver implements EventSaver {
             events.forEach(event -> {
                 var destination = event.destination();
                 var location = generateLocation("warehouse", event.destination());
-                var currentEvents = openedDescriptors.computeIfAbsent(destination, ignored -> createFileWriter(location, fromAvro(event.flattenSchema())));
+                var currentEvents = openedDescriptors.computeIfAbsent(destination, ignored -> {
+                    var writer = createFileWriter(location, fromAvro(event.flattenSchema()));
+                    var batch = writer.getSchema().createRowBatch(); // todo: configure batch size
+
+                    return new OpenedWriter(writer, batch);
+                });
 
                 try {
-                    var schema = currentEvents.getSchema();
-                    var batch = schema.createRowBatch(1); // todo: configure batch size according to max batch from WAL poll
+                    var batch = currentEvents.batch;
+                    var row = batch.size;
                     batch.size += 1;
 
                     // todo: use SMT to unwrap debezium data
                     var value = (GenericRecord) event.value().get("after");
                     var i = 0;
                     // todo: map types correctly. Currently only long is supported
-                    logger.infof("Fields: %s", value.getSchema().getFields());
                     for (var field : value.getSchema().getFields()) {
                         var fieldValue = value.get(field.name());
                         var vector = batch.cols[i++];
-//                        vector.isNull[0] = false;
                         var longVector = (LongColumnVector) vector;
-                        longVector.vector[0] = (Long) fieldValue;
+                        longVector.isNull[row] = false;
+                        longVector.vector[row] = (Long) fieldValue;
                     }
 
-                    logger.infof("Batch: %s", batch.count());
                     currentRecords++;
-                    currentEvents.addRowBatch(batch);
-                    batch.reset();
+
+                    if (batch.size == batch.getMaxSize()) {
+                        currentEvents.writer.addRowBatch(batch);
+                        batch.reset();
+                    }
                 } catch (IOException e) {
                     logger.errorf(e, "Error happened while adding new avro to parquet writer: %s", e.getLocalizedMessage());
                     throw new RuntimeException(e);
@@ -115,8 +124,15 @@ public class S3OrcEventSaver implements EventSaver {
             // save events
             for (var entry : openedDescriptors.entrySet()) {
                 try {
-                    var writer = entry.getValue();
-                    writer.close();
+                    var openedFile = entry.getValue();
+
+                    if (openedFile.batch.size != 0) {
+                        logger.infof("Add rows batch: %s", openedFile.batch.count());
+                        openedFile.writer.addRowBatch(openedFile.batch);
+                        openedFile.batch.reset();
+                    }
+
+                    openedFile.writer.close();
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 }
@@ -154,7 +170,7 @@ public class S3OrcEventSaver implements EventSaver {
 
         logger.infof("ORC schema: %s", orcSchema);
 //        return orcSchema;
-        return TypeDescription.createLong();
+        return TypeDescription.createStruct().addField("field1", TypeDescription.createLong());
     }
 
     private Writer createFileWriter(String location, TypeDescription schema) {
@@ -169,22 +185,18 @@ public class S3OrcEventSaver implements EventSaver {
 
             var options = OrcFile.writerOptions(config)
                     .setSchema(schema)
-                    .stripeSize(64 * 1024 * 1024) // 64 Mb
+//                    .stripeSize(64 * 1024 * 1024) // 64 Mb
                     .useUTCTimestamp(true)
-//                    .compress(CompressionKind.ZSTD)
+                    .compress(CompressionKind.NONE)
                     .callback(new OrcFile.WriterCallback() {
                         @Override
                         public void preStripeWrite(OrcFile.WriterContext context) throws IOException {
-                            logger.infof("""
-                                    PRE-STRIPE-WRITE statistics:
-                                    rows: %s
-                                    memory: %s
-                                    """, context.getWriter().getNumberOfRows(), context.getWriter().estimateMemory());
+                            logger.infof("[PRE-STRIPE-WRITE statistics] rows: %s, memory: %s", context.getWriter().getNumberOfRows(), context.getWriter().estimateMemory());
                         }
 
                         @Override
                         public void preFooterWrite(OrcFile.WriterContext context) throws IOException {
-
+                            logger.infof("Footer write");
                         }
                     });
 
