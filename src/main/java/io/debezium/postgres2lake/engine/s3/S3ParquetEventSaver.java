@@ -27,7 +27,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
 @ApplicationScoped
-public class S3ParquetEventSaver {
+public class S3ParquetEventSaver implements EventSaver {
     private static final Logger logger = Logger.getLogger(S3ParquetEventSaver.class);
 
     private final List<EventCommitter> committers;
@@ -53,6 +53,7 @@ public class S3ParquetEventSaver {
         this.scheduledExecutor.scheduleWithFixedDelay(() -> attemptToDumpCurrentData(true), timeoutThreshold.toMillis(), timeoutThreshold.toMillis(), TimeUnit.MILLISECONDS);
     }
 
+    @Override
     public void save(Stream<EventRecord> events, EventCommitter committer) {
         attemptToDumpCurrentData(false);
         backlogData(events, committer);
@@ -119,6 +120,7 @@ public class S3ParquetEventSaver {
             logger.infof("Opening parquet writer for `%s`", location);
             var path = new Path(new URI(location));
 
+            // todo: get values from config
             var config = new Configuration();
             config.set("fs.s3a.access.key", "admin");
             config.set("fs.s3a.secret.key", "password");
