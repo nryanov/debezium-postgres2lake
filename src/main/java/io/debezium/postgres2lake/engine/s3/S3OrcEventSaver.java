@@ -1,0 +1,325 @@
+package io.debezium.postgres2lake.engine.s3;
+
+import io.debezium.postgres2lake.engine.EventCommitter;
+import io.debezium.postgres2lake.engine.EventRecord;
+import jakarta.enterprise.context.ApplicationScoped;
+import org.apache.avro.Schema;
+import org.apache.avro.generic.GenericRecord;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.hive.ql.exec.vector.BytesColumnVector;
+import org.apache.hadoop.hive.ql.exec.vector.ColumnVector;
+import org.apache.hadoop.hive.ql.exec.vector.DoubleColumnVector;
+import org.apache.hadoop.hive.ql.exec.vector.ListColumnVector;
+import org.apache.hadoop.hive.ql.exec.vector.LongColumnVector;
+import org.apache.hadoop.hive.ql.exec.vector.MapColumnVector;
+import org.apache.hadoop.hive.ql.exec.vector.StructColumnVector;
+import org.apache.hadoop.hive.ql.exec.vector.TimestampColumnVector;
+import org.apache.hadoop.hive.ql.exec.vector.VectorizedRowBatch;
+import org.apache.orc.CompressionKind;
+import org.apache.orc.OrcFile;
+import org.apache.orc.TypeDescription;
+import org.apache.orc.Writer;
+import org.jboss.logging.Logger;
+
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Stream;
+
+@ApplicationScoped
+public class S3OrcEventSaver implements EventSaver {
+    private record OpenedWriter(Writer writer, VectorizedRowBatch batch) {}
+
+    private static final Logger logger = Logger.getLogger(S3OrcEventSaver.class);
+
+    private final List<EventCommitter> committers;
+    private final Map<String, OpenedWriter> openedDescriptors;
+
+    private final Duration timeoutThreshold;
+    private final int totalRecordsThreshold;
+
+    private final ScheduledExecutorService scheduledExecutor;
+
+    private int currentRecords;
+
+    public S3OrcEventSaver() {
+        this.committers = new ArrayList<>();
+        this.openedDescriptors = new HashMap<>();
+
+        this.timeoutThreshold = Duration.ofMinutes(5);
+        this.totalRecordsThreshold = 10;
+
+        this.currentRecords = 0;
+
+        this.scheduledExecutor = Executors.newScheduledThreadPool(1);
+        this.scheduledExecutor.scheduleWithFixedDelay(() -> attemptToDumpCurrentData(true), timeoutThreshold.toMillis(), timeoutThreshold.toMillis(), TimeUnit.MILLISECONDS);
+    }
+
+    @Override
+    public void save(Stream<EventRecord> events, EventCommitter committer) {
+        attemptToDumpCurrentData(false);
+        backlogData(events, committer);
+    }
+
+    @SuppressWarnings({"unchecked", "resource"})
+    private void backlogData(Stream<EventRecord> events, EventCommitter committer) {
+        synchronized (this) {
+            logger.info("Append records (stream)");
+            events.forEach(event -> {
+                var destination = event.destination();
+                var location = generateLocation("warehouse", event.destination());
+                var currentEvents = openedDescriptors.computeIfAbsent(destination, ignored -> {
+                    var writer = createFileWriter(location, avroToOrcSchema(event.flattenSchema()));
+                    var batch = writer.getSchema().createRowBatch(); // todo: configure batch size
+
+                    return new OpenedWriter(writer, batch);
+                });
+
+                try {
+                    var batch = currentEvents.batch;
+                    var row = batch.size;
+                    batch.size += 1;
+
+                    // todo: use SMT to unwrap debezium data
+                    var value = (GenericRecord) event.value().get("after");
+                    saveRecord(value, currentEvents.writer.getSchema(), row, batch);
+                    currentRecords++;
+
+                    if (batch.size == batch.getMaxSize()) {
+                        currentEvents.writer.addRowBatch(batch);
+                        batch.reset();
+                    }
+                } catch (IOException e) {
+                    logger.errorf(e, "Error happened while adding new avro to parquet writer: %s", e.getLocalizedMessage());
+                    throw new RuntimeException(e);
+                }
+            });
+
+            committers.add(committer);
+            logger.infof("Successfully appended records (stream)");
+        }
+    }
+
+    private void attemptToDumpCurrentData(boolean byTime) {
+        synchronized (this) {
+            if (!byTime && currentRecords < totalRecordsThreshold) {
+                return;
+            }
+
+            if (byTime) {
+                logger.infof("Dump current events by time");
+            } else {
+                logger.infof("Dump current events by exceeded records threshold");
+            }
+
+            // save events
+            for (var entry : openedDescriptors.entrySet()) {
+                try {
+                    var openedFile = entry.getValue();
+
+                    if (openedFile.batch.size != 0) {
+                        logger.infof("Add rows batch: %s", openedFile.batch.count());
+                        openedFile.writer.addRowBatch(openedFile.batch);
+                        openedFile.batch.reset();
+                    }
+
+                    openedFile.writer.close();
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+
+            // commit every hold batch
+            committers.forEach(EventCommitter::commit);
+            logger.infof("Successfully saved %s total records", currentRecords);
+
+            openedDescriptors.clear();
+            committers.clear();
+            currentRecords = 0;
+            logger.infof("Successfully reset records backlog");
+        }
+    }
+
+    private void saveRecord(GenericRecord record, TypeDescription schema, int rowIdx, VectorizedRowBatch vector) {
+        var orcFields = schema.getChildren();
+        for (var fieldIdx = 0; fieldIdx < orcFields.size(); fieldIdx++) {
+            var orcField = orcFields.get(fieldIdx);
+            var avroFieldValue = record.get(fieldIdx);
+            var columnVector = vector.cols[fieldIdx];
+
+            saveValue(avroFieldValue, orcField, rowIdx, columnVector);
+        }
+    }
+
+    private void saveValue(Object avroFieldValue, TypeDescription orcField, int rowIdx, ColumnVector columnVector) {
+            if (avroFieldValue == null) {
+                columnVector.isNull[rowIdx] = true;
+                columnVector.noNulls = false;
+            } else {
+                columnVector.isNull[rowIdx] = false;
+
+                switch (orcField.getCategory()) {
+                    case TIMESTAMP, TIMESTAMP_INSTANT -> {
+                        var typedVector = (TimestampColumnVector) columnVector;
+                        long nanos;
+                        if (avroFieldValue instanceof Long) {
+                            nanos = ((Long) avroFieldValue) * 1_000_000;
+                        } else if (avroFieldValue instanceof Instant) {
+                            nanos = ((Instant) avroFieldValue).toEpochMilli() * 1_000_000;
+                        } else {
+                            throw new IllegalArgumentException("Unsupported timestamp type: " + avroFieldValue.getClass());
+                        }
+                        typedVector.time[rowIdx] = nanos;
+                    }
+                    case FLOAT, DOUBLE -> {
+                        var typedVector = (DoubleColumnVector) columnVector;
+                        typedVector.vector[rowIdx] = ((Number) avroFieldValue).doubleValue();
+                    }
+                    case BYTE, SHORT, INT, LONG, DATE, BOOLEAN -> {
+                        var typedVector = (LongColumnVector) columnVector;
+                        if (orcField.getCategory() == TypeDescription.Category.BOOLEAN) {
+                            typedVector.vector[rowIdx] = (Boolean) avroFieldValue ? 1 : 0;
+                        } else if (orcField.getCategory() == TypeDescription.Category.DATE) {
+                            // Avro Date: days since epoch (int), ORC Date: days since epoch (long)
+                            typedVector.vector[rowIdx] = ((Number) avroFieldValue).longValue();
+                        } else {
+                            typedVector.vector[rowIdx] = ((Number) avroFieldValue).longValue();
+                        }
+                    }
+                    case CHAR, STRING, VARCHAR, BINARY -> {
+                        var typedVector = (BytesColumnVector) columnVector;
+                        byte[] bytes;
+                        if (avroFieldValue instanceof ByteBuffer buffer) {
+                            bytes = new byte[buffer.remaining()];
+                            buffer.duplicate().get(bytes);
+                        } else if (avroFieldValue instanceof CharSequence) {
+                            bytes = avroFieldValue.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8);
+                        } else {
+                            bytes = (byte[]) avroFieldValue;
+                        }
+                        typedVector.setRef(rowIdx, bytes, 0, bytes.length);
+                    }
+                    case DECIMAL -> {
+                        // todo: add support
+                    }
+                    case LIST -> {
+                        var typedVector = (ListColumnVector) columnVector;
+                        var list = (List<?>) avroFieldValue;
+                        // last offset + previous length of list
+                        long offset = (rowIdx == 0) ? 0 : typedVector.offsets[rowIdx - 1] + typedVector.lengths[rowIdx - 1];
+                        typedVector.offsets[rowIdx] = offset;
+                        typedVector.lengths[rowIdx] = list.size();
+
+                        // Fill child vector
+                        var childVector = typedVector.child;
+                        var childSchema = orcField.getChildren().getFirst();
+                        for (var i = 0; i < list.size(); i++) {
+                            saveValue(list.get(i), childSchema, (int)(offset + i), childVector);
+                        }
+                    }
+                    case MAP -> {
+                        var typedVector = (MapColumnVector) columnVector;
+                        var map = (Map<?, ?>) avroFieldValue;
+                        long offset = (rowIdx == 0) ? 0 : typedVector.offsets[rowIdx - 1] + typedVector.lengths[rowIdx - 1];
+                        typedVector.offsets[rowIdx] = offset;
+                        typedVector.lengths[rowIdx] = map.size();
+
+                        int idx = 0;
+                        for (var entry : map.entrySet()) {
+                            saveValue(entry.getKey(), orcField.getChildren().getFirst(), (int)(offset + idx), typedVector.keys);
+                            saveValue(entry.getValue(), orcField.getChildren().getLast(), (int)(offset + idx), typedVector.values);
+                            idx++;
+                        }
+                    }
+                    case STRUCT -> {
+                        var typedVector = (StructColumnVector) columnVector;
+                        var nestedRecord = (GenericRecord) avroFieldValue;
+                        var orcNestedFields = orcField.getChildren();
+
+                        for (int i = 0; i < orcNestedFields.size(); i++) {
+                            var nestedFieldType = orcNestedFields.get(i);
+                            var nestedFieldVector = typedVector.fields[i];
+                            var nestedAvroFieldValue = nestedRecord.get(nestedFieldType.getFullFieldName());
+                            saveValue(nestedAvroFieldValue, nestedFieldType, rowIdx, nestedFieldVector);
+                        }
+                    }
+                    case null, default -> throw new IllegalArgumentException("Unsupported type");
+                }
+            }
+    }
+
+    private TypeDescription avroToOrcSchema(Schema schema) {
+        return switch (schema.getType()) {
+            case INT -> TypeDescription.createInt();
+            case STRING, ENUM -> TypeDescription.createString();
+            case BOOLEAN -> TypeDescription.createBoolean();
+            case LONG -> TypeDescription.createLong();
+            case FLOAT -> TypeDescription.createFloat();
+            case DOUBLE -> TypeDescription.createDouble();
+            case FIXED, BYTES -> TypeDescription.createBinary();
+            case UNION -> {
+                // use first not null schema
+                if (schema.getType() == Schema.Type.UNION) {
+                    for (Schema s : schema.getTypes()) {
+                        if (s.getType() != Schema.Type.NULL) yield avroToOrcSchema(s);
+                    }
+                }
+
+                throw new IllegalArgumentException("Unsupported type");
+            }
+            case MAP -> TypeDescription.createMap(TypeDescription.createString(), avroToOrcSchema(schema.getValueType()));
+            case ARRAY -> TypeDescription.createList(avroToOrcSchema(schema.getElementType()));
+            case RECORD -> {
+                var struct = TypeDescription.createStruct();
+                for (var field :  schema.getFields()) {
+                    struct.addField(field.name(), avroToOrcSchema(field.schema()));
+                }
+                yield struct;
+            }
+            case null, default -> throw new IllegalArgumentException("Unsupported type");
+        };
+    }
+
+    private Writer createFileWriter(String location, TypeDescription schema) {
+        try {
+            // todo: get values from config
+            var config = new Configuration();
+            config.set("fs.s3a.access.key", "admin");
+            config.set("fs.s3a.secret.key", "password");
+            config.set("fs.s3a.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem");
+            config.set("fs.s3a.path.style.access", "true");
+            config.set("fs.s3a.endpoint", "http://localhost:9000");
+
+            var options = OrcFile.writerOptions(config)
+                    .setSchema(schema)
+                    .stripeSize(64 * 1024 * 1024) // 64 Mb
+                    .useUTCTimestamp(true)
+                    .compress(CompressionKind.NONE);
+
+
+            var writer = OrcFile.createWriter(new Path(location), options);
+            return writer;
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private String generateLocation(String bucket, String destination) {
+        return String.format(
+                "s3a://%s/%s/%s_%s.orc",
+                bucket,
+                destination, // todo: -> schema/table/[file1, file2, .., fileN]
+                destination,
+                System.currentTimeMillis()
+        );
+    }
+}
