@@ -3,6 +3,7 @@ package io.debezium.postgres2lake.engine;
 import io.debezium.engine.ChangeEvent;
 import io.debezium.engine.DebeziumEngine;
 import io.debezium.postgres2lake.engine.avro.GenericRecordSerde;
+import io.debezium.postgres2lake.engine.s3.S3AvroEventSaver;
 import io.debezium.postgres2lake.engine.s3.S3OrcEventSaver;
 import io.debezium.postgres2lake.engine.s3.S3ParquetEventSaver;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -16,9 +17,10 @@ public class EventConsumer implements DebeziumEngine.ChangeConsumer<ChangeEvent<
 
     private final GenericRecordSerde serde;
 //    private final S3ParquetEventSaver eventSaver;
-    private final S3OrcEventSaver eventSaver;
+//    private final S3OrcEventSaver eventSaver;
+    private final S3AvroEventSaver eventSaver;
 
-    public EventConsumer(GenericRecordSerde serde, S3OrcEventSaver eventSaver) {
+    public EventConsumer(GenericRecordSerde serde, S3AvroEventSaver eventSaver) {
         this.serde = serde;
         this.eventSaver = eventSaver;
     }
