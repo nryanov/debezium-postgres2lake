@@ -44,6 +44,7 @@ dependencies {
     implementation("org.apache.iceberg:iceberg-orc")
 
     // paimon
+    // todo: exclude caffeine cache
     implementation(libs.paimon.core) {
         exclude(group = "org.slf4j", module = "slf4j-api")
     }

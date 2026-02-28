@@ -257,6 +257,7 @@ public class S3OrcEventSaver implements EventSaver {
             }
     }
 
+    // todo: use ORCSchemaUtils from iceberg?
     private TypeDescription avroToOrcSchema(Schema schema) {
         return switch (schema.getType()) {
             case INT -> TypeDescription.createInt();
