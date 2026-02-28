@@ -31,6 +31,17 @@ dependencies {
         exclude(group = "io.netty")
     }
     implementation(enforcedPlatform(libs.aws.platform))
+    implementation(enforcedPlatform(libs.iceberg.platform)) {
+        exclude(group = "org.slf4j", module = "slf4j-api")
+    }
+
+    // iceberg
+    implementation("org.apache.iceberg:iceberg-core")
+    implementation("org.apache.iceberg:iceberg-api")
+    implementation("org.apache.iceberg:iceberg-data")
+    implementation("org.apache.iceberg:iceberg-aws")
+    implementation("org.apache.iceberg:iceberg-parquet")
+    implementation("org.apache.iceberg:iceberg-orc")
 
     // s3
     implementation("software.amazon.awssdk:aws-core")

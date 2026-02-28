@@ -1,0 +1,269 @@
+package io.debezium.postgres2lake.engine.s3;
+
+import io.debezium.postgres2lake.engine.EventCommitter;
+import io.debezium.postgres2lake.engine.EventRecord;
+import io.debezium.postgres2lake.engine.iceberg.InstrumentedS3FileIOAwsClientFactory;
+import jakarta.enterprise.context.ApplicationScoped;
+import org.apache.avro.Schema;
+import org.apache.iceberg.CatalogProperties;
+import org.apache.iceberg.FileFormat;
+import org.apache.iceberg.SchemaParser;
+import org.apache.iceberg.Table;
+import org.apache.iceberg.avro.AvroSchemaUtil;
+import org.apache.iceberg.aws.s3.S3FileIOProperties;
+import org.apache.iceberg.catalog.Catalog;
+import org.apache.iceberg.catalog.Namespace;
+import org.apache.iceberg.catalog.SupportsNamespaces;
+import org.apache.iceberg.catalog.TableIdentifier;
+import org.apache.iceberg.data.GenericAppenderFactory;
+import org.apache.iceberg.data.GenericRecord;
+import org.apache.iceberg.data.Record;
+import org.apache.iceberg.io.BaseTaskWriter;
+import org.apache.iceberg.io.OutputFileFactory;
+import org.apache.iceberg.io.TaskWriter;
+import org.apache.iceberg.io.UnpartitionedWriter;
+import org.apache.iceberg.jdbc.JdbcCatalog;
+import org.apache.iceberg.types.TypeUtil;
+import org.jboss.logging.Logger;
+
+import java.io.IOException;
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Stream;
+
+import static org.apache.iceberg.TableProperties.DEFAULT_FILE_FORMAT;
+import static org.apache.iceberg.TableProperties.DEFAULT_FILE_FORMAT_DEFAULT;
+
+@ApplicationScoped
+public class S3IcebergEventSaver implements EventSaver {
+    private record IcebergTableWriter(Table table, TaskWriter<Record> writer) {}
+
+    private static final Logger logger = Logger.getLogger(S3IcebergEventSaver.class);
+
+    private final List<EventCommitter> committers;
+    private final Map<String, IcebergTableWriter> openedDescriptors;
+
+    private final Duration timeoutThreshold;
+    private final int totalRecordsThreshold;
+
+    private final ScheduledExecutorService scheduledExecutor;
+
+    private int currentRecords;
+
+    private final Catalog catalog;
+
+    public S3IcebergEventSaver() {
+        this.committers = new ArrayList<>();
+        this.openedDescriptors = new HashMap<>();
+
+        this.timeoutThreshold = Duration.ofMinutes(5);
+        this.totalRecordsThreshold = 10;
+
+        this.currentRecords = 0;
+
+        this.scheduledExecutor = Executors.newScheduledThreadPool(1);
+        this.scheduledExecutor.scheduleWithFixedDelay(() -> attemptToDumpCurrentData(true), timeoutThreshold.toMillis(), timeoutThreshold.toMillis(), TimeUnit.MILLISECONDS);
+
+        var properties = new HashMap<String, String>();
+        properties.put("jdbc.user", "postgres");
+        properties.put("jdbc.password", "postgres");
+        properties.put(CatalogProperties.URI, "jdbc:postgresql://localhost:5432/postgres");
+        // view support
+        properties.put("jdbc.schema-version", "V1");
+        properties.put(CatalogProperties.FILE_IO_IMPL, "org.apache.iceberg.aws.s3.S3FileIO");
+        properties.put(CatalogProperties.WAREHOUSE_LOCATION, "s3a://warehouse");
+        properties.put(S3FileIOProperties.ENDPOINT, "http://localhost:9000");
+        properties.put(S3FileIOProperties.ACCESS_KEY_ID, "admin");
+        properties.put(S3FileIOProperties.SECRET_ACCESS_KEY, "password");
+        properties.put(S3FileIOProperties.PATH_STYLE_ACCESS, "true");
+        properties.put(S3FileIOProperties.CLIENT_FACTORY, InstrumentedS3FileIOAwsClientFactory.class.getName());
+
+        this.catalog = new JdbcCatalog();
+        catalog.initialize("jdbc", properties);
+    }
+
+    @Override
+    public void save(Stream<EventRecord> events, EventCommitter committer) {
+        attemptToDumpCurrentData(false);
+        backlogData(events, committer);
+    }
+
+    @SuppressWarnings({"unchecked", "resource"})
+    private void backlogData(Stream<EventRecord> events, EventCommitter committer) {
+        synchronized (this) {
+            logger.info("Append records (stream)");
+            events.forEach(event -> {
+                var destination = event.destination();
+                var location = generateLocation("warehouse", event.destination());
+                var currentEvents = openedDescriptors.computeIfAbsent(destination, ignored -> createWriter(location, event.value().getSchema()));
+
+                try {
+                    addEvent(event, currentEvents);
+                    currentRecords++;
+                } catch (IOException e) {
+                    logger.errorf(e, "Error happened while adding new avro to parquet writer: %s", e.getLocalizedMessage());
+                    throw new RuntimeException(e);
+                }
+            });
+
+            committers.add(committer);
+            logger.infof("Successfully appended records (stream)");
+        }
+    }
+
+    private void attemptToDumpCurrentData(boolean byTime) {
+        synchronized (this) {
+            if (!byTime && currentRecords < totalRecordsThreshold) {
+                return;
+            }
+
+            if (byTime) {
+                logger.infof("Dump current events by time");
+            } else {
+                logger.infof("Dump current events by exceeded records threshold");
+            }
+
+            // save events
+            for (var entry : openedDescriptors.entrySet()) {
+                try {
+                    commitChanges(entry.getValue());
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+
+            // commit every hold batch
+            committers.forEach(EventCommitter::commit);
+            logger.infof("Successfully saved %s total records", currentRecords);
+
+            openedDescriptors.clear();
+            committers.clear();
+            currentRecords = 0;
+            logger.infof("Successfully reset records backlog");
+        }
+    }
+
+    private void commitChanges(IcebergTableWriter wrapper) throws IOException {
+        var rs = wrapper.writer.complete();
+        // now only append-only logic is supported => ignore delete files
+        var dataFiles = rs.dataFiles();
+        var appendIo = wrapper.table.newAppend();
+        Arrays.stream(dataFiles).forEach(appendIo::appendFile);
+        appendIo.commit();
+    }
+
+    private void addEvent(EventRecord event, IcebergTableWriter wrapper) throws IOException {
+        var icebergSchema = AvroSchemaUtil.toIceberg(event.flattenSchema());
+        var record = GenericRecord.create(icebergSchema);
+        record.setField("id", event.getAfter().get("id"));
+
+        wrapper.writer.write(record);
+    }
+
+    private IcebergTableWriter createWriter(String location, Schema schema) {
+        try {
+            // todo: extract into separate logic
+            var namespaceCatalog = (SupportsNamespaces) catalog;
+            var ns = Namespace.of("development");
+
+            namespaceCatalog.createNamespace(ns);
+            var tableIdentifier = TableIdentifier.of(ns, "data");
+
+            var tableSchemaJson = """
+                                {
+                  "type": "struct",
+                  "fields": [
+                    {
+                      "id": 1,
+                      "name": "id",
+                      "type": "long",
+                      "required": true
+                    }
+                  ]
+                }
+                """;
+
+            var tableSchema = SchemaParser.fromJson(tableSchemaJson);
+
+            catalog.createTable(tableIdentifier, tableSchema);
+        } catch (Exception e) {
+            logger.errorf(e, "Error happened while creating namespace/table: %s", e.getLocalizedMessage());
+        }
+
+        var tableIdentifier = TableIdentifier.of(Namespace.of("development"), "data");
+        var table = catalog.loadTable(tableIdentifier);
+
+        // todo: currently it is append-only writer
+        return new IcebergTableWriter(table, createTableWriter(table));
+    }
+
+    private BaseTaskWriter<Record> createTableWriter(Table table) {
+        var fileFormat = resolveTableFormat(table);
+        var appenderFactory = createTableAppender(table);
+        var outputFileFactory = createTableOutputFileFactory(table, fileFormat);
+
+        var fileSize = 10 * 1024 * 1024; // todo: get from config
+
+        // todo: resolve partitioned or unpartitioned writer
+        return new UnpartitionedWriter<>(
+                table.spec(), fileFormat, appenderFactory, outputFileFactory, table.io(), fileSize);
+    }
+
+    private FileFormat resolveTableFormat(Table table) {
+        String formatAsString = table.properties().getOrDefault(DEFAULT_FILE_FORMAT, DEFAULT_FILE_FORMAT_DEFAULT);
+        return FileFormat.valueOf(formatAsString.toUpperCase(Locale.ROOT));
+    }
+
+    public static GenericAppenderFactory createTableAppender(Table table) {
+        final Set<Integer> identifierFieldIds = table.schema().identifierFieldIds();
+        if (identifierFieldIds == null || identifierFieldIds.isEmpty()) {
+            return new GenericAppenderFactory(
+                    table.schema(),
+                    table.spec(),
+                    null,
+                    null,
+                    null)
+                    .setAll(table.properties());
+        } else {
+            return new GenericAppenderFactory(
+                    table.schema(),
+                    table.spec(),
+                    identifierFieldIds.stream().mapToInt(it -> it).toArray(),
+                    TypeUtil.select(table.schema(), new HashSet<>(identifierFieldIds)),
+                    null)
+                    .setAll(table.properties());
+        }
+    }
+
+    private OutputFileFactory createTableOutputFileFactory(Table table, FileFormat format) {
+        var partitionId = 1; // todo: generate partition id
+        var taskId = 1L; // todo: generate task id
+
+        return OutputFileFactory.builderFor(table, partitionId, taskId)
+                .defaultSpec(table.spec())
+                .operationId(UUID.randomUUID().toString())
+                .format(format)
+                .build();
+    }
+
+    private String generateLocation(String bucket, String destination) {
+        return String.format(
+                "s3a://%s/%s/%s_%s.avro",
+                bucket,
+                destination, // todo: -> schema/table/[file1, file2, .., fileN]
+                destination,
+                System.currentTimeMillis()
+        );
+    }
+}
