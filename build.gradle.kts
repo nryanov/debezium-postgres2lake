@@ -39,6 +39,7 @@ dependencies {
     implementation("org.apache.iceberg:iceberg-core")
     implementation("org.apache.iceberg:iceberg-api")
     implementation("org.apache.iceberg:iceberg-data")
+    implementation("org.apache.iceberg:iceberg-aws")
     implementation("org.apache.iceberg:iceberg-parquet")
     implementation("org.apache.iceberg:iceberg-orc")
 

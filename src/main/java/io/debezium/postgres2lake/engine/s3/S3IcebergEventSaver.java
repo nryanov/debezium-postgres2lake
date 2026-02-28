@@ -2,22 +2,34 @@ package io.debezium.postgres2lake.engine.s3;
 
 import io.debezium.postgres2lake.engine.EventCommitter;
 import io.debezium.postgres2lake.engine.EventRecord;
+import io.debezium.postgres2lake.engine.iceberg.InstrumentedS3FileIOAwsClientFactory;
 import jakarta.enterprise.context.ApplicationScoped;
 import org.apache.avro.Schema;
+import org.apache.iceberg.CatalogProperties;
 import org.apache.iceberg.FileFormat;
+import org.apache.iceberg.SchemaParser;
 import org.apache.iceberg.Table;
+import org.apache.iceberg.avro.AvroSchemaUtil;
+import org.apache.iceberg.aws.s3.S3FileIOProperties;
 import org.apache.iceberg.catalog.Catalog;
+import org.apache.iceberg.catalog.Namespace;
+import org.apache.iceberg.catalog.SupportsNamespaces;
+import org.apache.iceberg.catalog.TableIdentifier;
 import org.apache.iceberg.data.GenericAppenderFactory;
+import org.apache.iceberg.data.GenericRecord;
 import org.apache.iceberg.data.Record;
 import org.apache.iceberg.io.BaseTaskWriter;
 import org.apache.iceberg.io.OutputFileFactory;
+import org.apache.iceberg.io.TaskWriter;
 import org.apache.iceberg.io.UnpartitionedWriter;
+import org.apache.iceberg.jdbc.JdbcCatalog;
 import org.apache.iceberg.types.TypeUtil;
 import org.jboss.logging.Logger;
 
 import java.io.IOException;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -35,10 +47,12 @@ import static org.apache.iceberg.TableProperties.DEFAULT_FILE_FORMAT_DEFAULT;
 
 @ApplicationScoped
 public class S3IcebergEventSaver implements EventSaver {
+    private record IcebergTableWriter(Table table, TaskWriter<Record> writer) {}
+
     private static final Logger logger = Logger.getLogger(S3IcebergEventSaver.class);
 
     private final List<EventCommitter> committers;
-    private final Map<String, Object> openedDescriptors;
+    private final Map<String, IcebergTableWriter> openedDescriptors;
 
     private final Duration timeoutThreshold;
     private final int totalRecordsThreshold;
@@ -61,7 +75,22 @@ public class S3IcebergEventSaver implements EventSaver {
         this.scheduledExecutor = Executors.newScheduledThreadPool(1);
         this.scheduledExecutor.scheduleWithFixedDelay(() -> attemptToDumpCurrentData(true), timeoutThreshold.toMillis(), timeoutThreshold.toMillis(), TimeUnit.MILLISECONDS);
 
-        this.catalog = null;
+        var properties = new HashMap<String, String>();
+        properties.put("jdbc.user", "postgres");
+        properties.put("jdbc.password", "postgres");
+        properties.put(CatalogProperties.URI, "jdbc:postgresql://localhost:5432/postgres");
+        // view support
+        properties.put("jdbc.schema-version", "V1");
+        properties.put(CatalogProperties.FILE_IO_IMPL, "org.apache.iceberg.aws.s3.S3FileIO");
+        properties.put(CatalogProperties.WAREHOUSE_LOCATION, "s3a://warehouse");
+        properties.put(S3FileIOProperties.ENDPOINT, "http://localhost:9000");
+        properties.put(S3FileIOProperties.ACCESS_KEY_ID, "admin");
+        properties.put(S3FileIOProperties.SECRET_ACCESS_KEY, "password");
+        properties.put(S3FileIOProperties.PATH_STYLE_ACCESS, "true");
+        properties.put(S3FileIOProperties.CLIENT_FACTORY, InstrumentedS3FileIOAwsClientFactory.class.getName());
+
+        this.catalog = new JdbcCatalog();
+        catalog.initialize("jdbc", properties);
     }
 
     @Override
@@ -80,7 +109,7 @@ public class S3IcebergEventSaver implements EventSaver {
                 var currentEvents = openedDescriptors.computeIfAbsent(destination, ignored -> createWriter(location, event.value().getSchema()));
 
                 try {
-                    currentEvents.append(event.value());
+                    addEvent(event, currentEvents);
                     currentRecords++;
                 } catch (IOException e) {
                     logger.errorf(e, "Error happened while adding new avro to parquet writer: %s", e.getLocalizedMessage());
@@ -108,8 +137,7 @@ public class S3IcebergEventSaver implements EventSaver {
             // save events
             for (var entry : openedDescriptors.entrySet()) {
                 try {
-                    var writer = entry.getValue();
-                    writer.close();
+                    commitChanges(entry.getValue());
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 }
@@ -126,11 +154,58 @@ public class S3IcebergEventSaver implements EventSaver {
         }
     }
 
-    private Object createWriter(String location, Schema schema) {
-        var table = catalog.loadTable(null);
-        var writer = createTableWriter(table);
+    private void commitChanges(IcebergTableWriter wrapper) throws IOException {
+        var rs = wrapper.writer.complete();
+        // now only append-only logic is supported => ignore delete files
+        var dataFiles = rs.dataFiles();
+        var appendIo = wrapper.table.newAppend();
+        Arrays.stream(dataFiles).forEach(appendIo::appendFile);
+        appendIo.commit();
+    }
 
-        return null;
+    private void addEvent(EventRecord event, IcebergTableWriter wrapper) throws IOException {
+        var icebergSchema = AvroSchemaUtil.toIceberg(event.flattenSchema());
+        var record = GenericRecord.create(icebergSchema);
+        record.setField("id", event.getAfter().get("id"));
+
+        wrapper.writer.write(record);
+    }
+
+    private IcebergTableWriter createWriter(String location, Schema schema) {
+        try {
+            // todo: extract into separate logic
+            var namespaceCatalog = (SupportsNamespaces) catalog;
+            var ns = Namespace.of("development");
+
+            namespaceCatalog.createNamespace(ns);
+            var tableIdentifier = TableIdentifier.of(ns, "data");
+
+            var tableSchemaJson = """
+                                {
+                  "type": "struct",
+                  "fields": [
+                    {
+                      "id": 1,
+                      "name": "id",
+                      "type": "long",
+                      "required": true
+                    }
+                  ]
+                }
+                """;
+
+            var tableSchema = SchemaParser.fromJson(tableSchemaJson);
+
+            catalog.createTable(tableIdentifier, tableSchema);
+        } catch (Exception e) {
+            logger.errorf(e, "Error happened while creating namespace/table: %s", e.getLocalizedMessage());
+        }
+
+        var tableIdentifier = TableIdentifier.of(Namespace.of("development"), "data");
+        var table = catalog.loadTable(tableIdentifier);
+
+        // todo: currently it is append-only writer
+        return new IcebergTableWriter(table, createTableWriter(table));
     }
 
     private BaseTaskWriter<Record> createTableWriter(Table table) {
@@ -141,7 +216,7 @@ public class S3IcebergEventSaver implements EventSaver {
         var fileSize = 10 * 1024 * 1024; // todo: get from config
 
         // todo: resolve partitioned or unpartitioned writer
-        new UnpartitionedWriter<>(
+        return new UnpartitionedWriter<>(
                 table.spec(), fileFormat, appenderFactory, outputFileFactory, table.io(), fileSize);
     }
 
