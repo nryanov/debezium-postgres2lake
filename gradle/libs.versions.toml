@@ -1,6 +1,7 @@
 [versions]
 quarkus = "3.31.2"
 debezium = "3.4.1.Final"
+iceberg = "1.10.1"
 parquet = "1.17.0"
 orc = "2.2.2" # todo: return to 1.9.8?
 confluent = "8.1.1"
@@ -14,6 +15,7 @@ testcontsiners = "2.0.3"
 quarkus-platform = { group = "io.quarkus.platform", name = "quarkus-bom", version.ref = "quarkus" }
 debezium-platform = { group = "io.debezium", name = "debezium-bom", version.ref = "debezium" }
 aws-platform = { group = "software.amazon.awssdk", name = "bom", version.ref = "awssdk" }
+iceberg-platform = { group = "org.apache.iceberg", name = "iceberg-bom", version.ref = "iceberg" }
 
 parquet-avro = { group = "org.apache.parquet", name = "parquet-avro", version.ref = "parquet" }
 confluent-avro = { group = "io.confluent", name = "kafka-connect-avro-converter", version.ref = "confluent" }

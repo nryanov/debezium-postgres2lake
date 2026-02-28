@@ -7,4 +7,8 @@ public record EventRecord(GenericRecord key, GenericRecord value, String destina
     public Schema flattenSchema() {
         return value.getSchema().getField("after").schema().getTypes().get(1);
     }
+
+    public GenericRecord getAfter() {
+        return (GenericRecord) value.get("after");
+    }
 }
