@@ -43,6 +43,21 @@ dependencies {
     implementation("org.apache.iceberg:iceberg-parquet")
     implementation("org.apache.iceberg:iceberg-orc")
 
+    // paimon
+    // todo: exclude caffeine cache
+    implementation(libs.paimon.core) {
+        exclude(group = "org.slf4j", module = "slf4j-api")
+    }
+    implementation(libs.paimon.common) {
+        exclude(group = "org.slf4j", module = "slf4j-api")
+    }
+    implementation(libs.paimon.s3) {
+        exclude(group = "org.slf4j", module = "slf4j-api")
+    }
+    implementation(libs.paimon.format) {
+        exclude(group = "org.slf4j", module = "slf4j-api")
+    }
+
     // s3
     implementation("software.amazon.awssdk:aws-core")
     implementation("software.amazon.awssdk:regions")
