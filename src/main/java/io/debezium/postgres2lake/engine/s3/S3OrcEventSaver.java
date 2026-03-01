@@ -1,7 +1,8 @@
 package io.debezium.postgres2lake.engine.s3;
 
-import io.debezium.postgres2lake.engine.EventCommitter;
-import io.debezium.postgres2lake.engine.EventRecord;
+import io.debezium.postgres2lake.domain.EventCommitter;
+import io.debezium.postgres2lake.domain.EventRecord;
+import io.debezium.postgres2lake.domain.EventSaver;
 import jakarta.enterprise.context.ApplicationScoped;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericRecord;
@@ -78,7 +79,7 @@ public class S3OrcEventSaver implements EventSaver {
                 var destination = event.destination();
                 var location = generateLocation("warehouse", event.destination());
                 var currentEvents = openedDescriptors.computeIfAbsent(destination, ignored -> {
-                    var writer = createFileWriter(location, avroToOrcSchema(event.flattenSchema()));
+                    var writer = createFileWriter(location, avroToOrcSchema(event.value().getSchema()));
                     var batch = writer.getSchema().createRowBatch(); // todo: configure batch size
 
                     return new OpenedWriter(writer, batch);

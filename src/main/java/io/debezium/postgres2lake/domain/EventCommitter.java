@@ -1,6 +1,7 @@
-package io.debezium.postgres2lake.engine;
+package io.debezium.postgres2lake.domain;
 
-import io.debezium.postgres2lake.common.UnsafeFunction;
+
+import io.debezium.postgres2lake.domain.common.UnsafeFunction;
 
 public record EventCommitter(UnsafeFunction<Exception> commitBatch, UnsafeFunction<Exception> commitLastRecord) {
     public void commit() {

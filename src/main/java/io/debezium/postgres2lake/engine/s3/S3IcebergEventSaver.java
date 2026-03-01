@@ -1,7 +1,8 @@
 package io.debezium.postgres2lake.engine.s3;
 
-import io.debezium.postgres2lake.engine.EventCommitter;
-import io.debezium.postgres2lake.engine.EventRecord;
+import io.debezium.postgres2lake.domain.EventCommitter;
+import io.debezium.postgres2lake.domain.EventRecord;
+import io.debezium.postgres2lake.domain.EventSaver;
 import io.debezium.postgres2lake.engine.iceberg.InstrumentedS3FileIOAwsClientFactory;
 import jakarta.enterprise.context.ApplicationScoped;
 import org.apache.avro.Schema;
@@ -164,9 +165,9 @@ public class S3IcebergEventSaver implements EventSaver {
     }
 
     private void addEvent(EventRecord event, IcebergTableWriter wrapper) throws IOException {
-        var icebergSchema = AvroSchemaUtil.toIceberg(event.flattenSchema());
+        var icebergSchema = AvroSchemaUtil.toIceberg(event.value().getSchema());
         var record = GenericRecord.create(icebergSchema);
-        record.setField("id", event.getAfter().get("id"));
+        record.setField("id", event.value().get("id"));
 
         wrapper.writer.write(record);
     }

@@ -16,6 +16,9 @@ import org.apache.kafka.connect.storage.Converter;
 import java.io.ByteArrayOutputStream;
 import java.util.Map;
 
+/**
+ * Used as debezium `converter.delegate.converter.type`
+ */
 public class AvroBinaryConverter implements Converter {
     private AvroData avroData;
 

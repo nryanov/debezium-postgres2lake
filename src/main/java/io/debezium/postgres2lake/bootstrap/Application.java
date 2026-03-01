@@ -1,4 +1,4 @@
-package io.debezium.postgres2lake;
+package io.debezium.postgres2lake.bootstrap;
 
 import io.quarkus.runtime.Quarkus;
 import io.quarkus.runtime.annotations.QuarkusMain;

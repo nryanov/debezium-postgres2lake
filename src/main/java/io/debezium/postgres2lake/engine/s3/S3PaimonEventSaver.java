@@ -1,7 +1,8 @@
 package io.debezium.postgres2lake.engine.s3;
 
-import io.debezium.postgres2lake.engine.EventCommitter;
-import io.debezium.postgres2lake.engine.EventRecord;
+import io.debezium.postgres2lake.domain.EventCommitter;
+import io.debezium.postgres2lake.domain.EventRecord;
+import io.debezium.postgres2lake.domain.EventSaver;
 import jakarta.enterprise.context.ApplicationScoped;
 import org.apache.avro.Schema;
 import org.apache.hadoop.conf.Configuration;
@@ -131,7 +132,7 @@ public class S3PaimonEventSaver implements EventSaver {
 
         // todo: fix bucket id resolution
         var bucket = 0;
-        write.write(GenericRow.ofKind(RowKind.INSERT, event.getAfter().get("id")), bucket);
+        write.write(GenericRow.ofKind(RowKind.INSERT, event.value().get("id")), bucket);
         // todo: commit only before saving data
         var pendingCommit = write.prepareCommit(false, wrapper.commitId.incrementAndGet());
         wrapper.pendingCommits.addAll(pendingCommit);
