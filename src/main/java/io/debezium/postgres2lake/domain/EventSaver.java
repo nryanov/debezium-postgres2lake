@@ -1,5 +1,8 @@
 package io.debezium.postgres2lake.domain;
 
+import io.debezium.postgres2lake.domain.model.EventCommitter;
+import io.debezium.postgres2lake.domain.model.EventRecord;
+
 import java.util.stream.Stream;
 
 public interface EventSaver {

@@ -1,8 +1,8 @@
 package io.debezium.postgres2lake.engine.avro;
 
 import io.debezium.engine.ChangeEvent;
-import io.debezium.postgres2lake.domain.EventRecord;
-import io.debezium.postgres2lake.domain.Operation;
+import io.debezium.postgres2lake.domain.model.EventRecord;
+import io.debezium.postgres2lake.domain.model.Operation;
 import jakarta.enterprise.context.ApplicationScoped;
 import org.apache.avro.JsonProperties;
 import org.apache.avro.Schema;
@@ -19,10 +19,6 @@ public class UnwrappedGenericRecordSerde {
     private static final String SOURCE_FIELD_NAME = "source";
     private static final String SOURCE_LSN_FIELD_NAME = "lsn";
     private static final String SOURCE_TS_MS_FIELD_NAME = "ts_ms";
-
-    private static final String UNWRAPPED_OPERATION_FIELD_NAME = "__operation";
-    private static final String UNWRAPPED_IDEMPOTENCY_KEY_FIELD_NAME = "__idempotency_key";
-    private static final String UNWRAPPED_EVENT_TIME_FIELD_NAME = "__event_time";
 
     private final GenericRecordSerde serde;
 
@@ -65,9 +61,9 @@ public class UnwrappedGenericRecordSerde {
             unwrappedRecord.put(field.name(), unwrappedValues.get(field.name()));
         }
 
-        unwrappedRecord.put(UNWRAPPED_OPERATION_FIELD_NAME, operation.name());
-        unwrappedRecord.put(UNWRAPPED_IDEMPOTENCY_KEY_FIELD_NAME, lsn);
-        unwrappedRecord.put(UNWRAPPED_EVENT_TIME_FIELD_NAME, timestampMillis);
+        unwrappedRecord.put(EventRecord.UNWRAPPED_OPERATION_FIELD_NAME, operation.name());
+        unwrappedRecord.put(EventRecord.UNWRAPPED_IDEMPOTENCY_KEY_FIELD_NAME, lsn);
+        unwrappedRecord.put(EventRecord.UNWRAPPED_EVENT_TIME_FIELD_NAME, timestampMillis);
 
         return unwrappedRecord;
     }
@@ -82,9 +78,9 @@ public class UnwrappedGenericRecordSerde {
                 .namespace(initialSchema.getNamespace())
                 .fields();
 
-        schemaBuilder.requiredString(UNWRAPPED_OPERATION_FIELD_NAME);
-        schemaBuilder.requiredLong(UNWRAPPED_IDEMPOTENCY_KEY_FIELD_NAME);
-        schemaBuilder.requiredLong(UNWRAPPED_EVENT_TIME_FIELD_NAME);
+        schemaBuilder.requiredString(EventRecord.UNWRAPPED_OPERATION_FIELD_NAME);
+        schemaBuilder.requiredLong(EventRecord.UNWRAPPED_IDEMPOTENCY_KEY_FIELD_NAME);
+        schemaBuilder.requiredLong(EventRecord.UNWRAPPED_EVENT_TIME_FIELD_NAME);
 
         for (var field : valuesSchema.getFields()) {
             var fieldBuilder = schemaBuilder

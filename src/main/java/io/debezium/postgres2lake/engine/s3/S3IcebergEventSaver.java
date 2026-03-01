@@ -1,7 +1,7 @@
 package io.debezium.postgres2lake.engine.s3;
 
-import io.debezium.postgres2lake.domain.EventCommitter;
-import io.debezium.postgres2lake.domain.EventRecord;
+import io.debezium.postgres2lake.domain.model.EventCommitter;
+import io.debezium.postgres2lake.domain.model.EventRecord;
 import io.debezium.postgres2lake.domain.EventSaver;
 import io.debezium.postgres2lake.engine.iceberg.InstrumentedS3FileIOAwsClientFactory;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -105,9 +105,8 @@ public class S3IcebergEventSaver implements EventSaver {
         synchronized (this) {
             logger.info("Append records (stream)");
             events.forEach(event -> {
-                var destination = event.destination();
-                var location = generateLocation("warehouse", event.destination());
-                var currentEvents = openedDescriptors.computeIfAbsent(destination, ignored -> createWriter(location, event.value().getSchema()));
+                var destination = event.rawDestination();
+                var currentEvents = openedDescriptors.computeIfAbsent(destination, ignored -> createWriter(event.value().getSchema()));
 
                 try {
                     addEvent(event, currentEvents);
@@ -172,7 +171,7 @@ public class S3IcebergEventSaver implements EventSaver {
         wrapper.writer.write(record);
     }
 
-    private IcebergTableWriter createWriter(String location, Schema schema) {
+    private IcebergTableWriter createWriter(Schema schema) {
         try {
             // todo: extract into separate logic
             var namespaceCatalog = (SupportsNamespaces) catalog;
@@ -256,15 +255,5 @@ public class S3IcebergEventSaver implements EventSaver {
                 .operationId(UUID.randomUUID().toString())
                 .format(format)
                 .build();
-    }
-
-    private String generateLocation(String bucket, String destination) {
-        return String.format(
-                "s3a://%s/%s/%s_%s.avro",
-                bucket,
-                destination, // todo: -> schema/table/[file1, file2, .., fileN]
-                destination,
-                System.currentTimeMillis()
-        );
     }
 }

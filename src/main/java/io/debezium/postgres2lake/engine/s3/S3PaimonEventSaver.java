@@ -1,7 +1,7 @@
 package io.debezium.postgres2lake.engine.s3;
 
-import io.debezium.postgres2lake.domain.EventCommitter;
-import io.debezium.postgres2lake.domain.EventRecord;
+import io.debezium.postgres2lake.domain.model.EventCommitter;
+import io.debezium.postgres2lake.domain.model.EventRecord;
 import io.debezium.postgres2lake.domain.EventSaver;
 import jakarta.enterprise.context.ApplicationScoped;
 import org.apache.avro.Schema;
@@ -99,9 +99,8 @@ public class S3PaimonEventSaver implements EventSaver {
         synchronized (this) {
             logger.info("Append records (stream)");
             events.forEach(event -> {
-                var destination = event.destination();
-                var location = generateLocation("warehouse", event.destination());
-                var currentEvents = openedDescriptors.computeIfAbsent(destination, ignored -> createWriter(location, event.value().getSchema()));
+                var destination = event.rawDestination();
+                var currentEvents = openedDescriptors.computeIfAbsent(destination, ignored -> createWriter(event.value().getSchema()));
 
                 try {
                     saveRecord(event, currentEvents);
@@ -171,7 +170,7 @@ public class S3PaimonEventSaver implements EventSaver {
         }
     }
 
-    private PaimonWriter createWriter(String location, Schema schema) {
+    private PaimonWriter createWriter(Schema schema) {
         var tableIdentifier = Identifier.create("paimon-development", "data");
         try {
             var paimonSchema = org.apache.paimon.schema.Schema
@@ -194,16 +193,6 @@ public class S3PaimonEventSaver implements EventSaver {
         } catch (Catalog.TableNotExistException e) {
             throw new RuntimeException(e);
         }
-    }
-
-    private String generateLocation(String bucket, String destination) {
-        return String.format(
-                "s3a://%s/%s/%s_%s.avro",
-                bucket,
-                destination, // todo: -> schema/table/[file1, file2, .., fileN]
-                destination,
-                System.currentTimeMillis()
-        );
     }
 }
 

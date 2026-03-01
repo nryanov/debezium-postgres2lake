@@ -2,10 +2,9 @@ package io.debezium.postgres2lake.engine;
 
 import io.debezium.engine.ChangeEvent;
 import io.debezium.engine.DebeziumEngine;
-import io.debezium.postgres2lake.domain.EventCommitter;
+import io.debezium.postgres2lake.domain.model.EventCommitter;
 import io.debezium.postgres2lake.engine.avro.UnwrappedGenericRecordSerde;
 import io.debezium.postgres2lake.engine.s3.S3AvroEventSaver;
-import io.debezium.postgres2lake.engine.s3.S3PaimonEventSaver;
 import jakarta.enterprise.context.ApplicationScoped;
 import org.jboss.logging.Logger;
 
