@@ -1,4 +1,4 @@
-package io.debezium.postgres2lake.engine;
+package io.debezium.postgres2lake.infrastructure.debezium;
 
 import io.debezium.connector.postgresql.PostgresConnector;
 import io.debezium.engine.ChangeEvent;
@@ -25,10 +25,12 @@ public class DebeziumEngineFactory {
     private DebeziumEngine<ChangeEvent<Object, Object>> engine;
     private ExecutorService executor;
 
-    private final EventConsumer eventConsumer;
+    private final DebeziumEventConsumer eventConsumer;
+    private final DebeziumConfiguration configuration;
 
-    public DebeziumEngineFactory(EventConsumer eventConsumer) {
+    public DebeziumEngineFactory(DebeziumEventConsumer eventConsumer, DebeziumConfiguration configuration) {
         this.eventConsumer = eventConsumer;
+        this.configuration = configuration;
     }
 
     public void initialize() {
@@ -64,24 +66,20 @@ public class DebeziumEngineFactory {
 
     private Properties properties() {
         var properties = new Properties();
-        properties.setProperty("name", "development");
-        properties.setProperty("connector.class", PostgresConnector.class.getName());
-        properties.setProperty("database.hostname", "localhost");
-        properties.setProperty("database.dbname", "postgres");
-        properties.setProperty("database.port", "5432");
-        properties.setProperty("database.user", "postgres");
-        properties.setProperty("database.password", "postgres");
-        properties.setProperty("publication.name", "debezium");
-        properties.setProperty("slot.name", "debezium");
-        properties.setProperty("plugin.name", "pgoutput");
-        properties.setProperty("snapshot.mode", "NO_DATA");
-        properties.setProperty("topic.prefix", "default");
+        configuration.engine().forEach(properties::setProperty);
 
         // offset storage
         properties.setProperty("offset.storage", MemoryOffsetBackingStore.class.getName());
         // avro
-        properties.setProperty("key.converter.delegate.converter.type", AvroBinaryConverter.class.getName());
-        properties.setProperty("value.converter.delegate.converter.type", AvroBinaryConverter.class.getName());
+        switch (configuration.avro()) {
+            case CONFLUENT -> {}
+            case BINARY -> {
+                properties.setProperty("key.converter.delegate.converter.type", AvroBinaryConverter.class.getName());
+                properties.setProperty("value.converter.delegate.converter.type", AvroBinaryConverter.class.getName());
+            }
+        }
+        // connector
+        properties.setProperty("connector.class", PostgresConnector.class.getName());
 
         return properties;
     }
