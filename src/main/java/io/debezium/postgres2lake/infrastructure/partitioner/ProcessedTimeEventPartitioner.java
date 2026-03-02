@@ -2,13 +2,11 @@ package io.debezium.postgres2lake.infrastructure.partitioner;
 
 import io.debezium.postgres2lake.domain.EventPartitioner;
 import io.debezium.postgres2lake.domain.model.EventRecord;
-import jakarta.enterprise.context.ApplicationScoped;
 
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 
-@ApplicationScoped
 public class ProcessedTimeEventPartitioner implements EventPartitioner {
     private final static DateTimeFormatter ISO_LOCAL_DATE = DateTimeFormatter.ISO_LOCAL_DATE.withZone(ZoneOffset.UTC);
 

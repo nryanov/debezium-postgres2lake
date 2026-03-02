@@ -1,13 +1,9 @@
 package io.debezium.postgres2lake.engine.s3;
 
-import io.debezium.postgres2lake.domain.EventFileNameGenerator;
-import io.debezium.postgres2lake.domain.EventPartitioner;
 import io.debezium.postgres2lake.domain.model.EventCommitter;
 import io.debezium.postgres2lake.domain.model.EventRecord;
 import io.debezium.postgres2lake.domain.EventSaver;
-import io.debezium.postgres2lake.domain.model.OutputFileFormat;
-import io.debezium.postgres2lake.infrastructure.file.SystemTimeEventFileNameGenerator;
-import io.debezium.postgres2lake.infrastructure.partitioner.SingleEventPartitioner;
+import io.debezium.postgres2lake.service.OutputLocationGenerator;
 import jakarta.enterprise.context.ApplicationScoped;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericRecord;
@@ -36,8 +32,7 @@ import java.util.stream.Stream;
 public class S3ParquetEventSaver implements EventSaver {
     private static final Logger logger = Logger.getLogger(S3ParquetEventSaver.class);
 
-    private final EventFileNameGenerator eventFileNameGenerator;
-    private final EventPartitioner eventPartitioner;
+    private final OutputLocationGenerator outputLocationGenerator;
 
     private final List<EventCommitter> committers;
     private final Map<String, ParquetWriter> openedDescriptors;
@@ -49,7 +44,8 @@ public class S3ParquetEventSaver implements EventSaver {
 
     private int currentRecords;
 
-    public S3ParquetEventSaver() {
+    public S3ParquetEventSaver(OutputLocationGenerator outputLocationGenerator) {
+        this.outputLocationGenerator = outputLocationGenerator;
         this.committers = new ArrayList<>();
         this.openedDescriptors = new HashMap<>();
 
@@ -60,9 +56,6 @@ public class S3ParquetEventSaver implements EventSaver {
 
         this.scheduledExecutor = Executors.newScheduledThreadPool(1);
         this.scheduledExecutor.scheduleWithFixedDelay(() -> attemptToDumpCurrentData(true), timeoutThreshold.toMillis(), timeoutThreshold.toMillis(), TimeUnit.MILLISECONDS);
-
-        this.eventFileNameGenerator = new SystemTimeEventFileNameGenerator();
-        this.eventPartitioner = new SingleEventPartitioner();
     }
 
     @Override
@@ -77,7 +70,7 @@ public class S3ParquetEventSaver implements EventSaver {
             logger.info("Append records (stream)");
             events.forEach(event -> {
                 var destination = event.rawDestination();
-                var location = generateLocation("warehouse", event);
+                var location = outputLocationGenerator.generateLocation("warehouse", event);
                 var currentEvents = openedDescriptors.computeIfAbsent(destination, ignored -> createWriter(location, event.value().getSchema()));
 
                 try {
@@ -158,10 +151,5 @@ public class S3ParquetEventSaver implements EventSaver {
             logger.errorf(e, "Error happened while creating parquet writer: %s", e.getLocalizedMessage());
             throw new RuntimeException(e);
         }
-    }
-
-    private String generateLocation(String bucket, EventRecord record) {
-        var prefix = eventPartitioner.resolvePartition(bucket, record);
-        return eventFileNameGenerator.generate(prefix, OutputFileFormat.parquet);
     }
 }

@@ -9,7 +9,6 @@ import io.quarkus.runtime.ShutdownEvent;
 import io.quarkus.runtime.StartupEvent;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Observes;
-import org.apache.kafka.connect.storage.MemoryOffsetBackingStore;
 import org.jboss.logging.Logger;
 
 import java.io.IOException;
@@ -68,8 +67,6 @@ public class DebeziumEngineFactory {
         var properties = new Properties();
         configuration.engine().forEach(properties::setProperty);
 
-        // offset storage
-        properties.setProperty("offset.storage", MemoryOffsetBackingStore.class.getName());
         // avro
         switch (configuration.avro()) {
             case CONFLUENT -> {}
