@@ -4,7 +4,6 @@ import io.debezium.postgres2lake.domain.model.EventCommitter;
 import io.debezium.postgres2lake.domain.model.EventRecord;
 import io.debezium.postgres2lake.domain.EventSaver;
 import io.debezium.postgres2lake.service.OutputLocationGenerator;
-import jakarta.enterprise.context.ApplicationScoped;
 import org.apache.avro.Schema;
 import org.apache.avro.file.DataFileWriter;
 import org.apache.avro.generic.GenericDatumWriter;
@@ -27,7 +26,6 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
-@ApplicationScoped
 public class S3AvroEventSaver implements EventSaver {
     private static final Logger logger = Logger.getLogger(S3AvroEventSaver.class);
 
@@ -60,6 +58,18 @@ public class S3AvroEventSaver implements EventSaver {
     public void save(Stream<EventRecord> events, EventCommitter committer) {
         attemptToDumpCurrentData(false);
         backlogData(events, committer);
+    }
+
+    @Override
+    public void close() {
+        flush();
+        scheduledExecutor.close();
+    }
+
+    @Override
+    public void flush() {
+        // force flush
+        attemptToDumpCurrentData(true);
     }
 
     @SuppressWarnings({"unchecked", "resource"})

@@ -2,8 +2,8 @@ package io.debezium.postgres2lake.infrastructure.debezium;
 
 import io.debezium.engine.ChangeEvent;
 import io.debezium.engine.DebeziumEngine;
+import io.debezium.postgres2lake.domain.EventSaver;
 import io.debezium.postgres2lake.domain.model.EventCommitter;
-import io.debezium.postgres2lake.infrastructure.s3.S3AvroEventSaver;
 import io.debezium.postgres2lake.infrastructure.serde.avro.UnwrappedGenericRecordSerde;
 import jakarta.enterprise.context.ApplicationScoped;
 import org.jboss.logging.Logger;
@@ -15,13 +15,9 @@ public class DebeziumEventConsumer implements DebeziumEngine.ChangeConsumer<Chan
     private final static Logger logger = Logger.getLogger(DebeziumEventConsumer.class);
 
     private final UnwrappedGenericRecordSerde serde;
-//    private final S3ParquetEventSaver eventSaver;
-//    private final S3OrcEventSaver eventSaver;
-    private final S3AvroEventSaver eventSaver;
-//    private final S3IcebergEventSaver eventSaver;
-//    private final S3PaimonEventSaver eventSaver;
+    private final EventSaver eventSaver;
 
-    public DebeziumEventConsumer(UnwrappedGenericRecordSerde serde, S3AvroEventSaver eventSaver) {
+    public DebeziumEventConsumer(UnwrappedGenericRecordSerde serde, EventSaver eventSaver) {
         this.serde = serde;
         this.eventSaver = eventSaver;
     }

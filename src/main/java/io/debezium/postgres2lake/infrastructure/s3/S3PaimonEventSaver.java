@@ -3,7 +3,6 @@ package io.debezium.postgres2lake.infrastructure.s3;
 import io.debezium.postgres2lake.domain.model.EventCommitter;
 import io.debezium.postgres2lake.domain.model.EventRecord;
 import io.debezium.postgres2lake.domain.EventSaver;
-import jakarta.enterprise.context.ApplicationScoped;
 import org.apache.avro.Schema;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.paimon.catalog.Catalog;
@@ -32,7 +31,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Stream;
 
-@ApplicationScoped
 public class S3PaimonEventSaver implements EventSaver {
     private record PaimonWriter(
             Table table,
@@ -92,6 +90,18 @@ public class S3PaimonEventSaver implements EventSaver {
     public void save(Stream<EventRecord> events, EventCommitter committer) {
         attemptToDumpCurrentData(false);
         backlogData(events, committer);
+    }
+
+    @Override
+    public void close() {
+        flush();
+        scheduledExecutor.close();
+    }
+
+    @Override
+    public void flush() {
+        // force flush
+        attemptToDumpCurrentData(true);
     }
 
     @SuppressWarnings({"unchecked", "resource"})

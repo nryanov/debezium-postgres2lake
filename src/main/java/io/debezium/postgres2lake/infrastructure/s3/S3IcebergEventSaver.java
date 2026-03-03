@@ -4,7 +4,6 @@ import io.debezium.postgres2lake.domain.model.EventCommitter;
 import io.debezium.postgres2lake.domain.model.EventRecord;
 import io.debezium.postgres2lake.domain.EventSaver;
 import io.debezium.postgres2lake.infrastructure.iceberg.InstrumentedS3FileIOAwsClientFactory;
-import jakarta.enterprise.context.ApplicationScoped;
 import org.apache.avro.Schema;
 import org.apache.iceberg.CatalogProperties;
 import org.apache.iceberg.FileFormat;
@@ -46,7 +45,6 @@ import java.util.stream.Stream;
 import static org.apache.iceberg.TableProperties.DEFAULT_FILE_FORMAT;
 import static org.apache.iceberg.TableProperties.DEFAULT_FILE_FORMAT_DEFAULT;
 
-@ApplicationScoped
 public class S3IcebergEventSaver implements EventSaver {
     private record IcebergTableWriter(Table table, TaskWriter<Record> writer) {}
 
@@ -98,6 +96,18 @@ public class S3IcebergEventSaver implements EventSaver {
     public void save(Stream<EventRecord> events, EventCommitter committer) {
         attemptToDumpCurrentData(false);
         backlogData(events, committer);
+    }
+
+    @Override
+    public void close() {
+        flush();
+        scheduledExecutor.close();
+    }
+
+    @Override
+    public void flush() {
+        // force flush
+        attemptToDumpCurrentData(true);
     }
 
     @SuppressWarnings({"unchecked", "resource"})

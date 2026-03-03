@@ -1,11 +1,17 @@
 package io.debezium.postgres2lake.bootstrap;
 
+import io.debezium.postgres2lake.domain.EventSaver;
 import io.debezium.postgres2lake.domain.model.OutputFileFormat;
 import io.debezium.postgres2lake.infrastructure.file.ProcessingTimeEventFileNameGenerator;
 import io.debezium.postgres2lake.infrastructure.file.UuidEventFileNameGenerator;
 import io.debezium.postgres2lake.infrastructure.partitioner.EventTimeEventPartitioner;
 import io.debezium.postgres2lake.infrastructure.partitioner.ProcessedTimeEventPartitioner;
 import io.debezium.postgres2lake.infrastructure.partitioner.UnpartitionedEventPartitioner;
+import io.debezium.postgres2lake.infrastructure.s3.S3AvroEventSaver;
+import io.debezium.postgres2lake.infrastructure.s3.S3IcebergEventSaver;
+import io.debezium.postgres2lake.infrastructure.s3.S3OrcEventSaver;
+import io.debezium.postgres2lake.infrastructure.s3.S3PaimonEventSaver;
+import io.debezium.postgres2lake.infrastructure.s3.S3ParquetEventSaver;
 import io.debezium.postgres2lake.service.OutputConfiguration;
 import io.debezium.postgres2lake.service.OutputLocationGenerator;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -18,7 +24,7 @@ public class ApplicationBeans {
     private OutputConfiguration outputConfiguration;
 
     @Produces
-    OutputLocationGenerator outputLocationGenerator() {
+    EventSaver eventSaver() {
         return switch (outputConfiguration.format()) {
             case AVRO -> {
                 if (outputConfiguration.avro().isEmpty()) {
@@ -26,7 +32,8 @@ public class ApplicationBeans {
                 }
 
                 var avro = outputConfiguration.avro().get();
-                yield resolveOutputLocationGenerator(avro.namingStrategy(), OutputFileFormat.avro);
+                var locationGenerator = resolveOutputLocationGenerator(avro.namingStrategy(), OutputFileFormat.avro);
+                yield new S3AvroEventSaver(locationGenerator);
             }
             case ORC -> {
                 if (outputConfiguration.orc().isEmpty()) {
@@ -34,7 +41,8 @@ public class ApplicationBeans {
                 }
 
                 var orc = outputConfiguration.orc().get();
-                yield resolveOutputLocationGenerator(orc.namingStrategy(), OutputFileFormat.orc);
+                var locationGenerator = resolveOutputLocationGenerator(orc.namingStrategy(), OutputFileFormat.orc);
+                yield new S3OrcEventSaver(locationGenerator);
             }
             case PARQUET -> {
                 if (outputConfiguration.parquet().isEmpty()) {
@@ -42,9 +50,23 @@ public class ApplicationBeans {
                 }
 
                 var parquet = outputConfiguration.parquet().get();
-                yield resolveOutputLocationGenerator(parquet.namingStrategy(), OutputFileFormat.parquet);
+                var locationGenerator = resolveOutputLocationGenerator(parquet.namingStrategy(), OutputFileFormat.parquet);
+                yield new S3ParquetEventSaver(locationGenerator);
             }
-            case null, default -> null;
+            case ICEBERG -> {
+                if (outputConfiguration.iceberg().isEmpty()) {
+                    throw new IllegalArgumentException("Empty iceberg format output configuration");
+                }
+
+                yield new S3IcebergEventSaver();
+            }
+            case PAIMON -> {
+                if (outputConfiguration.paimon().isEmpty()) {
+                    throw new IllegalArgumentException("Empty paimon format output configuration");
+                }
+
+                yield new S3PaimonEventSaver();
+            }
         };
     }
 
