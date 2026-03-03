@@ -1,4 +1,4 @@
-package io.debezium.postgres2lake.engine.s3;
+package io.debezium.postgres2lake.infrastructure.s3;
 
 import io.debezium.postgres2lake.domain.model.EventCommitter;
 import io.debezium.postgres2lake.domain.model.EventRecord;

@@ -4,7 +4,7 @@ import io.debezium.connector.postgresql.PostgresConnector;
 import io.debezium.engine.ChangeEvent;
 import io.debezium.engine.DebeziumEngine;
 import io.debezium.engine.format.Binary;
-import io.debezium.postgres2lake.engine.avro.AvroBinaryConverter;
+import io.debezium.postgres2lake.infrastructure.serde.avro.AvroBinaryConverter;
 import io.quarkus.runtime.ShutdownEvent;
 import io.quarkus.runtime.StartupEvent;
 import jakarta.enterprise.context.ApplicationScoped;

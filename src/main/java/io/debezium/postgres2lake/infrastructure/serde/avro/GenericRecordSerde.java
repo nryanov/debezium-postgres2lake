@@ -1,4 +1,4 @@
-package io.debezium.postgres2lake.engine.avro;
+package io.debezium.postgres2lake.infrastructure.serde.avro;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import org.apache.avro.file.DataFileReader;

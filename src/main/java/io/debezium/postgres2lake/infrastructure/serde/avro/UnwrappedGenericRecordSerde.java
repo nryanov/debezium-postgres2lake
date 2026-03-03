@@ -1,4 +1,4 @@
-package io.debezium.postgres2lake.engine.avro;
+package io.debezium.postgres2lake.infrastructure.serde.avro;
 
 import io.debezium.engine.ChangeEvent;
 import io.debezium.postgres2lake.domain.model.EventRecord;

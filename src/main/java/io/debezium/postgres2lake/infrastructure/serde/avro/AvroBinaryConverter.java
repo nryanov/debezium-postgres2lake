@@ -1,4 +1,4 @@
-package io.debezium.postgres2lake.engine.avro;
+package io.debezium.postgres2lake.infrastructure.serde.avro;
 
 import io.confluent.connect.avro.AvroData;
 import io.confluent.connect.avro.AvroDataConfig;
