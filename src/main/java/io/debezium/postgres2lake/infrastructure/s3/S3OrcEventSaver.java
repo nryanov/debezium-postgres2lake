@@ -1,8 +1,8 @@
 package io.debezium.postgres2lake.infrastructure.s3;
 
-import io.debezium.postgres2lake.domain.model.EventCommitter;
 import io.debezium.postgres2lake.domain.model.EventRecord;
-import io.debezium.postgres2lake.domain.EventSaver;
+import io.debezium.postgres2lake.infrastructure.orc.OrcOpenedWriter;
+import io.debezium.postgres2lake.service.AbstractEventSaver;
 import io.debezium.postgres2lake.service.OutputConfiguration;
 import io.debezium.postgres2lake.service.OutputLocationGenerator;
 import org.apache.avro.Schema;
@@ -26,146 +26,21 @@ import org.jboss.logging.Logger;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.time.Duration;
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Stream;
 
-public class S3OrcEventSaver implements EventSaver {
-    private record OpenedWriter(Writer writer, VectorizedRowBatch batch) {}
+public class S3OrcEventSaver extends AbstractEventSaver<OrcOpenedWriter> {
 
     private static final Logger logger = Logger.getLogger(S3OrcEventSaver.class);
 
     private final OutputLocationGenerator outputLocationGenerator;
     private final OutputConfiguration.FileIO fileIO;
 
-    private final List<EventCommitter> committers;
-    private final Map<String, OpenedWriter> openedDescriptors;
-
-    private final Duration timeoutThreshold;
-    private final int totalRecordsThreshold;
-
-    private final ScheduledExecutorService scheduledExecutor;
-
-    private int currentRecords;
-
     public S3OrcEventSaver(OutputLocationGenerator outputLocationGenerator, OutputConfiguration.FileIO fileIO) {
+        super();
         this.outputLocationGenerator = outputLocationGenerator;
         this.fileIO = fileIO;
-
-        this.committers = new ArrayList<>();
-        this.openedDescriptors = new HashMap<>();
-
-        this.timeoutThreshold = Duration.ofMinutes(5);
-        this.totalRecordsThreshold = 10;
-
-        this.currentRecords = 0;
-
-        this.scheduledExecutor = Executors.newScheduledThreadPool(1);
-        this.scheduledExecutor.scheduleWithFixedDelay(() -> attemptToDumpCurrentData(true), timeoutThreshold.toMillis(), timeoutThreshold.toMillis(), TimeUnit.MILLISECONDS);
-    }
-
-    @Override
-    public void save(Stream<EventRecord> events, EventCommitter committer) {
-        attemptToDumpCurrentData(false);
-        backlogData(events, committer);
-    }
-
-    @Override
-    public void close() {
-        flush();
-        scheduledExecutor.close();
-    }
-
-    @Override
-    public void flush() {
-        // force flush
-        attemptToDumpCurrentData(true);
-    }
-
-    @SuppressWarnings({"unchecked", "resource"})
-    private void backlogData(Stream<EventRecord> events, EventCommitter committer) {
-        synchronized (this) {
-            logger.info("Append records (stream)");
-            events.forEach(event -> {
-                var destination = event.rawDestination();
-                var location = outputLocationGenerator.generateLocation("warehouse", event);
-                var currentEvents = openedDescriptors.computeIfAbsent(destination, ignored -> {
-                    var writer = createFileWriter(location, avroToOrcSchema(event.value().getSchema()));
-                    var batch = writer.getSchema().createRowBatch(); // todo: configure batch size
-
-                    return new OpenedWriter(writer, batch);
-                });
-
-                try {
-                    var batch = currentEvents.batch;
-                    var row = batch.size;
-                    batch.size += 1;
-
-                    // todo: use SMT to unwrap debezium data
-                    var value = (GenericRecord) event.value().get("after");
-                    saveRecord(value, currentEvents.writer.getSchema(), row, batch);
-                    currentRecords++;
-
-                    if (batch.size == batch.getMaxSize()) {
-                        currentEvents.writer.addRowBatch(batch);
-                        batch.reset();
-                    }
-                } catch (IOException e) {
-                    logger.errorf(e, "Error happened while adding new avro to parquet writer: %s", e.getLocalizedMessage());
-                    throw new RuntimeException(e);
-                }
-            });
-
-            committers.add(committer);
-            logger.infof("Successfully appended records (stream)");
-        }
-    }
-
-    private void attemptToDumpCurrentData(boolean byTime) {
-        synchronized (this) {
-            if (!byTime && currentRecords < totalRecordsThreshold) {
-                return;
-            }
-
-            if (byTime) {
-                logger.infof("Dump current events by time");
-            } else {
-                logger.infof("Dump current events by exceeded records threshold");
-            }
-
-            // save events
-            for (var entry : openedDescriptors.entrySet()) {
-                try {
-                    var openedFile = entry.getValue();
-
-                    if (openedFile.batch.size != 0) {
-                        logger.infof("Add rows batch: %s", openedFile.batch.count());
-                        openedFile.writer.addRowBatch(openedFile.batch);
-                        openedFile.batch.reset();
-                    }
-
-                    openedFile.writer.close();
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
-            }
-
-            // commit every hold batch
-            committers.forEach(EventCommitter::commit);
-            logger.infof("Successfully saved %s total records", currentRecords);
-
-            openedDescriptors.clear();
-            committers.clear();
-            currentRecords = 0;
-            logger.infof("Successfully reset records backlog");
-        }
     }
 
     private void saveRecord(GenericRecord record, TypeDescription schema, int rowIdx, VectorizedRowBatch vector) {
@@ -309,6 +184,15 @@ public class S3OrcEventSaver implements EventSaver {
         };
     }
 
+    @Override
+    protected OrcOpenedWriter createWriter(EventRecord event) {
+        var location = outputLocationGenerator.generateLocation("warehouse", event);
+        var writer = createFileWriter(location, avroToOrcSchema(event.value().getSchema()));
+        var batch = writer.getSchema().createRowBatch(); // todo: configure batch size
+
+        return new OrcOpenedWriter(writer, batch);
+    }
+
     private Writer createFileWriter(String location, TypeDescription schema) {
         try {
             var config = new Configuration();
@@ -321,8 +205,40 @@ public class S3OrcEventSaver implements EventSaver {
                     .compress(CompressionKind.NONE);
 
 
-            var writer = OrcFile.createWriter(new Path(location), options);
-            return writer;
+            return OrcFile.createWriter(new Path(location), options);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Override
+    protected void appendEvent(EventRecord event, OrcOpenedWriter writer) {
+        try {
+            var batch = writer.batch();
+            var row = batch.size;
+            batch.size += 1;
+
+            saveRecord(event.value(), writer.writer().getSchema(), row, batch);
+
+            if (batch.size == batch.getMaxSize()) {
+                writer.writer().addRowBatch(batch);
+                batch.reset();
+            }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Override
+    protected void commitPendingEvents(OrcOpenedWriter writer) {
+        try {
+            if (writer.batch().size != 0) {
+                logger.infof("Add rows batch: %s", writer.batch().count());
+                writer.writer().addRowBatch(writer.batch());
+                writer.batch().reset();
+            }
+
+            writer.writer().close();
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

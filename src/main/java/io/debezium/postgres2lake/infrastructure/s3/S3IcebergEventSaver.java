@@ -1,9 +1,9 @@
 package io.debezium.postgres2lake.infrastructure.s3;
 
-import io.debezium.postgres2lake.domain.model.EventCommitter;
 import io.debezium.postgres2lake.domain.model.EventRecord;
-import io.debezium.postgres2lake.domain.EventSaver;
+import io.debezium.postgres2lake.infrastructure.iceberg.IcebergTableWriter;
 import io.debezium.postgres2lake.infrastructure.iceberg.InstrumentedS3FileIOAwsClientFactory;
+import io.debezium.postgres2lake.service.AbstractEventSaver;
 import org.apache.avro.Schema;
 import org.apache.iceberg.CatalogProperties;
 import org.apache.iceberg.FileFormat;
@@ -20,59 +20,29 @@ import org.apache.iceberg.data.GenericRecord;
 import org.apache.iceberg.data.Record;
 import org.apache.iceberg.io.BaseTaskWriter;
 import org.apache.iceberg.io.OutputFileFactory;
-import org.apache.iceberg.io.TaskWriter;
 import org.apache.iceberg.io.UnpartitionedWriter;
 import org.apache.iceberg.jdbc.JdbcCatalog;
 import org.apache.iceberg.types.TypeUtil;
 import org.jboss.logging.Logger;
 
 import java.io.IOException;
-import java.time.Duration;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Stream;
 
 import static org.apache.iceberg.TableProperties.DEFAULT_FILE_FORMAT;
 import static org.apache.iceberg.TableProperties.DEFAULT_FILE_FORMAT_DEFAULT;
 
-public class S3IcebergEventSaver implements EventSaver {
-    private record IcebergTableWriter(Table table, TaskWriter<Record> writer) {}
-
+public class S3IcebergEventSaver extends AbstractEventSaver<IcebergTableWriter> {
     private static final Logger logger = Logger.getLogger(S3IcebergEventSaver.class);
-
-    private final List<EventCommitter> committers;
-    private final Map<String, IcebergTableWriter> openedDescriptors;
-
-    private final Duration timeoutThreshold;
-    private final int totalRecordsThreshold;
-
-    private final ScheduledExecutorService scheduledExecutor;
-
-    private int currentRecords;
 
     private final Catalog catalog;
 
     public S3IcebergEventSaver() {
-        this.committers = new ArrayList<>();
-        this.openedDescriptors = new HashMap<>();
-
-        this.timeoutThreshold = Duration.ofMinutes(5);
-        this.totalRecordsThreshold = 10;
-
-        this.currentRecords = 0;
-
-        this.scheduledExecutor = Executors.newScheduledThreadPool(1);
-        this.scheduledExecutor.scheduleWithFixedDelay(() -> attemptToDumpCurrentData(true), timeoutThreshold.toMillis(), timeoutThreshold.toMillis(), TimeUnit.MILLISECONDS);
+        super();
 
         var properties = new HashMap<String, String>();
         properties.put("jdbc.user", "postgres");
@@ -93,95 +63,38 @@ public class S3IcebergEventSaver implements EventSaver {
     }
 
     @Override
-    public void save(Stream<EventRecord> events, EventCommitter committer) {
-        attemptToDumpCurrentData(false);
-        backlogData(events, committer);
+    protected IcebergTableWriter createWriter(EventRecord event) {
+        return createWriter0(null);
     }
 
     @Override
-    public void close() {
-        flush();
-        scheduledExecutor.close();
-    }
-
-    @Override
-    public void flush() {
-        // force flush
-        attemptToDumpCurrentData(true);
-    }
-
-    @SuppressWarnings({"unchecked", "resource"})
-    private void backlogData(Stream<EventRecord> events, EventCommitter committer) {
-        synchronized (this) {
-            logger.info("Append records (stream)");
-            events.forEach(event -> {
-                var destination = event.rawDestination();
-                var currentEvents = openedDescriptors.computeIfAbsent(destination, ignored -> createWriter(event.value().getSchema()));
-
-                try {
-                    addEvent(event, currentEvents);
-                    currentRecords++;
-                } catch (IOException e) {
-                    logger.errorf(e, "Error happened while adding new avro to parquet writer: %s", e.getLocalizedMessage());
-                    throw new RuntimeException(e);
-                }
-            });
-
-            committers.add(committer);
-            logger.infof("Successfully appended records (stream)");
-        }
-    }
-
-    private void attemptToDumpCurrentData(boolean byTime) {
-        synchronized (this) {
-            if (!byTime && currentRecords < totalRecordsThreshold) {
-                return;
-            }
-
-            if (byTime) {
-                logger.infof("Dump current events by time");
-            } else {
-                logger.infof("Dump current events by exceeded records threshold");
-            }
-
-            // save events
-            for (var entry : openedDescriptors.entrySet()) {
-                try {
-                    commitChanges(entry.getValue());
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
-            }
-
-            // commit every hold batch
-            committers.forEach(EventCommitter::commit);
-            logger.infof("Successfully saved %s total records", currentRecords);
-
-            openedDescriptors.clear();
-            committers.clear();
-            currentRecords = 0;
-            logger.infof("Successfully reset records backlog");
-        }
-    }
-
-    private void commitChanges(IcebergTableWriter wrapper) throws IOException {
-        var rs = wrapper.writer.complete();
-        // now only append-only logic is supported => ignore delete files
-        var dataFiles = rs.dataFiles();
-        var appendIo = wrapper.table.newAppend();
-        Arrays.stream(dataFiles).forEach(appendIo::appendFile);
-        appendIo.commit();
-    }
-
-    private void addEvent(EventRecord event, IcebergTableWriter wrapper) throws IOException {
+    protected void appendEvent(EventRecord event, IcebergTableWriter wrapper) {
         var icebergSchema = AvroSchemaUtil.toIceberg(event.value().getSchema());
         var record = GenericRecord.create(icebergSchema);
         record.setField("id", event.value().get("id"));
 
-        wrapper.writer.write(record);
+        try {
+            wrapper.writer().write(record);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
-    private IcebergTableWriter createWriter(Schema schema) {
+    @Override
+    protected void commitPendingEvents(IcebergTableWriter wrapper) {
+        try {
+            var rs = wrapper.writer().complete();
+            // now only append-only logic is supported => ignore delete files
+            var dataFiles = rs.dataFiles();
+            var appendIo = wrapper.table().newAppend();
+            Arrays.stream(dataFiles).forEach(appendIo::appendFile);
+            appendIo.commit();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private IcebergTableWriter createWriter0(Schema schema) {
         try {
             // todo: extract into separate logic
             var namespaceCatalog = (SupportsNamespaces) catalog;

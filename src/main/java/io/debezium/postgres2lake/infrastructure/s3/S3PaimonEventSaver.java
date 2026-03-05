@@ -1,9 +1,8 @@
 package io.debezium.postgres2lake.infrastructure.s3;
 
-import io.debezium.postgres2lake.domain.model.EventCommitter;
 import io.debezium.postgres2lake.domain.model.EventRecord;
-import io.debezium.postgres2lake.domain.EventSaver;
-import org.apache.avro.Schema;
+import io.debezium.postgres2lake.infrastructure.paimon.PaimonWriter;
+import io.debezium.postgres2lake.service.AbstractEventSaver;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.paimon.catalog.Catalog;
 import org.apache.paimon.catalog.CatalogContext;
@@ -11,61 +10,21 @@ import org.apache.paimon.catalog.CatalogFactory;
 import org.apache.paimon.catalog.Identifier;
 import org.apache.paimon.data.GenericRow;
 import org.apache.paimon.options.Options;
-import org.apache.paimon.table.Table;
-import org.apache.paimon.table.sink.CommitMessage;
-import org.apache.paimon.table.sink.StreamTableWrite;
-import org.apache.paimon.table.sink.StreamWriteBuilder;
 import org.apache.paimon.types.DataTypes;
 import org.apache.paimon.types.RowKind;
 import org.jboss.logging.Logger;
 
-import java.time.Duration;
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.stream.Stream;
 
-public class S3PaimonEventSaver implements EventSaver {
-    private record PaimonWriter(
-            Table table,
-            StreamWriteBuilder writeBuilder,
-            AtomicReference<StreamTableWrite> writer,
-            List<CommitMessage> pendingCommits,
-            AtomicInteger commitId
-    ) {}
-
+public class S3PaimonEventSaver extends AbstractEventSaver<PaimonWriter> {
     private static final Logger logger = Logger.getLogger(S3PaimonEventSaver.class);
-
-    private final List<EventCommitter> committers;
-    private final Map<String, PaimonWriter> openedDescriptors;
-
-    private final Duration timeoutThreshold;
-    private final int totalRecordsThreshold;
-
-    private final ScheduledExecutorService scheduledExecutor;
-
-    private int currentRecords;
 
     private final Catalog catalog;
 
     public S3PaimonEventSaver() {
-        this.committers = new ArrayList<>();
-        this.openedDescriptors = new HashMap<>();
-
-        this.timeoutThreshold = Duration.ofMinutes(5);
-        this.totalRecordsThreshold = 10;
-
-        this.currentRecords = 0;
-
-        this.scheduledExecutor = Executors.newScheduledThreadPool(1);
-        this.scheduledExecutor.scheduleWithFixedDelay(() -> attemptToDumpCurrentData(true), timeoutThreshold.toMillis(), timeoutThreshold.toMillis(), TimeUnit.MILLISECONDS);
-
+        super();
 
         var config = new Configuration();
         config.set("fs.s3a.access.key", "admin");
@@ -87,100 +46,7 @@ public class S3PaimonEventSaver implements EventSaver {
     }
 
     @Override
-    public void save(Stream<EventRecord> events, EventCommitter committer) {
-        attemptToDumpCurrentData(false);
-        backlogData(events, committer);
-    }
-
-    @Override
-    public void close() {
-        flush();
-        scheduledExecutor.close();
-    }
-
-    @Override
-    public void flush() {
-        // force flush
-        attemptToDumpCurrentData(true);
-    }
-
-    @SuppressWarnings({"unchecked", "resource"})
-    private void backlogData(Stream<EventRecord> events, EventCommitter committer) {
-        synchronized (this) {
-            logger.info("Append records (stream)");
-            events.forEach(event -> {
-                var destination = event.rawDestination();
-                var currentEvents = openedDescriptors.computeIfAbsent(destination, ignored -> createWriter(event.value().getSchema()));
-
-                try {
-                    saveRecord(event, currentEvents);
-                    currentRecords++;
-                } catch (Exception e) {
-                    logger.errorf(e, "Error happened while adding new avro to parquet writer: %s", e.getLocalizedMessage());
-                    throw new RuntimeException(e);
-                }
-            });
-
-            committers.add(committer);
-            logger.infof("Successfully appended records (stream)");
-        }
-    }
-
-    private void commitChanges(PaimonWriter wrapper) {
-        var commit = wrapper.writeBuilder.newCommit();
-        commit.commit(wrapper.commitId.get(), wrapper.pendingCommits);
-        wrapper.pendingCommits.clear();
-    }
-
-    private void saveRecord(EventRecord event, PaimonWriter wrapper) throws Exception {
-        var write = wrapper.writer.get();
-        if (write == null) {
-            write = wrapper.writeBuilder.newWrite();
-            wrapper.writer.set(write);
-        }
-
-        // todo: fix bucket id resolution
-        var bucket = 0;
-        write.write(GenericRow.ofKind(RowKind.INSERT, event.value().get("id")), bucket);
-        // todo: commit only before saving data
-        var pendingCommit = write.prepareCommit(false, wrapper.commitId.incrementAndGet());
-        wrapper.pendingCommits.addAll(pendingCommit);
-    }
-
-    private void attemptToDumpCurrentData(boolean byTime) {
-        synchronized (this) {
-            if (!byTime && currentRecords < totalRecordsThreshold) {
-                return;
-            }
-
-            if (byTime) {
-                logger.infof("Dump current events by time");
-            } else {
-                logger.infof("Dump current events by exceeded records threshold");
-            }
-
-            // save events
-            for (var entry : openedDescriptors.entrySet()) {
-                try {
-                    var writer = entry.getValue();
-                    commitChanges(writer);
-                } catch (Exception e) {
-                    throw new RuntimeException(e);
-                }
-            }
-
-            // commit every hold batch
-            committers.forEach(EventCommitter::commit);
-            logger.infof("Successfully saved %s total records", currentRecords);
-
-            openedDescriptors.clear();
-            committers.clear();
-            currentRecords = 0;
-            logger.infof("Successfully reset records backlog");
-        }
-    }
-
-    private PaimonWriter createWriter(Schema schema) {
+    protected PaimonWriter createWriter(EventRecord event) {
         var tableIdentifier = Identifier.create("paimon-development", "data");
         try {
             var paimonSchema = org.apache.paimon.schema.Schema
@@ -203,6 +69,33 @@ public class S3PaimonEventSaver implements EventSaver {
         } catch (Catalog.TableNotExistException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    @Override
+    protected void appendEvent(EventRecord event, PaimonWriter wrapper) {
+        try {
+            var write = wrapper.writer().get();
+            if (write == null) {
+                write = wrapper.writeBuilder().newWrite();
+                wrapper.writer().set(write);
+            }
+
+            // todo: fix bucket id resolution
+            var bucket = 0;
+            write.write(GenericRow.ofKind(RowKind.INSERT, event.value().get("id")), bucket);
+            // todo: commit only before saving data
+            var pendingCommit = write.prepareCommit(false, wrapper.commitId().incrementAndGet());
+            wrapper.pendingCommits().addAll(pendingCommit);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Override
+    protected void commitPendingEvents(PaimonWriter wrapper) {
+        var commit = wrapper.writeBuilder().newCommit();
+        commit.commit(wrapper.commitId().get(), wrapper.pendingCommits());
+        wrapper.pendingCommits().clear();
     }
 }
 
