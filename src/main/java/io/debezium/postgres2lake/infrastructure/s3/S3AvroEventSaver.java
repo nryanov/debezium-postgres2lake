@@ -1,6 +1,7 @@
 package io.debezium.postgres2lake.infrastructure.s3;
 
 import io.debezium.postgres2lake.domain.model.EventRecord;
+import io.debezium.postgres2lake.infrastructure.format.avro.AvroCompressionCodec;
 import io.debezium.postgres2lake.service.AbstractEventSaver;
 import io.debezium.postgres2lake.service.OutputConfiguration;
 import io.debezium.postgres2lake.service.OutputLocationGenerator;
@@ -21,11 +22,17 @@ public class S3AvroEventSaver extends AbstractEventSaver<DataFileWriter<GenericR
 
     private final OutputLocationGenerator outputLocationGenerator;
     private final OutputConfiguration.FileIO fileIO;
+    private final AvroCompressionCodec codec;
 
-    public S3AvroEventSaver(OutputLocationGenerator outputLocationGenerator, OutputConfiguration.FileIO fileIO) {
+    public S3AvroEventSaver(
+            OutputLocationGenerator outputLocationGenerator,
+            OutputConfiguration.FileIO fileIO,
+            AvroCompressionCodec codec
+    ) {
         super();
         this.outputLocationGenerator = outputLocationGenerator;
         this.fileIO = fileIO;
+        this.codec = codec;
     }
 
     @Override
@@ -42,8 +49,9 @@ public class S3AvroEventSaver extends AbstractEventSaver<DataFileWriter<GenericR
 
             var fs = FileSystem.get(new URI(location), config);
             var out = fs.create(path);
-            // todo: allow to setup codec
-            var writer = new DataFileWriter<GenericRecord>(new GenericDatumWriter<>(schema)).create(schema, out);
+            var writer = new DataFileWriter<GenericRecord>(new GenericDatumWriter<>(schema))
+                    .setCodec(codec.codec)
+                    .create(schema, out);
 
             logger.infof("Successfully opened writer for `%s`", location);
 

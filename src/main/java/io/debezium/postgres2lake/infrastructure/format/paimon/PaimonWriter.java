@@ -1,4 +1,4 @@
-package io.debezium.postgres2lake.infrastructure.paimon;
+package io.debezium.postgres2lake.infrastructure.format.paimon;
 
 import org.apache.paimon.table.Table;
 import org.apache.paimon.table.sink.CommitMessage;

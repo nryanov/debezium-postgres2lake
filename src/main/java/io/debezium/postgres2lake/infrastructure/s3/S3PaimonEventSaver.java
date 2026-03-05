@@ -1,7 +1,7 @@
 package io.debezium.postgres2lake.infrastructure.s3;
 
 import io.debezium.postgres2lake.domain.model.EventRecord;
-import io.debezium.postgres2lake.infrastructure.paimon.PaimonWriter;
+import io.debezium.postgres2lake.infrastructure.format.paimon.PaimonWriter;
 import io.debezium.postgres2lake.service.AbstractEventSaver;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.paimon.catalog.Catalog;

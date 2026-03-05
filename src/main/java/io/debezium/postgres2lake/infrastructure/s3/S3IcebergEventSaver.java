@@ -1,8 +1,8 @@
 package io.debezium.postgres2lake.infrastructure.s3;
 
 import io.debezium.postgres2lake.domain.model.EventRecord;
-import io.debezium.postgres2lake.infrastructure.iceberg.IcebergTableWriter;
-import io.debezium.postgres2lake.infrastructure.iceberg.InstrumentedS3FileIOAwsClientFactory;
+import io.debezium.postgres2lake.infrastructure.format.iceberg.IcebergTableWriter;
+import io.debezium.postgres2lake.infrastructure.format.iceberg.InstrumentedS3FileIOAwsClientFactory;
 import io.debezium.postgres2lake.service.AbstractEventSaver;
 import org.apache.avro.Schema;
 import org.apache.iceberg.CatalogProperties;

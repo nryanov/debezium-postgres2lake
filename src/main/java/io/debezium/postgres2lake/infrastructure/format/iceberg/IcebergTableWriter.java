@@ -1,4 +1,4 @@
-package io.debezium.postgres2lake.infrastructure.iceberg;
+package io.debezium.postgres2lake.infrastructure.format.iceberg;
 
 import org.apache.iceberg.Table;
 import org.apache.iceberg.data.Record;

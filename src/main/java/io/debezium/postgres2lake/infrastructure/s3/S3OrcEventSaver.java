@@ -1,7 +1,8 @@
 package io.debezium.postgres2lake.infrastructure.s3;
 
 import io.debezium.postgres2lake.domain.model.EventRecord;
-import io.debezium.postgres2lake.infrastructure.orc.OrcOpenedWriter;
+import io.debezium.postgres2lake.infrastructure.format.orc.OrcCompressionCodec;
+import io.debezium.postgres2lake.infrastructure.format.orc.OrcOpenedWriter;
 import io.debezium.postgres2lake.service.AbstractEventSaver;
 import io.debezium.postgres2lake.service.OutputConfiguration;
 import io.debezium.postgres2lake.service.OutputLocationGenerator;
@@ -18,7 +19,6 @@ import org.apache.hadoop.hive.ql.exec.vector.MapColumnVector;
 import org.apache.hadoop.hive.ql.exec.vector.StructColumnVector;
 import org.apache.hadoop.hive.ql.exec.vector.TimestampColumnVector;
 import org.apache.hadoop.hive.ql.exec.vector.VectorizedRowBatch;
-import org.apache.orc.CompressionKind;
 import org.apache.orc.OrcFile;
 import org.apache.orc.TypeDescription;
 import org.apache.orc.Writer;
@@ -36,11 +36,17 @@ public class S3OrcEventSaver extends AbstractEventSaver<OrcOpenedWriter> {
 
     private final OutputLocationGenerator outputLocationGenerator;
     private final OutputConfiguration.FileIO fileIO;
+    private final OrcCompressionCodec codec;
 
-    public S3OrcEventSaver(OutputLocationGenerator outputLocationGenerator, OutputConfiguration.FileIO fileIO) {
+    public S3OrcEventSaver(
+            OutputLocationGenerator outputLocationGenerator,
+            OutputConfiguration.FileIO fileIO,
+            OrcCompressionCodec codec
+    ) {
         super();
         this.outputLocationGenerator = outputLocationGenerator;
         this.fileIO = fileIO;
+        this.codec = codec;
     }
 
     private void saveRecord(GenericRecord record, TypeDescription schema, int rowIdx, VectorizedRowBatch vector) {
@@ -202,7 +208,7 @@ public class S3OrcEventSaver extends AbstractEventSaver<OrcOpenedWriter> {
                     .setSchema(schema)
                     .stripeSize(64 * 1024 * 1024) // 64 Mb
                     .useUTCTimestamp(true)
-                    .compress(CompressionKind.NONE);
+                    .compress(codec.codec);
 
 
             return OrcFile.createWriter(new Path(location), options);

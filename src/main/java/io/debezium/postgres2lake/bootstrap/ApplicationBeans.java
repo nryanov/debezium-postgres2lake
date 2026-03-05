@@ -4,6 +4,9 @@ import io.debezium.postgres2lake.domain.EventSaver;
 import io.debezium.postgres2lake.domain.model.OutputFileFormat;
 import io.debezium.postgres2lake.infrastructure.file.ProcessingTimeEventFileNameGenerator;
 import io.debezium.postgres2lake.infrastructure.file.UuidEventFileNameGenerator;
+import io.debezium.postgres2lake.infrastructure.format.avro.AvroCompressionCodec;
+import io.debezium.postgres2lake.infrastructure.format.orc.OrcCompressionCodec;
+import io.debezium.postgres2lake.infrastructure.format.parquet.ParquetCompressionCodec;
 import io.debezium.postgres2lake.infrastructure.partitioner.EventTimeEventPartitioner;
 import io.debezium.postgres2lake.infrastructure.partitioner.ProcessedTimeEventPartitioner;
 import io.debezium.postgres2lake.infrastructure.partitioner.UnpartitionedEventPartitioner;
@@ -33,7 +36,7 @@ public class ApplicationBeans {
 
                 var avro = outputConfiguration.avro().get();
                 var locationGenerator = resolveOutputLocationGenerator(avro.namingStrategy(), OutputFileFormat.avro);
-                yield new S3AvroEventSaver(locationGenerator, avro.fileIO());
+                yield new S3AvroEventSaver(locationGenerator, avro.fileIO(), avro.codec().orElse(AvroCompressionCodec.NONE));
             }
             case ORC -> {
                 if (outputConfiguration.orc().isEmpty()) {
@@ -42,7 +45,7 @@ public class ApplicationBeans {
 
                 var orc = outputConfiguration.orc().get();
                 var locationGenerator = resolveOutputLocationGenerator(orc.namingStrategy(), OutputFileFormat.orc);
-                yield new S3OrcEventSaver(locationGenerator, orc.fileIO());
+                yield new S3OrcEventSaver(locationGenerator, orc.fileIO(), orc.codec().orElse(OrcCompressionCodec.NONE));
             }
             case PARQUET -> {
                 if (outputConfiguration.parquet().isEmpty()) {
@@ -51,7 +54,7 @@ public class ApplicationBeans {
 
                 var parquet = outputConfiguration.parquet().get();
                 var locationGenerator = resolveOutputLocationGenerator(parquet.namingStrategy(), OutputFileFormat.parquet);
-                yield new S3ParquetEventSaver(locationGenerator, parquet.fileIO());
+                yield new S3ParquetEventSaver(locationGenerator, parquet.fileIO(), parquet.codec().orElse(ParquetCompressionCodec.NONE));
             }
             case ICEBERG -> {
                 if (outputConfiguration.iceberg().isEmpty()) {

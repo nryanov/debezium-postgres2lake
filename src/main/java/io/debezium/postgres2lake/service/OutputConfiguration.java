@@ -3,6 +3,9 @@ package io.debezium.postgres2lake.service;
 import io.debezium.postgres2lake.domain.model.OutputFileNameGenerationStrategy;
 import io.debezium.postgres2lake.domain.model.OutputFormat;
 import io.debezium.postgres2lake.domain.model.OutputPartitionStrategy;
+import io.debezium.postgres2lake.infrastructure.format.avro.AvroCompressionCodec;
+import io.debezium.postgres2lake.infrastructure.format.orc.OrcCompressionCodec;
+import io.debezium.postgres2lake.infrastructure.format.parquet.ParquetCompressionCodec;
 import io.smallrye.config.ConfigMapping;
 
 import java.util.Map;
@@ -26,18 +29,24 @@ public interface OutputConfiguration {
         FileIO fileIO();
 
         OutputNamingStrategy namingStrategy();
+
+        Optional<AvroCompressionCodec> codec();
     }
 
     interface Parquet {
         FileIO fileIO();
 
         OutputNamingStrategy namingStrategy();
+
+        Optional<ParquetCompressionCodec> codec();
     }
 
     interface Orc {
         FileIO fileIO();
 
         OutputNamingStrategy namingStrategy();
+
+        Optional<OrcCompressionCodec> codec();
     }
 
     interface Iceberg {

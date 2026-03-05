@@ -1,6 +1,7 @@
 package io.debezium.postgres2lake.infrastructure.s3;
 
 import io.debezium.postgres2lake.domain.model.EventRecord;
+import io.debezium.postgres2lake.infrastructure.format.parquet.ParquetCompressionCodec;
 import io.debezium.postgres2lake.service.AbstractEventSaver;
 import io.debezium.postgres2lake.service.OutputConfiguration;
 import io.debezium.postgres2lake.service.OutputLocationGenerator;
@@ -9,7 +10,6 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.parquet.avro.AvroParquetWriter;
 import org.apache.parquet.hadoop.ParquetWriter;
-import org.apache.parquet.hadoop.metadata.CompressionCodecName;
 import org.apache.parquet.hadoop.util.HadoopOutputFile;
 import org.jboss.logging.Logger;
 
@@ -22,11 +22,17 @@ public class S3ParquetEventSaver extends AbstractEventSaver<ParquetWriter<Generi
 
     private final OutputLocationGenerator outputLocationGenerator;
     private final OutputConfiguration.FileIO fileIO;
+    private final ParquetCompressionCodec compressionCodec;
 
-    public S3ParquetEventSaver(OutputLocationGenerator outputLocationGenerator, OutputConfiguration.FileIO fileIO) {
+    public S3ParquetEventSaver(
+            OutputLocationGenerator outputLocationGenerator,
+            OutputConfiguration.FileIO fileIO,
+            ParquetCompressionCodec compressionCodec
+    ) {
         super();
         this.outputLocationGenerator = outputLocationGenerator;
         this.fileIO = fileIO;
+        this.compressionCodec = compressionCodec;
     }
 
     @Override
@@ -40,8 +46,7 @@ public class S3ParquetEventSaver extends AbstractEventSaver<ParquetWriter<Generi
 
             var builder = AvroParquetWriter
                     .<GenericRecord>builder(HadoopOutputFile.fromPath(path, config))
-                    // todo: allow to setup codec
-                    .withCompressionCodec(CompressionCodecName.ZSTD)
+                    .withCompressionCodec(compressionCodec.codecName)
                     .withSchema(event.value().getSchema());
             var writer = builder.build();
 
