@@ -3,6 +3,7 @@ package io.debezium.postgres2lake.infrastructure.s3;
 import io.debezium.postgres2lake.domain.model.EventCommitter;
 import io.debezium.postgres2lake.domain.model.EventRecord;
 import io.debezium.postgres2lake.domain.EventSaver;
+import io.debezium.postgres2lake.service.OutputConfiguration;
 import io.debezium.postgres2lake.service.OutputLocationGenerator;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericRecord;
@@ -31,6 +32,7 @@ public class S3ParquetEventSaver implements EventSaver {
     private static final Logger logger = Logger.getLogger(S3ParquetEventSaver.class);
 
     private final OutputLocationGenerator outputLocationGenerator;
+    private final OutputConfiguration.FileIO fileIO;
 
     private final List<EventCommitter> committers;
     private final Map<String, ParquetWriter> openedDescriptors;
@@ -42,8 +44,10 @@ public class S3ParquetEventSaver implements EventSaver {
 
     private int currentRecords;
 
-    public S3ParquetEventSaver(OutputLocationGenerator outputLocationGenerator) {
+    public S3ParquetEventSaver(OutputLocationGenerator outputLocationGenerator, OutputConfiguration.FileIO fileIO) {
         this.outputLocationGenerator = outputLocationGenerator;
+        this.fileIO = fileIO;
+
         this.committers = new ArrayList<>();
         this.openedDescriptors = new HashMap<>();
 
@@ -134,14 +138,8 @@ public class S3ParquetEventSaver implements EventSaver {
         try {
             logger.infof("Opening parquet writer for `%s`", location);
             var path = new Path(new URI(location));
-
-            // todo: get values from config
             var config = new Configuration();
-            config.set("fs.s3a.access.key", "admin");
-            config.set("fs.s3a.secret.key", "password");
-            config.set("fs.s3a.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem");
-            config.set("fs.s3a.path.style.access", "true");
-            config.set("fs.s3a.endpoint", "http://localhost:9000");
+            fileIO.properties().forEach(config::set);
 
             var builder = AvroParquetWriter
                     .<GenericRecord>builder(HadoopOutputFile.fromPath(path, config))

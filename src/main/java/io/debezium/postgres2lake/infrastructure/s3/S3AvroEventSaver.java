@@ -3,6 +3,7 @@ package io.debezium.postgres2lake.infrastructure.s3;
 import io.debezium.postgres2lake.domain.model.EventCommitter;
 import io.debezium.postgres2lake.domain.model.EventRecord;
 import io.debezium.postgres2lake.domain.EventSaver;
+import io.debezium.postgres2lake.service.OutputConfiguration;
 import io.debezium.postgres2lake.service.OutputLocationGenerator;
 import org.apache.avro.Schema;
 import org.apache.avro.file.DataFileWriter;
@@ -30,6 +31,8 @@ public class S3AvroEventSaver implements EventSaver {
     private static final Logger logger = Logger.getLogger(S3AvroEventSaver.class);
 
     private final OutputLocationGenerator outputLocationGenerator;
+    private final OutputConfiguration.FileIO fileIO;
+
     private final List<EventCommitter> committers;
     private final Map<String, DataFileWriter> openedDescriptors;
 
@@ -40,8 +43,9 @@ public class S3AvroEventSaver implements EventSaver {
 
     private int currentRecords;
 
-    public S3AvroEventSaver(OutputLocationGenerator outputLocationGenerator) {
+    public S3AvroEventSaver(OutputLocationGenerator outputLocationGenerator, OutputConfiguration.FileIO fileIO) {
         this.outputLocationGenerator = outputLocationGenerator;
+        this.fileIO = fileIO;
         this.committers = new ArrayList<>();
         this.openedDescriptors = new HashMap<>();
 
@@ -133,16 +137,12 @@ public class S3AvroEventSaver implements EventSaver {
             logger.infof("Opening parquet writer for `%s`", location);
             var path = new Path(new URI(location));
 
-            // todo: get values from config
             var config = new Configuration();
-            config.set("fs.s3a.access.key", "admin");
-            config.set("fs.s3a.secret.key", "password");
-            config.set("fs.s3a.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem");
-            config.set("fs.s3a.path.style.access", "true");
-            config.set("fs.s3a.endpoint", "http://localhost:9000");
+            fileIO.properties().forEach(config::set);
 
             var fs = FileSystem.get(new URI(location), config);
             var out = fs.create(path);
+            // todo: allow to setup codec
             var writer = new DataFileWriter<GenericRecord>(new GenericDatumWriter<>(schema)).create(schema, out);
 
             logger.infof("Successfully opened writer for `%s`", location);

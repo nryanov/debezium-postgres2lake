@@ -23,19 +23,19 @@ public interface OutputConfiguration {
     Optional<Paimon> paimon();
 
     interface Avro {
-        S3 s3();
+        FileIO fileIO();
 
         OutputNamingStrategy namingStrategy();
     }
 
     interface Parquet {
-        S3 s3();
+        FileIO fileIO();
 
         OutputNamingStrategy namingStrategy();
     }
 
     interface Orc {
-        S3 s3();
+        FileIO fileIO();
 
         OutputNamingStrategy namingStrategy();
     }
@@ -48,14 +48,8 @@ public interface OutputConfiguration {
         Map<String, String> properties();
     }
 
-    interface S3 {
-        String accessKey();
-
-        String secretAccessKey();
-
-        String endpoint();
-
-        Map<String, String> overrides();
+    interface FileIO {
+        Map<String, String> properties();
     }
 
     interface OutputNamingStrategy {

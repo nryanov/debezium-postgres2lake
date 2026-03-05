@@ -33,7 +33,7 @@ public class ApplicationBeans {
 
                 var avro = outputConfiguration.avro().get();
                 var locationGenerator = resolveOutputLocationGenerator(avro.namingStrategy(), OutputFileFormat.avro);
-                yield new S3AvroEventSaver(locationGenerator);
+                yield new S3AvroEventSaver(locationGenerator, avro.fileIO());
             }
             case ORC -> {
                 if (outputConfiguration.orc().isEmpty()) {
@@ -42,7 +42,7 @@ public class ApplicationBeans {
 
                 var orc = outputConfiguration.orc().get();
                 var locationGenerator = resolveOutputLocationGenerator(orc.namingStrategy(), OutputFileFormat.orc);
-                yield new S3OrcEventSaver(locationGenerator);
+                yield new S3OrcEventSaver(locationGenerator, orc.fileIO());
             }
             case PARQUET -> {
                 if (outputConfiguration.parquet().isEmpty()) {
@@ -51,7 +51,7 @@ public class ApplicationBeans {
 
                 var parquet = outputConfiguration.parquet().get();
                 var locationGenerator = resolveOutputLocationGenerator(parquet.namingStrategy(), OutputFileFormat.parquet);
-                yield new S3ParquetEventSaver(locationGenerator);
+                yield new S3ParquetEventSaver(locationGenerator, parquet.fileIO());
             }
             case ICEBERG -> {
                 if (outputConfiguration.iceberg().isEmpty()) {
