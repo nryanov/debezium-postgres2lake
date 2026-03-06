@@ -39,11 +39,12 @@ public class S3OrcEventSaver extends AbstractEventSaver<OrcOpenedWriter> {
     private final OrcCompressionCodec codec;
 
     public S3OrcEventSaver(
+            OutputConfiguration.Threshold threshold,
             OutputLocationGenerator outputLocationGenerator,
             OutputConfiguration.FileIO fileIO,
             OrcCompressionCodec codec
     ) {
-        super();
+        super(threshold);
         this.outputLocationGenerator = outputLocationGenerator;
         this.fileIO = fileIO;
         this.codec = codec;

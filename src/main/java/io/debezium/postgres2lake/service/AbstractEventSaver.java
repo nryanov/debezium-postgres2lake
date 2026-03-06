@@ -5,7 +5,6 @@ import io.debezium.postgres2lake.domain.model.EventCommitter;
 import io.debezium.postgres2lake.domain.model.EventRecord;
 import org.jboss.logging.Logger;
 
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -20,20 +19,17 @@ abstract public class AbstractEventSaver<T> implements EventSaver {
 
     private final List<EventCommitter> committers;
     private final Map<String, T> openedDescriptors;
-
-    private final Duration timeoutThreshold;
-    private final int totalRecordsThreshold;
-
     private final ScheduledExecutorService scheduledExecutor;
+    private final int totalRecordsThreshold;
 
     private int currentRecords;
 
-    public AbstractEventSaver() {
+    public AbstractEventSaver(OutputConfiguration.Threshold threshold) {
         this.committers = new ArrayList<>();
         this.openedDescriptors = new HashMap<>();
 
-        this.timeoutThreshold = Duration.ofMinutes(5);
-        this.totalRecordsThreshold = 10;
+        var timeoutThreshold = threshold.time();
+        this.totalRecordsThreshold = threshold.records();
 
         this.currentRecords = 0;
 

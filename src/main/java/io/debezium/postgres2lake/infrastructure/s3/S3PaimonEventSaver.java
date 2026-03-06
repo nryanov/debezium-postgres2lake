@@ -3,6 +3,7 @@ package io.debezium.postgres2lake.infrastructure.s3;
 import io.debezium.postgres2lake.domain.model.EventRecord;
 import io.debezium.postgres2lake.infrastructure.format.paimon.PaimonWriter;
 import io.debezium.postgres2lake.service.AbstractEventSaver;
+import io.debezium.postgres2lake.service.OutputConfiguration;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.paimon.catalog.Catalog;
 import org.apache.paimon.catalog.CatalogContext;
@@ -23,8 +24,8 @@ public class S3PaimonEventSaver extends AbstractEventSaver<PaimonWriter> {
 
     private final Catalog catalog;
 
-    public S3PaimonEventSaver() {
-        super();
+    public S3PaimonEventSaver(OutputConfiguration.Threshold threshold) {
+        super(threshold);
 
         var config = new Configuration();
         config.set("fs.s3a.access.key", "admin");

@@ -8,12 +8,15 @@ import io.debezium.postgres2lake.infrastructure.format.orc.OrcCompressionCodec;
 import io.debezium.postgres2lake.infrastructure.format.parquet.ParquetCompressionCodec;
 import io.smallrye.config.ConfigMapping;
 
+import java.time.Duration;
 import java.util.Map;
 import java.util.Optional;
 
 @ConfigMapping(prefix = "output")
 public interface OutputConfiguration {
     OutputFormat format();
+
+    Threshold threshold();
 
     Optional<Avro> avro();
 
@@ -65,5 +68,11 @@ public interface OutputConfiguration {
         OutputPartitionStrategy partitioner();
 
         OutputFileNameGenerationStrategy fileName();
+    }
+
+    interface Threshold {
+        int records();
+
+        Duration time();
     }
 }

@@ -25,11 +25,12 @@ public class S3AvroEventSaver extends AbstractEventSaver<DataFileWriter<GenericR
     private final AvroCompressionCodec codec;
 
     public S3AvroEventSaver(
+            OutputConfiguration.Threshold threshold,
             OutputLocationGenerator outputLocationGenerator,
             OutputConfiguration.FileIO fileIO,
             AvroCompressionCodec codec
     ) {
-        super();
+        super(threshold);
         this.outputLocationGenerator = outputLocationGenerator;
         this.fileIO = fileIO;
         this.codec = codec;

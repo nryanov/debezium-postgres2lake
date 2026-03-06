@@ -4,6 +4,7 @@ import io.debezium.postgres2lake.domain.model.EventRecord;
 import io.debezium.postgres2lake.infrastructure.format.iceberg.IcebergTableWriter;
 import io.debezium.postgres2lake.infrastructure.format.iceberg.InstrumentedS3FileIOAwsClientFactory;
 import io.debezium.postgres2lake.service.AbstractEventSaver;
+import io.debezium.postgres2lake.service.OutputConfiguration;
 import org.apache.avro.Schema;
 import org.apache.iceberg.CatalogProperties;
 import org.apache.iceberg.FileFormat;
@@ -41,8 +42,8 @@ public class S3IcebergEventSaver extends AbstractEventSaver<IcebergTableWriter> 
 
     private final Catalog catalog;
 
-    public S3IcebergEventSaver() {
-        super();
+    public S3IcebergEventSaver(OutputConfiguration.Threshold threshold) {
+        super(threshold);
 
         var properties = new HashMap<String, String>();
         properties.put("jdbc.user", "postgres");

@@ -25,11 +25,12 @@ public class S3ParquetEventSaver extends AbstractEventSaver<ParquetWriter<Generi
     private final ParquetCompressionCodec compressionCodec;
 
     public S3ParquetEventSaver(
+            OutputConfiguration.Threshold threshold,
             OutputLocationGenerator outputLocationGenerator,
             OutputConfiguration.FileIO fileIO,
             ParquetCompressionCodec compressionCodec
     ) {
-        super();
+        super(threshold);
         this.outputLocationGenerator = outputLocationGenerator;
         this.fileIO = fileIO;
         this.compressionCodec = compressionCodec;
