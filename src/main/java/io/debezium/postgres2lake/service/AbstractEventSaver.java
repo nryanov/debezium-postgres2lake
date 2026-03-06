@@ -64,12 +64,14 @@ abstract public class AbstractEventSaver<T> implements EventSaver {
         synchronized (this) {
             logger.debug("Append events");
             try {
-                events.forEach(event -> {
+                var eventsIter = events.iterator();
+                while (eventsIter.hasNext()) {
+                    var event = eventsIter.next();
                     var destination = event.rawDestination();
                     var openedDescriptor = openedDescriptors.computeIfAbsent(destination, ignored -> createWriter(event));
                     appendEvent(event, openedDescriptor);
                     currentRecords++;
-                });
+                }
             } catch (Exception e) {
                 logger.errorf(e, "Error happened while handle new events batch: %s", e.getLocalizedMessage());
             }
@@ -81,36 +83,40 @@ abstract public class AbstractEventSaver<T> implements EventSaver {
 
     private void attemptToDumpCurrentData(boolean byTime) {
         synchronized (this) {
-            if (!byTime && currentRecords < totalRecordsThreshold) {
-                return;
+            try {
+                if (!byTime && currentRecords < totalRecordsThreshold) {
+                    return;
+                }
+
+                if (byTime) {
+                    logger.infof("Dump current events by time");
+                } else {
+                    logger.infof("Dump current events by exceeded records threshold");
+                }
+
+                // save events
+                for (var entry : openedDescriptors.entrySet()) {
+                    var writer = entry.getValue();
+                    commitPendingEvents(writer);
+                }
+
+                // commit every hold batch
+                committers.forEach(EventCommitter::commit);
+                logger.infof("Successfully saved %s total records", currentRecords);
+
+                openedDescriptors.clear();
+                committers.clear();
+                currentRecords = 0;
+                logger.infof("Successfully reset records backlog");
+            } catch (Exception e) {
+                throw new RuntimeException(e);
             }
-
-            if (byTime) {
-                logger.infof("Dump current events by time");
-            } else {
-                logger.infof("Dump current events by exceeded records threshold");
-            }
-
-            // save events
-            for (var entry : openedDescriptors.entrySet()) {
-                var writer = entry.getValue();
-                commitPendingEvents(writer);
-            }
-
-            // commit every hold batch
-            committers.forEach(EventCommitter::commit);
-            logger.infof("Successfully saved %s total records", currentRecords);
-
-            openedDescriptors.clear();
-            committers.clear();
-            currentRecords = 0;
-            logger.infof("Successfully reset records backlog");
         }
     }
 
     protected abstract T createWriter(EventRecord event);
 
-    protected abstract void appendEvent(EventRecord event, T writer);
+    protected abstract void appendEvent(EventRecord event, T writer) throws Exception;
 
-    protected abstract void commitPendingEvents(T writer);
+    protected abstract void commitPendingEvents(T writer) throws Exception;
 }

@@ -218,35 +218,27 @@ public class S3OrcEventSaver extends AbstractEventSaver<OrcOpenedWriter> {
     }
 
     @Override
-    protected void appendEvent(EventRecord event, OrcOpenedWriter writer) {
-        try {
-            var batch = writer.batch();
-            var row = batch.size;
-            batch.size += 1;
+    protected void appendEvent(EventRecord event, OrcOpenedWriter writer) throws IOException {
+        var batch = writer.batch();
+        var row = batch.size;
+        batch.size += 1;
 
-            saveRecord(event.value(), writer.writer().getSchema(), row, batch);
+        saveRecord(event.value(), writer.writer().getSchema(), row, batch);
 
-            if (batch.size == batch.getMaxSize()) {
-                writer.writer().addRowBatch(batch);
-                batch.reset();
-            }
-        } catch (IOException e) {
-            throw new RuntimeException(e);
+        if (batch.size == batch.getMaxSize()) {
+            writer.writer().addRowBatch(batch);
+            batch.reset();
         }
     }
 
     @Override
-    protected void commitPendingEvents(OrcOpenedWriter writer) {
-        try {
-            if (writer.batch().size != 0) {
-                logger.infof("Add rows batch: %s", writer.batch().count());
-                writer.writer().addRowBatch(writer.batch());
-                writer.batch().reset();
-            }
-
-            writer.writer().close();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
+    protected void commitPendingEvents(OrcOpenedWriter writer) throws IOException {
+        if (writer.batch().size != 0) {
+            logger.infof("Add rows batch: %s", writer.batch().count());
+            writer.writer().addRowBatch(writer.batch());
+            writer.batch().reset();
         }
+
+        writer.writer().close();
     }
 }

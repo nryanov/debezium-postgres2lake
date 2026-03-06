@@ -68,30 +68,21 @@ public class S3IcebergEventSaver extends AbstractEventSaver<IcebergTableWriter> 
     }
 
     @Override
-    protected void appendEvent(EventRecord event, IcebergTableWriter wrapper) {
+    protected void appendEvent(EventRecord event, IcebergTableWriter wrapper) throws IOException {
         var icebergSchema = AvroSchemaUtil.toIceberg(event.value().getSchema());
         var record = GenericRecord.create(icebergSchema);
         record.setField("id", event.value().get("id"));
-
-        try {
-            wrapper.writer().write(record);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+        wrapper.writer().write(record);
     }
 
     @Override
-    protected void commitPendingEvents(IcebergTableWriter wrapper) {
-        try {
-            var rs = wrapper.writer().complete();
-            // now only append-only logic is supported => ignore delete files
-            var dataFiles = rs.dataFiles();
-            var appendIo = wrapper.table().newAppend();
-            Arrays.stream(dataFiles).forEach(appendIo::appendFile);
-            appendIo.commit();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+    protected void commitPendingEvents(IcebergTableWriter wrapper) throws IOException {
+        var rs = wrapper.writer().complete();
+        // now only append-only logic is supported => ignore delete files
+        var dataFiles = rs.dataFiles();
+        var appendIo = wrapper.table().newAppend();
+        Arrays.stream(dataFiles).forEach(appendIo::appendFile);
+        appendIo.commit();
     }
 
     private IcebergTableWriter createWriter0(Schema schema) {

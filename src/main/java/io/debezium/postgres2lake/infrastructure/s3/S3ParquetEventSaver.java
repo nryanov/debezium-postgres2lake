@@ -64,20 +64,12 @@ public class S3ParquetEventSaver extends AbstractEventSaver<ParquetWriter<Generi
     }
 
     @Override
-    protected void appendEvent(EventRecord event, ParquetWriter<GenericRecord> writer) {
-        try {
-            writer.write(event.value());
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+    protected void appendEvent(EventRecord event, ParquetWriter<GenericRecord> writer) throws IOException {
+        writer.write(event.value());
     }
 
     @Override
-    protected void commitPendingEvents(ParquetWriter<GenericRecord> writer) {
-        try {
-            writer.close();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+    protected void commitPendingEvents(ParquetWriter<GenericRecord> writer) throws IOException {
+        writer.close();
     }
 }

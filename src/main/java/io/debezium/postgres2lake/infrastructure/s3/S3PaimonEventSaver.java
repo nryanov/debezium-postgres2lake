@@ -72,23 +72,19 @@ public class S3PaimonEventSaver extends AbstractEventSaver<PaimonWriter> {
     }
 
     @Override
-    protected void appendEvent(EventRecord event, PaimonWriter wrapper) {
-        try {
-            var write = wrapper.writer().get();
-            if (write == null) {
-                write = wrapper.writeBuilder().newWrite();
-                wrapper.writer().set(write);
-            }
-
-            // todo: fix bucket id resolution
-            var bucket = 0;
-            write.write(GenericRow.ofKind(RowKind.INSERT, event.value().get("id")), bucket);
-            // todo: commit only before saving data
-            var pendingCommit = write.prepareCommit(false, wrapper.commitId().incrementAndGet());
-            wrapper.pendingCommits().addAll(pendingCommit);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
+    protected void appendEvent(EventRecord event, PaimonWriter wrapper) throws Exception {
+        var write = wrapper.writer().get();
+        if (write == null) {
+            write = wrapper.writeBuilder().newWrite();
+            wrapper.writer().set(write);
         }
+
+        // todo: fix bucket id resolution
+        var bucket = 0;
+        write.write(GenericRow.ofKind(RowKind.INSERT, event.value().get("id")), bucket);
+        // todo: commit only before saving data
+        var pendingCommit = write.prepareCommit(false, wrapper.commitId().incrementAndGet());
+        wrapper.pendingCommits().addAll(pendingCommit);
     }
 
     @Override

@@ -67,20 +67,12 @@ public class S3AvroEventSaver extends AbstractEventSaver<DataFileWriter<GenericR
     }
 
     @Override
-    protected void appendEvent(EventRecord event, DataFileWriter<GenericRecord> writer) {
-        try {
-            writer.append(event.value());
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+    protected void appendEvent(EventRecord event, DataFileWriter<GenericRecord> writer) throws IOException {
+        writer.append(event.value());
     }
 
     @Override
-    protected void commitPendingEvents(DataFileWriter<GenericRecord> writer) {
-        try {
-            writer.close();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+    protected void commitPendingEvents(DataFileWriter<GenericRecord> writer) throws IOException {
+        writer.close();
     }
 }
