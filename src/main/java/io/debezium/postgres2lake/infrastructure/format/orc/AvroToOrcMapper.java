@@ -78,9 +78,6 @@ public class AvroToOrcMapper {
             case "io.debezium.time.ZonedTime", "io.debezium.time.IsoTime", "io.debezium.time.Interval" -> TypeDescription.createLong(); // initial type: string (utc)
             case "io.debezium.time.MicroDuration" -> TypeDescription.createLong(); // initial type: long
             case "io.debezium.data.Json", "io.debezium.data.Xml", "io.debezium.data.Uuid", "io.debezium.data.Enum" -> TypeDescription.createString(); // initial type: string
-            case "io.debezium.data.geometry.Point" -> TypeDescription.createStruct()
-                    .addField("x", TypeDescription.createDouble())
-                    .addField("y", TypeDescription.createDouble()); // initial type: struct
             case "io.debezium.time.Date" -> TypeDescription.createDate(); // initial type: int
             case "io.debezium.time.Time", "io.debezium.time.MicroTime", "io.debezium.time.NanoTime" -> TypeDescription.createLong(); // initial type: int/long
             case "io.debezium.time.Timestamp", "io.debezium.time.MicroTimestamp", "io.debezium.time.NanoTimestamp" -> TypeDescription.createTimestampInstant(); // initial type: long
