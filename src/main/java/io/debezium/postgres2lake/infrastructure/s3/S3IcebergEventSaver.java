@@ -1,23 +1,20 @@
 package io.debezium.postgres2lake.infrastructure.s3;
 
 import io.debezium.postgres2lake.domain.model.EventRecord;
+import io.debezium.postgres2lake.infrastructure.format.iceberg.AvroToIcebergMapper;
 import io.debezium.postgres2lake.infrastructure.format.iceberg.IcebergTableWriter;
 import io.debezium.postgres2lake.infrastructure.format.iceberg.InstrumentedS3FileIOAwsClientFactory;
 import io.debezium.postgres2lake.service.AbstractEventSaver;
 import io.debezium.postgres2lake.service.OutputConfiguration;
-import org.apache.avro.Schema;
 import org.apache.iceberg.CatalogProperties;
 import org.apache.iceberg.FileFormat;
-import org.apache.iceberg.SchemaParser;
 import org.apache.iceberg.Table;
-import org.apache.iceberg.avro.AvroSchemaUtil;
 import org.apache.iceberg.aws.s3.S3FileIOProperties;
 import org.apache.iceberg.catalog.Catalog;
 import org.apache.iceberg.catalog.Namespace;
 import org.apache.iceberg.catalog.SupportsNamespaces;
 import org.apache.iceberg.catalog.TableIdentifier;
 import org.apache.iceberg.data.GenericAppenderFactory;
-import org.apache.iceberg.data.GenericRecord;
 import org.apache.iceberg.data.Record;
 import org.apache.iceberg.io.BaseTaskWriter;
 import org.apache.iceberg.io.OutputFileFactory;
@@ -41,10 +38,12 @@ public class S3IcebergEventSaver extends AbstractEventSaver<IcebergTableWriter> 
     private static final Logger logger = Logger.getLogger(S3IcebergEventSaver.class);
 
     private final Catalog catalog;
+    private final AvroToIcebergMapper mapper;
 
     public S3IcebergEventSaver(OutputConfiguration.Threshold threshold) {
         super(threshold);
 
+        // todo: get values from config
         var properties = new HashMap<String, String>();
         properties.put("jdbc.user", "postgres");
         properties.put("jdbc.password", "postgres");
@@ -61,18 +60,36 @@ public class S3IcebergEventSaver extends AbstractEventSaver<IcebergTableWriter> 
 
         this.catalog = new JdbcCatalog();
         catalog.initialize("jdbc", properties);
+
+        this.mapper = new AvroToIcebergMapper();
     }
 
     @Override
     protected IcebergTableWriter createWriter(EventRecord event) {
-        return createWriter0(null);
+        try {
+            // todo: extract into separate logic
+            var namespaceCatalog = (SupportsNamespaces) catalog;
+            var ns = Namespace.of("development");
+
+            namespaceCatalog.createNamespace(ns);
+            var tableIdentifier = TableIdentifier.of(ns, "data");
+            var tableSchema = mapper.avroToIcebergSchema(event.key().getSchema(), event.value().getSchema());
+            catalog.createTable(tableIdentifier, tableSchema);
+        } catch (Exception e) {
+            logger.errorf(e, "Error happened while creating namespace/table: %s", e.getLocalizedMessage());
+        }
+
+        var tableIdentifier = TableIdentifier.of(Namespace.of("development"), "data");
+        var table = catalog.loadTable(tableIdentifier);
+
+        // todo: currently it is append-only writer
+        return new IcebergTableWriter(table, createTableWriter(table));
     }
 
     @Override
     protected void appendEvent(EventRecord event, IcebergTableWriter wrapper) throws IOException {
-        var icebergSchema = AvroSchemaUtil.toIceberg(event.value().getSchema());
-        var record = GenericRecord.create(icebergSchema);
-        record.setField("id", event.value().get("id"));
+        var icebergSchema = mapper.avroToIcebergSchema(event.key().getSchema(), event.value().getSchema());
+        var record = mapper.createIcebergRecord(icebergSchema, event.value());
         wrapper.writer().write(record);
     }
 
@@ -84,43 +101,6 @@ public class S3IcebergEventSaver extends AbstractEventSaver<IcebergTableWriter> 
         var appendIo = wrapper.table().newAppend();
         Arrays.stream(dataFiles).forEach(appendIo::appendFile);
         appendIo.commit();
-    }
-
-    private IcebergTableWriter createWriter0(Schema schema) {
-        try {
-            // todo: extract into separate logic
-            var namespaceCatalog = (SupportsNamespaces) catalog;
-            var ns = Namespace.of("development");
-
-            namespaceCatalog.createNamespace(ns);
-            var tableIdentifier = TableIdentifier.of(ns, "data");
-
-            var tableSchemaJson = """
-                                {
-                  "type": "struct",
-                  "fields": [
-                    {
-                      "id": 1,
-                      "name": "id",
-                      "type": "long",
-                      "required": true
-                    }
-                  ]
-                }
-                """;
-
-            var tableSchema = SchemaParser.fromJson(tableSchemaJson);
-
-            catalog.createTable(tableIdentifier, tableSchema);
-        } catch (Exception e) {
-            logger.errorf(e, "Error happened while creating namespace/table: %s", e.getLocalizedMessage());
-        }
-
-        var tableIdentifier = TableIdentifier.of(Namespace.of("development"), "data");
-        var table = catalog.loadTable(tableIdentifier);
-
-        // todo: currently it is append-only writer
-        return new IcebergTableWriter(table, createTableWriter(table));
     }
 
     private BaseTaskWriter<Record> createTableWriter(Table table) {
