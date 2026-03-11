@@ -45,6 +45,7 @@ public class S3IcebergEventSaver extends AbstractEventSaver<IcebergTableWriter> 
     public S3IcebergEventSaver(OutputConfiguration.Threshold threshold) {
         super(threshold);
 
+        // todo: get values from config
         var properties = new HashMap<String, String>();
         properties.put("jdbc.user", "postgres");
         properties.put("jdbc.password", "postgres");

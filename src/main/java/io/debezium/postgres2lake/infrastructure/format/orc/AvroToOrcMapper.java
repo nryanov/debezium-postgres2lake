@@ -3,9 +3,7 @@ package io.debezium.postgres2lake.infrastructure.format.orc;
 import org.apache.avro.LogicalTypes;
 import org.apache.avro.Schema;
 import org.apache.avro.SchemaBuilder;
-import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericRecord;
-import org.apache.avro.util.Utf8;
 import org.apache.hadoop.hive.ql.exec.vector.BytesColumnVector;
 import org.apache.hadoop.hive.ql.exec.vector.ColumnVector;
 import org.apache.hadoop.hive.ql.exec.vector.DateColumnVector;
@@ -20,18 +18,12 @@ import org.apache.hadoop.hive.serde2.io.HiveDecimalWritable;
 import org.apache.orc.TypeDescription;
 
 import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
-import java.time.LocalDate;
-import java.time.OffsetDateTime;
-import java.time.OffsetTime;
-import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
 
+import static io.debezium.postgres2lake.infrastructure.format.avro.AvroUtils.*;
+
 public class AvroToOrcMapper {
-    private static final DateTimeFormatter ISO_OFFSET_DATE_FORMAT = DateTimeFormatter.ISO_OFFSET_DATE;
-    private static final DateTimeFormatter ISO_OFFSET_TIME_FORMAT = DateTimeFormatter.ISO_OFFSET_TIME;
-    private static final DateTimeFormatter ISO_TIMESTAMP_FORMAT = DateTimeFormatter.ISO_OFFSET_DATE_TIME;
 
     public TypeDescription avroToOrcSchema(Schema schema) {
         var connectLogicalType = schema.getProp("connect.name");
@@ -187,17 +179,13 @@ public class AvroToOrcMapper {
     }
 
     private void saveIsoDate(Object avroValue, ColumnVector vector, int rowIdx) {
-        var rawDate = convertToString(avroValue);
-        // ISO format in debezium in UTC format
-        var date = LocalDate.parse(rawDate, ISO_OFFSET_DATE_FORMAT);
+        var date = parseIsoDate(avroValue);
         var typedVector = (DateColumnVector) vector;
         typedVector.vector[rowIdx] = date.toEpochDay();
     }
 
     private void saveIsoTimestamp(Object avroValue, ColumnVector vector, int rowIdx) {
-        var rawTimestamp = convertToString(avroValue);
-        // ISO format in debezium in UTC format
-        var timestamp = OffsetDateTime.parse(rawTimestamp, ISO_TIMESTAMP_FORMAT);
+        var timestamp = parseIsoTimestamp(avroValue);
         var instant = timestamp.toInstant();
         var typedVector = (TimestampColumnVector) vector;
         typedVector.time[rowIdx] = instant.toEpochMilli();
@@ -205,9 +193,7 @@ public class AvroToOrcMapper {
     }
 
     private void saveIsoTime(Object avroValue, ColumnVector vector, int rowIdx) {
-        var rawTime = convertToString(avroValue);
-        // ISO format in debezium in UTC format
-        var time = OffsetTime.parse(rawTime, ISO_OFFSET_TIME_FORMAT);
+        var time = parseIsoTime(avroValue);
         var typedVector = (LongColumnVector) vector;
         typedVector.vector[rowIdx] = time.toLocalTime().toNanoOfDay();
     }
@@ -312,25 +298,5 @@ public class AvroToOrcMapper {
             case Number number -> typedVector.vector[rowIdx] = number.longValue();
             default -> throw new IllegalArgumentException("Unexpected value for long: " + avroValue);
         }
-    }
-
-    private byte[] convertToBytes(Object value) {
-        return switch (value) {
-            case ByteBuffer buffer -> {
-                byte[] bytes = new byte[buffer.remaining()];
-                buffer.duplicate().get(bytes);
-                yield bytes;
-            }
-            case byte[] bytes -> bytes;
-            case GenericData.Fixed fixed -> fixed.bytes();
-            default -> String.valueOf(value).getBytes(StandardCharsets.UTF_8);
-        };
-    }
-
-    private String convertToString(Object value) {
-        return switch (value) {
-            case Utf8 utf8 -> utf8.toString();
-            default -> value.toString();
-        };
     }
 }
