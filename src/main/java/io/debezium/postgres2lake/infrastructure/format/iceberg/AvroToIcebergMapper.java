@@ -5,129 +5,33 @@ import org.apache.iceberg.Schema;
 import org.apache.iceberg.avro.AvroSchemaUtil;
 import org.apache.iceberg.data.GenericRecord;
 import org.apache.iceberg.data.Record;
-import org.apache.iceberg.types.Type;
 import org.apache.iceberg.types.Types;
 
+import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.math.MathContext;
+import java.math.RoundingMode;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.UUID;
 
 import static io.debezium.postgres2lake.infrastructure.format.avro.AvroUtils.*;
 
 public class AvroToIcebergMapper {
     public Schema avroToIcebergSchema(org.apache.avro.Schema keySchema, org.apache.avro.Schema avroValueSchema) {
-        var fieldId = new AtomicInteger(0);
         // todo: add information about PK
-        return toIcebergSchema(avroValueSchema, fieldId).asStructType().asSchema();
+        return AvroSchemaUtil.toIceberg(avroValueSchema);
     }
 
-    private Type toIcebergSchema(org.apache.avro.Schema schema, AtomicInteger fieldId) {
-        return switch (schema.getType()) {
-            case RECORD -> {
-                var nestedFields = new ArrayList<Types.NestedField>();
-                for (var field : schema.getFields()) {
-                    var type = toIcebergSchema(field.schema(), fieldId);
-                    var isOptional = isOptional(field.schema());
-                    var id = fieldId.incrementAndGet();
-                    var nestedField = Types.NestedField.builder().isOptional(isOptional).withDoc(field.doc()).withName(field.name()).withId(id).ofType(type).build();
-                    nestedFields.add(nestedField);
-                }
-
-                yield Types.StructType.of(nestedFields);
-            }
-            case UNION -> {
-                if (schema.getTypes().get(0).getType() == org.apache.avro.Schema.Type.NULL) {
-                    yield toIcebergSchema(schema.getTypes().get(1), fieldId);
-                } else yield toIcebergSchema(schema.getTypes().get(0), fieldId);
-            }
-            case ARRAY -> {
-                var elementSchema = schema.getElementType();
-                var id = fieldId.incrementAndGet();
-                if (AvroSchemaUtil.isOptionSchema(elementSchema)) {
-                    yield Types.ListType.ofOptional(id, toIcebergSchema(elementSchema, fieldId));
-                } else {
-                    yield Types.ListType.ofRequired(id, toIcebergSchema(elementSchema, fieldId));
-                }
-            }
-            case MAP -> {
-                var valueSchema = schema.getValueType();
-                int keyId = fieldId.incrementAndGet();
-                int valueId = fieldId.incrementAndGet();
-
-                if (AvroSchemaUtil.isOptional(valueSchema)) {
-                    yield Types.MapType.ofOptional(keyId, valueId, Types.StringType.get(), toIcebergSchema(valueSchema, fieldId));
-                } else {
-                    yield Types.MapType.ofRequired(keyId, valueId, Types.StringType.get(), toIcebergSchema(valueSchema, fieldId));
-                }
-            }
-            default -> toIcebergPrimitiveType(schema);
-        };
-    }
-
-    private boolean isOptional(org.apache.avro.Schema schema) {
-        if (schema.getType() == org.apache.avro.Schema.Type.UNION && schema.getTypes().size() == 2) {
-            if (schema.getTypes().get(0).getType() == org.apache.avro.Schema.Type.NULL) {
-                return true;
-            } else return schema.getTypes().get(1).getType() == org.apache.avro.Schema.Type.NULL;
-        }
-        return false;
-    }
-
-    private Type toIcebergPrimitiveType(org.apache.avro.Schema schema) {
-        var valueType = schema.getType().getName().toLowerCase();
-        var connectLogicalType = schema.getProp("connect.name");
-        if (connectLogicalType != null) {
-            valueType = connectLogicalType;
-        }
-
-        return switch (valueType) {
-            // debezium logical type mappings
-            case "io.debezium.data.Bits" -> Types.BinaryType.get();
-            case "io.debezium.time.ZonedTimestamp", "io.debezium.time.IsoTimestamp" -> Types.TimestampType.withZone();
-            case "io.debezium.time.ZonedTime", "io.debezium.time.IsoTime" -> Types.TimeType.get();
-            case "io.debezium.time.MicroDuration" -> Types.LongType.get();
-            case "io.debezium.data.Json", "io.debezium.data.Xml", "io.debezium.data.Enum" -> Types.StringType.get();
-            case "io.debezium.data.Uuid" -> Types.UUIDType.get();
-            case "io.debezium.time.Date" -> Types.DateType.get();
-            case "io.debezium.time.Time", "io.debezium.time.MicroTime", "io.debezium.time.NanoTime" -> Types.TimeType.get();
-            case "io.debezium.time.Timestamp", "io.debezium.time.MicroTimestamp" -> Types.TimestampType.withoutZone();
-            case "io.debezium.time.NanoTimestamp" -> Types.TimestampNanoType.withoutZone();
-            case "io.debezium.time.IsoDate" -> Types.DateType.get();
-            case "io.debezium.data.VariableScaleDecimal" -> Types.DoubleType.get(); // todo: is it correct type?
-            // kaka-connect logical type mappings
-            case "org.apache.kafka.connect.data.Decimal" -> {
-                var decimal = (LogicalTypes.Decimal) schema.getLogicalType();
-                yield Types.DecimalType.of(decimal.getPrecision(), decimal.getScale());
-            }
-            case "org.apache.kafka.connect.data.Date" -> Types.DateType.get();
-            case "org.apache.kafka.connect.data.Time" -> Types.TimeType.get();
-            case "org.apache.kafka.connect.data.Timestamp" -> Types.TimestampType.withoutZone();
-            // avro logical type mappings
-            case "decimal" -> {
-                var decimal = (LogicalTypes.Decimal) schema.getLogicalType();
-                yield Types.DecimalType.of(decimal.getPrecision(), decimal.getScale());
-            }
-            case "uuid" -> Types.UUIDType.get();
-            case "date" -> Types.DateType.get();
-            case "time-millis", "time-micros" -> Types.TimeType.get();
-            case "timestamp-millis", "timestamp-micros" -> Types.TimestampType.withZone();
-            case "local-timestamp-millis", "local-timestamp-micros" -> Types.TimestampType.withoutZone();
-            // standard avro types
-            case "boolean" -> Types.BooleanType.get();
-            case "int" -> Types.IntegerType.get();
-            case "long" -> Types.LongType.get();
-            case "string", "enum" -> Types.StringType.get();
-            case "fixed" -> Types.FixedType.ofLength(schema.getFixedSize());
-            case "bytes" -> Types.BinaryType.get();
-            case "float" -> Types.FloatType.get();
-            case "double" -> Types.DoubleType.get();
-            case null, default -> throw new IllegalArgumentException("Unsupported type");
-        };
-    }
-
-    private Record createIcebergRecord(Schema icebergSchema, org.apache.avro.generic.GenericRecord avroRecord) {
+    public Record createIcebergRecord(Schema icebergSchema, org.apache.avro.generic.GenericRecord avroRecord) {
         var icebergRecord = GenericRecord.create(icebergSchema);
         var fields = avroRecord.getSchema().getFields();
 
@@ -145,47 +49,83 @@ public class AvroToIcebergMapper {
             return null;
         }
 
-        var valueType = avroSchema.getType().getName().toLowerCase();
-        var connectLogicalType = avroSchema.getProp("connect.name");
-        if (connectLogicalType != null) {
-            valueType = connectLogicalType;
-        }
+        return switch (avroSchema.getType()) {
+            case ENUM -> convertToString(avroValue);
+            case STRING -> {
+                var logicalType = avroSchema.getLogicalType();
+                if (logicalType != null) {
+                    if (logicalType instanceof LogicalTypes.Uuid) {
+                        yield UUID.fromString(convertToString(avroValue));
+                    }
+                }
 
-        return switch (valueType) {
-            // debezium logical type mappings
-            case "io.debezium.data.Bits" -> convertToBytes(avroValue);
-            case "io.debezium.time.ZonedTimestamp", "io.debezium.time.IsoTimestamp" -> {}
-            case "io.debezium.time.ZonedTime", "io.debezium.time.IsoTime" -> {}
-            case "io.debezium.time.MicroDuration" -> {}
-            case "io.debezium.data.Json", "io.debezium.data.Xml", "io.debezium.data.Enum" -> convertToString(avroValue);
-            case "io.debezium.data.Uuid" -> {}
-            case "io.debezium.time.Date" -> {}
-            case "io.debezium.time.Time", "io.debezium.time.MicroTime", "io.debezium.time.NanoTime" -> {}
-            case "io.debezium.time.Timestamp", "io.debezium.time.MicroTimestamp" -> {}
-            case "io.debezium.time.NanoTimestamp" -> {}
-            case "io.debezium.time.IsoDate" -> {}
-            case "io.debezium.data.VariableScaleDecimal" -> {}
-            // kaka-connect logical type mappings
-            case "org.apache.kafka.connect.data.Decimal" -> {}
-            case "org.apache.kafka.connect.data.Date" -> {}
-            case "org.apache.kafka.connect.data.Time" -> {}
-            case "org.apache.kafka.connect.data.Timestamp" -> {}
-            // avro logical type mappings
-            case "decimal" -> {}
-            case "uuid" -> {}
-            case "date" -> {}
-            case "time-millis", "time-micros" -> {}
-            case "timestamp-millis", "timestamp-micros" -> {}
-            case "local-timestamp-millis", "local-timestamp-micros" -> {}
-            // standard avro types
-            case "boolean", "int", "long", "float", "double" -> avroValue;
-            case "string", "enum" -> convertToString(avroValue);
-            case "bytes" -> convertToBytes(avroValue);
-            case "fixed" -> {}
-            case "union" -> saveUnion(icebergField, avroSchema, avroValue);
-            case "map" -> saveMap(icebergField, avroSchema, avroValue);
-            case "record" -> saveInnerRecord(icebergField, avroSchema, avroValue);
-            case "array" -> saveArray(icebergField, avroSchema, avroValue);
+                yield convertToString(avroValue);
+            }
+            case BOOLEAN, FIXED, DOUBLE, FLOAT -> avroValue;
+            case INT -> {
+                var number = (Number) avroValue;
+                var logicalType = avroSchema.getLogicalType();
+                if (logicalType != null) {
+                    if (logicalType instanceof LogicalTypes.Date) {
+                        yield LocalDate.ofEpochDay(number.intValue());
+                    }
+
+                    if (logicalType instanceof LogicalTypes.TimeMillis) {
+                        yield LocalTime.ofNanoOfDay(number.intValue() * 1_000_000L);
+                    }
+                }
+
+                yield avroValue;
+            }
+            case LONG -> {
+                var number = (Number) avroValue;
+                var logicalType = avroSchema.getLogicalType();
+                if (logicalType != null) {
+                    switch (logicalType) {
+                        case LogicalTypes.TimestampMicros ignored -> {
+                            var micros = number.longValue();
+                            var seconds = micros / 1_000_000;
+                            var microsAndNanos = (micros % 1_000) * 1_000;
+
+                            var adjustToUtc = (boolean) avroSchema.getObjectProp("adjust-to-utc");
+                            if (adjustToUtc) {
+                                yield OffsetDateTime.ofInstant(Instant.ofEpochSecond(seconds, microsAndNanos), ZoneOffset.UTC.normalized());
+                            } else {
+                                yield LocalDateTime.ofEpochSecond((int) seconds, (int) microsAndNanos, ZoneOffset.UTC);
+                            }
+                        }
+                        // todo: fix avro versions. Currently this logical type is ignored
+                        case LogicalTypes.LocalTimestampMicros ignored -> {
+                            var micros = number.longValue();
+                            var seconds = micros / 1_000_000;
+                            var microsAndNanos = (micros % 1_000) * 1_000;
+
+                            yield LocalDateTime.ofEpochSecond((int) seconds, (int) microsAndNanos, ZoneOffset.UTC);
+                        }
+                        case LogicalTypes.TimeMicros ignored -> {
+                            yield LocalTime.ofNanoOfDay(number.longValue() * 1_000L);
+                        }
+                        default -> {}
+                    }
+
+                }
+
+                yield avroValue;
+            }
+            case BYTES -> {
+                var logicalType = avroSchema.getLogicalType();
+                if (logicalType != null) {
+                    var decimalType = (LogicalTypes.Decimal) logicalType;
+                    var bytes = convertToBytes(avroValue);
+                    yield  new BigDecimal(new BigInteger(bytes), decimalType.getScale(), new MathContext(decimalType.getPrecision(), RoundingMode.HALF_UP));
+                }
+
+                yield avroValue;
+            }
+            case ARRAY -> saveArray(icebergField, avroSchema, avroValue);
+            case MAP -> saveMap(icebergField, avroSchema, avroValue);
+            case UNION -> saveUnion(icebergField, avroSchema, avroValue);
+            case RECORD -> saveInnerRecord(icebergField, avroSchema, avroValue);
             case null, default -> throw new IllegalArgumentException("Unsupported type");
         };
     }
@@ -205,9 +145,7 @@ public class AvroToIcebergMapper {
         var rawArray = (List<?>) avroValue;
         var mappedArray = new ArrayList<>();
 
-        rawArray.forEach(it -> {
-            mappedArray.add(toIcebergValue(icebergField, avroSchema.getElementType(), it));
-        });
+        rawArray.forEach(it -> mappedArray.add(toIcebergValue(icebergField, avroSchema.getElementType(), it)));
 
         return mappedArray;
     }
