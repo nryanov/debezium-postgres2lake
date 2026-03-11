@@ -39,10 +39,8 @@ public class S3AvroEventSaver extends AbstractEventSaver<DataFileWriter<GenericR
     @Override
     protected DataFileWriter<GenericRecord> createWriter(EventRecord event) {
         try {
-            logger.infof("SCHEMA: %s", event.value().getSchema());
-
             var location = outputLocationGenerator.generateLocation("warehouse", event);
-            logger.infof("Opening parquet writer for `%s`", location);
+            logger.infof("Opening avro writer for `%s`", location);
             var path = new Path(new URI(location));
 
             var schema = event.value().getSchema();

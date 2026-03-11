@@ -254,6 +254,12 @@ public class UnwrappedGenericRecordSerde {
     private Schema normalizeSchema(Schema schema) {
         return switch (schema.getType()) {
             case RECORD -> {
+                var initialType = schema.getProp(CONNECT_TYPE_NAME);
+                // special case for VariableScaleDecimal because it is a record
+                if ("io.debezium.data.VariableScaleDecimal".equals(initialType)) {
+                    yield  normalizePrimitive(schema);
+                }
+
                 var builder = SchemaBuilder
                         .record(schema.getName())
                         .namespace(schema.getNamespace())
