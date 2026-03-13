@@ -1,5 +1,6 @@
 package io.debezium.postgres2lake.infrastructure.format.avro;
 
+import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.util.Utf8;
 
@@ -51,5 +52,18 @@ public abstract class AvroUtils {
         var rawTime = convertToString(avroValue);
         // ISO format in debezium in UTC format
         return OffsetTime.parse(rawTime, ISO_OFFSET_TIME_FORMAT);
+    }
+
+    public static Schema unwrapUnion(Schema schema) {
+        if (schema.getType() == Schema.Type.UNION) {
+            for (var type : schema.getTypes()) {
+                // return first non-null schema
+                if (type.getType() != Schema.Type.NULL) {
+                    return type;
+                }
+            }
+        }
+
+        return schema;
     }
 }
