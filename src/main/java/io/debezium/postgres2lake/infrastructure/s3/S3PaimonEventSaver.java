@@ -1,6 +1,7 @@
 package io.debezium.postgres2lake.infrastructure.s3;
 
 import io.debezium.postgres2lake.domain.model.EventRecord;
+import io.debezium.postgres2lake.infrastructure.format.paimon.AvroToPaimonMapper;
 import io.debezium.postgres2lake.infrastructure.format.paimon.PaimonWriter;
 import io.debezium.postgres2lake.service.AbstractEventSaver;
 import io.debezium.postgres2lake.service.OutputConfiguration;
@@ -9,10 +10,7 @@ import org.apache.paimon.catalog.Catalog;
 import org.apache.paimon.catalog.CatalogContext;
 import org.apache.paimon.catalog.CatalogFactory;
 import org.apache.paimon.catalog.Identifier;
-import org.apache.paimon.data.GenericRow;
 import org.apache.paimon.options.Options;
-import org.apache.paimon.types.DataTypes;
-import org.apache.paimon.types.RowKind;
 import org.jboss.logging.Logger;
 
 import java.util.ArrayList;
@@ -23,6 +21,7 @@ public class S3PaimonEventSaver extends AbstractEventSaver<PaimonWriter> {
     private static final Logger logger = Logger.getLogger(S3PaimonEventSaver.class);
 
     private final Catalog catalog;
+    private final AvroToPaimonMapper mapper;
 
     public S3PaimonEventSaver(OutputConfiguration.Threshold threshold) {
         super(threshold);
@@ -44,18 +43,14 @@ public class S3PaimonEventSaver extends AbstractEventSaver<PaimonWriter> {
 
         var catalogContext = CatalogContext.create(options, config);
         this.catalog = CatalogFactory.createCatalog(catalogContext);
+        this.mapper = new AvroToPaimonMapper();
     }
 
     @Override
     protected PaimonWriter createWriter(EventRecord event) {
         var tableIdentifier = Identifier.create("paimon-development", "data");
+        var paimonSchema = mapper.avroToPaimonSchema(event.key().getSchema(), event.value().getSchema());
         try {
-            var paimonSchema = org.apache.paimon.schema.Schema
-                    .newBuilder()
-                    .column("id", DataTypes.BIGINT())
-                    .primaryKey("id")
-                    .build();
-
             catalog.createDatabase("paimon-development", true);
             catalog.createTable(tableIdentifier, paimonSchema, true);
         } catch (Exception e) {
@@ -66,7 +61,7 @@ public class S3PaimonEventSaver extends AbstractEventSaver<PaimonWriter> {
             var table = catalog.getTable(tableIdentifier);
             var writerBuilder = table.newStreamWriteBuilder();
 
-            return new PaimonWriter(table, writerBuilder, new AtomicReference<>(), new ArrayList<>(), new AtomicInteger(0));
+            return new PaimonWriter(table, paimonSchema, writerBuilder, new AtomicReference<>(), new ArrayList<>(), new AtomicInteger(0));
         } catch (Catalog.TableNotExistException e) {
             throw new RuntimeException(e);
         }
@@ -82,8 +77,8 @@ public class S3PaimonEventSaver extends AbstractEventSaver<PaimonWriter> {
 
         // todo: fix bucket id resolution
         var bucket = 0;
-        write.write(GenericRow.ofKind(RowKind.INSERT, event.value().get("id")), bucket);
-        // todo: commit only before saving data
+        write.write(mapper.createPaimonRecord(wrapper.schema(), event.value()), bucket);
+        // todo: commit only before saving data using single pending commit per batch
         var pendingCommit = write.prepareCommit(false, wrapper.commitId().incrementAndGet());
         wrapper.pendingCommits().addAll(pendingCommit);
     }
