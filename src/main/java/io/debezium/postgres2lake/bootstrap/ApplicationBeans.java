@@ -77,7 +77,8 @@ public class ApplicationBeans {
                 }
 
                 yield new S3IcebergEventSaver(
-                        outputConfiguration.threshold()
+                        outputConfiguration.threshold(),
+                        outputConfiguration.iceberg().get()
                 );
             }
             case PAIMON -> {
@@ -86,7 +87,8 @@ public class ApplicationBeans {
                 }
 
                 yield new S3PaimonEventSaver(
-                        outputConfiguration.threshold()
+                        outputConfiguration.threshold(),
+                        outputConfiguration.paimon().get()
                 );
             }
         };

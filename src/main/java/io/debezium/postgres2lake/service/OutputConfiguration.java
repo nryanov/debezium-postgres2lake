@@ -53,11 +53,17 @@ public interface OutputConfiguration {
     }
 
     interface Iceberg {
+        String name();
+
         Map<String, String> properties();
+
+        Optional<FileIO> fileIO();
     }
 
     interface Paimon {
         Map<String, String> properties();
+
+        Optional<FileIO> fileIO();
     }
 
     interface FileIO {

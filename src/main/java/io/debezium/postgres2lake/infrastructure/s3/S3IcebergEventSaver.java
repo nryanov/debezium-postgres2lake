@@ -3,13 +3,12 @@ package io.debezium.postgres2lake.infrastructure.s3;
 import io.debezium.postgres2lake.domain.model.EventRecord;
 import io.debezium.postgres2lake.infrastructure.format.iceberg.AvroToIcebergMapper;
 import io.debezium.postgres2lake.infrastructure.format.iceberg.IcebergTableWriter;
-import io.debezium.postgres2lake.infrastructure.format.iceberg.InstrumentedS3FileIOAwsClientFactory;
 import io.debezium.postgres2lake.service.AbstractEventSaver;
 import io.debezium.postgres2lake.service.OutputConfiguration;
-import org.apache.iceberg.CatalogProperties;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.iceberg.CatalogUtil;
 import org.apache.iceberg.FileFormat;
 import org.apache.iceberg.Table;
-import org.apache.iceberg.aws.s3.S3FileIOProperties;
 import org.apache.iceberg.catalog.Catalog;
 import org.apache.iceberg.catalog.Namespace;
 import org.apache.iceberg.catalog.SupportsNamespaces;
@@ -19,7 +18,6 @@ import org.apache.iceberg.data.Record;
 import org.apache.iceberg.io.BaseTaskWriter;
 import org.apache.iceberg.io.OutputFileFactory;
 import org.apache.iceberg.io.UnpartitionedWriter;
-import org.apache.iceberg.jdbc.JdbcCatalog;
 import org.apache.iceberg.types.TypeUtil;
 import org.jboss.logging.Logger;
 
@@ -40,27 +38,18 @@ public class S3IcebergEventSaver extends AbstractEventSaver<IcebergTableWriter> 
     private final Catalog catalog;
     private final AvroToIcebergMapper mapper;
 
-    public S3IcebergEventSaver(OutputConfiguration.Threshold threshold) {
+    public S3IcebergEventSaver(
+            OutputConfiguration.Threshold threshold,
+            OutputConfiguration.Iceberg icebergCfg
+    ) {
         super(threshold);
 
-        // todo: get values from config
-        var properties = new HashMap<String, String>();
-        properties.put("jdbc.user", "postgres");
-        properties.put("jdbc.password", "postgres");
-        properties.put(CatalogProperties.URI, "jdbc:postgresql://localhost:5432/postgres");
-        // view support
-        properties.put("jdbc.schema-version", "V1");
-        properties.put(CatalogProperties.FILE_IO_IMPL, "org.apache.iceberg.aws.s3.S3FileIO");
-        properties.put(CatalogProperties.WAREHOUSE_LOCATION, "s3a://warehouse");
-        properties.put(S3FileIOProperties.ENDPOINT, "http://localhost:9000");
-        properties.put(S3FileIOProperties.ACCESS_KEY_ID, "admin");
-        properties.put(S3FileIOProperties.SECRET_ACCESS_KEY, "password");
-        properties.put(S3FileIOProperties.PATH_STYLE_ACCESS, "true");
-        properties.put(S3FileIOProperties.CLIENT_FACTORY, InstrumentedS3FileIOAwsClientFactory.class.getName());
+        var catalogProperties = new HashMap<>(icebergCfg.properties());
 
-        this.catalog = new JdbcCatalog();
-        catalog.initialize("jdbc", properties);
+        var hadoopConfiguration = new Configuration();
+        icebergCfg.fileIO().ifPresent(cfg -> cfg.properties().forEach(hadoopConfiguration::set));
 
+        this.catalog = CatalogUtil.buildIcebergCatalog(icebergCfg.name(), catalogProperties, hadoopConfiguration);
         this.mapper = new AvroToIcebergMapper();
     }
 

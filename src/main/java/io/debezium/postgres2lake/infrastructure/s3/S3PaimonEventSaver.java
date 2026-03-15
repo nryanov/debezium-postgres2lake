@@ -23,23 +23,17 @@ public class S3PaimonEventSaver extends AbstractEventSaver<PaimonWriter> {
     private final Catalog catalog;
     private final AvroToPaimonMapper mapper;
 
-    public S3PaimonEventSaver(OutputConfiguration.Threshold threshold) {
+    public S3PaimonEventSaver(
+            OutputConfiguration.Threshold threshold,
+            OutputConfiguration.Paimon paimon
+    ) {
         super(threshold);
 
         var config = new Configuration();
-        config.set("fs.s3a.access.key", "admin");
-        config.set("fs.s3a.secret.key", "password");
-        config.set("fs.s3a.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem");
-        config.set("fs.s3a.path.style.access", "true");
-        config.set("fs.s3a.endpoint", "http://localhost:9000");
+        paimon.fileIO().ifPresent(cfg -> cfg.properties().forEach(config::set));
+
         var options = new Options();
-        options.set("type", "jdbc");
-        options.set("warehouse", "s3a://warehouse/paimon-warehouse");
-        options.set("jdbc-url", "jdbc:postgresql://localhost:5432/postgres");
-        options.set("jdbc-user", "postgres");
-        options.set("jdbc-password", "postgres");
-        options.set("jdbc-driver", "org.postgresql.Driver");
-        options.set("jdbc-table-prefix", "paimon_");
+        paimon.properties().forEach(options::set);
 
         var catalogContext = CatalogContext.create(options, config);
         this.catalog = CatalogFactory.createCatalog(catalogContext);
