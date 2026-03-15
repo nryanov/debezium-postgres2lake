@@ -100,6 +100,9 @@ dependencies {
     // Test dependencies
     testImplementation(platform(libs.junit.bom))
     testImplementation(platform(libs.testcontainers.bom))
+    testImplementation("org.junit.jupiter:junit-jupiter-api")
+    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
 java {
