@@ -72,13 +72,14 @@ public class S3PaimonEventSaver extends AbstractEventSaver<PaimonWriter> {
         // todo: fix bucket id resolution
         var bucket = 0;
         write.write(mapper.createPaimonRecord(wrapper.schema(), event.value()), bucket);
-        // todo: commit only before saving data using single pending commit per batch
-        var pendingCommit = write.prepareCommit(false, wrapper.commitId().incrementAndGet());
-        wrapper.pendingCommits().addAll(pendingCommit);
     }
 
     @Override
-    protected void commitPendingEvents(PaimonWriter wrapper) {
+    protected void commitPendingEvents(PaimonWriter wrapper) throws Exception {
+        var write = wrapper.writer().get();
+        var pendingCommit = write.prepareCommit(false, wrapper.commitId().incrementAndGet());
+        wrapper.pendingCommits().addAll(pendingCommit);
+
         var commit = wrapper.writeBuilder().newCommit();
         commit.commit(wrapper.commitId().get(), wrapper.pendingCommits());
         wrapper.pendingCommits().clear();
