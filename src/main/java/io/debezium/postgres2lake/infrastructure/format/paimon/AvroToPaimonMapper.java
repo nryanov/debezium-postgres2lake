@@ -1,5 +1,6 @@
 package io.debezium.postgres2lake.infrastructure.format.paimon;
 
+import io.debezium.postgres2lake.domain.model.EventRecord;
 import org.apache.avro.LogicalType;
 import org.apache.avro.LogicalTypes;
 import org.apache.avro.generic.GenericRecord;
@@ -13,6 +14,7 @@ import org.apache.paimon.schema.Schema;
 import org.apache.paimon.types.DataField;
 import org.apache.paimon.types.DataType;
 import org.apache.paimon.types.DataTypes;
+import org.apache.paimon.types.RowKind;
 import org.apache.paimon.types.RowType;
 
 import java.util.HashMap;
@@ -109,10 +111,11 @@ public class AvroToPaimonMapper {
         };
     }
 
-    public GenericRow createPaimonRecord(Schema paimonSchema, GenericRecord avroRecord) {
+    public GenericRow createPaimonRecord(Schema paimonSchema, EventRecord event) {
         var arity = paimonSchema.fields().size();
         var row = new GenericRow(arity);
 
+        var avroRecord = event.value();
         var avroSchema = avroRecord.getSchema();
         var idx = 0;
 
@@ -121,6 +124,13 @@ public class AvroToPaimonMapper {
             row.setField(idx, convertAvroToPaimonValue(avroField.schema(), avroValue));
             idx++;
         }
+
+        var kind = switch (event.operation()) {
+            case INSERT -> RowKind.INSERT;
+            case UPDATE -> RowKind.UPDATE_AFTER;
+            case DELETE -> RowKind.DELETE;
+        };
+        row.setRowKind(kind);
 
         return row;
     }
