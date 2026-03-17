@@ -65,16 +65,11 @@ public class UnwrappedGenericRecordSerde {
         var valuePart = (byte[]) event.value();
 
         var key = serde.deserialize(keyPart);
+        var value = serde.deserialize(valuePart);
+        var operation = resolveOperation(value);
+        var unwrappedValue = unwrap(operation, value);
 
-        if (event.value() != null) {
-            var value = serde.deserialize(valuePart);
-            var operation = resolveOperation(value);
-            var unwrappedValue = unwrap(operation, value);
-
-            return new EventRecord(operation, key, unwrappedValue, event.destination());
-        }
-
-        return new EventRecord(Operation.DELETE, key, null, event.destination());
+        return new EventRecord(operation, key, unwrappedValue, event.destination());
     }
 
     private Operation resolveOperation(GenericRecord payload) {

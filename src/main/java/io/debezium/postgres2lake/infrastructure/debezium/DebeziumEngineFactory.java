@@ -66,6 +66,7 @@ public class DebeziumEngineFactory {
     private Properties properties() {
         var properties = new Properties();
         configuration.engine().forEach(properties::setProperty);
+        properties.put("tombstones.on.delete", "false");
 
         // avro
         switch (configuration.avro()) {

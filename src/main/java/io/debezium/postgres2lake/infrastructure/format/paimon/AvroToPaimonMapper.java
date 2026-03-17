@@ -116,16 +116,13 @@ public class AvroToPaimonMapper {
         var row = new GenericRow(arity);
 
         var avroRecord = event.value();
+        var avroSchema = avroRecord.getSchema();
+        var idx = 0;
 
-        if (avroRecord != null) {
-            var avroSchema = avroRecord.getSchema();
-            var idx = 0;
-
-            for (var avroField : avroSchema.getFields()) {
-                var avroValue = avroRecord.get(avroField.name());
-                row.setField(idx, convertAvroToPaimonValue(avroField.schema(), avroValue));
-                idx++;
-            }
+        for (var avroField : avroSchema.getFields()) {
+            var avroValue = avroRecord.get(avroField.name());
+            row.setField(idx, convertAvroToPaimonValue(avroField.schema(), avroValue));
+            idx++;
         }
 
         var kind = switch (event.operation()) {
