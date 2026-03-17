@@ -65,20 +65,29 @@ public class UnwrappedGenericRecordSerde {
         var valuePart = (byte[]) event.value();
 
         var key = serde.deserialize(keyPart);
-        var value = unwrap(serde.deserialize(valuePart));
 
-        return new EventRecord(key, value, event.destination());
+        if (event.value() != null) {
+            var value = serde.deserialize(valuePart);
+            var operation = resolveOperation(value);
+            var unwrappedValue = unwrap(operation, value);
+
+            return new EventRecord(operation, key, unwrappedValue, event.destination());
+        }
+
+        return new EventRecord(Operation.DELETE, key, null, event.destination());
     }
 
-    private GenericRecord unwrap(GenericRecord payload) {
+    private Operation resolveOperation(GenericRecord payload) {
         var op = ((Utf8) payload.get(OPERATION_FIELD_NAME)).toString();
-        var operation = switch (op) {
+        return switch (op) {
             case "c", "r" -> Operation.INSERT;
             case "u" -> Operation.UPDATE;
             case "d" -> Operation.DELETE;
             case null, default -> throw new IllegalArgumentException("unknown operation: " + op);
         };
+    }
 
+    private GenericRecord unwrap(Operation operation, GenericRecord payload) {
         var sourcePart = (GenericRecord) payload.get(SOURCE_FIELD_NAME);
         var lsn = (Long) sourcePart.get(SOURCE_LSN_FIELD_NAME);
         var timestampMillis = (Long) sourcePart.get(SOURCE_TS_MS_FIELD_NAME);

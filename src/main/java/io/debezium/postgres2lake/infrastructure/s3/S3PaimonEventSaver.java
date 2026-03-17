@@ -71,7 +71,7 @@ public class S3PaimonEventSaver extends AbstractEventSaver<PaimonWriter> {
 
         // todo: fix bucket id resolution
         var bucket = 0;
-        write.write(mapper.createPaimonRecord(wrapper.schema(), event.value()), bucket);
+        write.write(mapper.createPaimonRecord(wrapper.schema(), event), bucket);
     }
 
     @Override
