@@ -21,7 +21,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 import static io.debezium.postgres2lake.infrastructure.format.avro.AvroUtils.*;
 
@@ -55,7 +54,7 @@ public class AvroToIcebergMapper {
                 var logicalType = avroSchema.getLogicalType();
                 if (logicalType != null) {
                     if (logicalType instanceof LogicalTypes.Uuid) {
-                        yield UUID.fromString(convertToString(avroValue));
+                        yield convertToUuid(avroValue);
                     }
                 }
 
