@@ -15,6 +15,10 @@ public class EnrichedRecordWrapper implements Record {
         this.operation = operation;
     }
 
+    public Operation operation() {
+        return operation;
+    }
+
     @Override
     public Types.StructType struct() {
         return delegate.struct();
@@ -58,5 +62,10 @@ public class EnrichedRecordWrapper implements Record {
     @Override
     public <T> void set(int pos, T value) {
         delegate.set(pos, value);
+    }
+
+    @Override
+    public String toString() {
+        return delegate.toString();
     }
 }
