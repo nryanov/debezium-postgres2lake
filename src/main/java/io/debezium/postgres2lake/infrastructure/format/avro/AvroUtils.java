@@ -10,11 +10,14 @@ import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.OffsetTime;
 import java.time.format.DateTimeFormatter;
+import java.util.UUID;
 
 public abstract class AvroUtils {
     private static final DateTimeFormatter ISO_OFFSET_DATE_FORMAT = DateTimeFormatter.ISO_OFFSET_DATE;
     private static final DateTimeFormatter ISO_OFFSET_TIME_FORMAT = DateTimeFormatter.ISO_OFFSET_TIME;
     private static final DateTimeFormatter ISO_TIMESTAMP_FORMAT = DateTimeFormatter.ISO_OFFSET_DATE_TIME;
+
+    private static final UUID ZERO_UUID = UUID.fromString("00000000-0000-0000-0000-000000000000");
 
     public static byte[] convertToBytes(Object value) {
         return switch (value) {
@@ -34,6 +37,17 @@ public abstract class AvroUtils {
             case Utf8 utf8 -> utf8.toString();
             default -> value.toString();
         };
+    }
+
+    public static UUID convertToUuid(Object value) {
+        var rawUuid = convertToString(value);
+
+        if (rawUuid.isEmpty()) {
+            // for required UUID. Otherwise in case of DELETE operation postgres may return empty string
+            return ZERO_UUID;
+        }
+
+        return UUID.fromString(rawUuid);
     }
 
     public static LocalDate parseIsoDate(Object avroValue) {
