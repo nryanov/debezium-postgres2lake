@@ -81,4 +81,14 @@ public interface OutputConfiguration {
 
         Duration time();
     }
+
+    interface IcebergTableSpec {
+        Optional<String> location();
+
+        Map<String, String> properties();
+
+        // optional(none), hour, day, month, year, truncate(width), identity, bucket(buckets)
+
+        // [only a hint for compute engine] sort: optional(none), default(pk), list of fields
+    }
 }

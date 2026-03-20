@@ -72,10 +72,19 @@ public class S3IcebergEventSaver extends AbstractEventSaver<IcebergTableWriter> 
     @Override
     protected void commitPendingEvents(IcebergTableWriter wrapper) throws IOException {
         var rs = wrapper.writer().complete();
-        // now only append-only logic is supported => ignore delete files
-        var dataFiles = rs.dataFiles();
-        var appendIo = wrapper.table().newAppend();
-        Arrays.stream(dataFiles).forEach(appendIo::appendFile);
-        appendIo.commit();
+
+        if (rs.deleteFiles().length > 0) {
+            var delta = wrapper.table().newRowDelta();
+            var dataFiles = rs.dataFiles();
+            var deleteFiles = rs.deleteFiles();
+            Arrays.stream(dataFiles).forEach(delta::addRows);
+            Arrays.stream(deleteFiles).forEach(delta::addDeletes);
+            delta.commit();
+        } else {
+            var dataFiles = rs.dataFiles();
+            var appendIo = wrapper.table().newAppend();
+            Arrays.stream(dataFiles).forEach(appendIo::appendFile);
+            appendIo.commit();
+        }
     }
 }
