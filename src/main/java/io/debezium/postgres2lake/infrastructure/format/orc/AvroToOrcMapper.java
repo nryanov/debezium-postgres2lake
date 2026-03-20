@@ -1,5 +1,6 @@
 package io.debezium.postgres2lake.infrastructure.format.orc;
 
+import org.apache.avro.LogicalType;
 import org.apache.avro.LogicalTypes;
 import org.apache.avro.Schema;
 import org.apache.avro.SchemaBuilder;
@@ -17,7 +18,6 @@ import org.apache.hadoop.hive.ql.exec.vector.TimestampColumnVector;
 import org.apache.hadoop.hive.serde2.io.HiveDecimalWritable;
 import org.apache.orc.TypeDescription;
 
-import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Map;
 
@@ -26,9 +26,9 @@ import static io.debezium.postgres2lake.infrastructure.format.avro.AvroUtils.*;
 public class AvroToOrcMapper {
 
     public TypeDescription avroToOrcSchema(Schema schema) {
-        var connectLogicalType = schema.getProp("connect.name");
-        if (connectLogicalType != null) {
-            return avroLogicalToOrcSchema(connectLogicalType, schema);
+        var logicalType = schema.getLogicalType();
+        if (logicalType != null) {
+            return avroLogicalToOrcSchema(logicalType, schema);
         }
 
         return switch (schema.getType()) {
@@ -62,46 +62,37 @@ public class AvroToOrcMapper {
         };
     }
 
-    private TypeDescription avroLogicalToOrcSchema(String connectLogicalType, Schema schema) {
-        return switch (connectLogicalType) {
-            // debezium logical type mappings
-            case "io.debezium.data.Bits" -> TypeDescription.createBinary();
-            case "io.debezium.time.ZonedTimestamp", "io.debezium.time.IsoTimestamp" -> TypeDescription.createTimestamp(); // initial type: string (utc)
-            case "io.debezium.time.ZonedTime", "io.debezium.time.IsoTime", "io.debezium.time.Interval" -> TypeDescription.createLong(); // initial type: string (utc)
-            case "io.debezium.time.MicroDuration" -> TypeDescription.createLong(); // initial type: long
-            case "io.debezium.data.Json", "io.debezium.data.Xml", "io.debezium.data.Uuid", "io.debezium.data.Enum" -> TypeDescription.createString(); // initial type: string
-            case "io.debezium.time.Date" -> TypeDescription.createDate(); // initial type: int
-            case "io.debezium.time.Time", "io.debezium.time.MicroTime", "io.debezium.time.NanoTime" -> TypeDescription.createLong(); // initial type: int/long
-            case "io.debezium.time.Timestamp", "io.debezium.time.MicroTimestamp", "io.debezium.time.NanoTimestamp" -> TypeDescription.createTimestampInstant(); // initial type: long
-            case "io.debezium.time.IsoDate" -> TypeDescription.createDate(); // initial type: string (utc)
-            case "io.debezium.data.VariableScaleDecimal" -> TypeDescription.createDecimal(); // unknown precision
-            // kaka-connect logical type mappings
-            case "org.apache.kafka.connect.data.Decimal" -> {
-                var decimal = (LogicalTypes.Decimal) schema.getLogicalType();
-                yield TypeDescription
-                        .createDecimal()
-                        .withScale(decimal.getScale())
-                        .withPrecision(decimal.getPrecision());
+    private TypeDescription avroLogicalToOrcSchema(LogicalType logicalType, Schema schema) {
+        return switch (logicalType) {
+            case LogicalTypes.Decimal decimal -> TypeDescription
+                    .createDecimal()
+                    .withScale(decimal.getScale())
+                    .withPrecision(decimal.getPrecision());
+            case LogicalTypes.Uuid ignored ->  TypeDescription.createString();
+            case LogicalTypes.TimeMicros ignored -> TypeDescription.createLong();
+            case LogicalTypes.TimeMillis ignored -> TypeDescription.createInt();
+            case LogicalTypes.TimestampMicros ignored -> {
+                var adjustToUtc = (boolean) schema.getObjectProp("adjust-to-utc");
+
+                if (adjustToUtc) {
+                    yield TypeDescription.createTimestamp();
+                } else {
+                    yield TypeDescription.createTimestampInstant();
+                }
             }
-            case "org.apache.kafka.connect.data.Date" -> TypeDescription.createDate(); // initial type: int
-            case "org.apache.kafka.connect.data.Time" -> TypeDescription.createLong(); // initial type: long
-            case "org.apache.kafka.connect.data.Timestamp" -> TypeDescription.createTimestampInstant(); // initial type: long
-            // avro logical type mappings
-            case "decimal" -> {
-                var decimal = (LogicalTypes.Decimal) schema.getLogicalType();
-                yield TypeDescription
-                        .createDecimal()
-                        .withScale(decimal.getScale())
-                        .withPrecision(decimal.getPrecision());
+            case LogicalTypes.TimestampMillis ignored -> {
+                var adjustToUtc = (boolean) schema.getObjectProp("adjust-to-utc");
+
+                if (adjustToUtc) {
+                    yield TypeDescription.createTimestamp();
+                } else {
+                    yield TypeDescription.createTimestampInstant();
+                }
             }
-            case "uuid" -> TypeDescription.createString();
-            case "date" -> TypeDescription.createDate();
-            case "time-millis" -> TypeDescription.createInt();
-            case "time-micros" -> TypeDescription.createLong();
-            case "timestamp-millis", "timestamp-micros" -> TypeDescription.createTimestamp();
-            case "local-timestamp-millis", "local-timestamp-micros" -> TypeDescription.createTimestampInstant();
-            case "duration" -> TypeDescription.createBinary();
-            default -> throw new IllegalArgumentException("Unknown avro logical type: " + connectLogicalType);
+            case LogicalTypes.LocalTimestampMicros ignored -> TypeDescription.createTimestampInstant();
+            case LogicalTypes.LocalTimestampMillis ignored -> TypeDescription.createTimestampInstant();
+            case LogicalTypes.Date ignored -> TypeDescription.createDate();
+            default -> throw new IllegalArgumentException("Unsupported logical type: " + logicalType);
         };
     }
 
@@ -112,46 +103,22 @@ public class AvroToOrcMapper {
             return;
         }
 
-        var valueType = schema.getType().getName().toLowerCase();
-        var connectLogicalType = schema.getProp("connect.name");
-        if (connectLogicalType != null) {
-            valueType = connectLogicalType;
-        }
-
         // todo: correctly save milli/micro/nano time
         // vector[idx].time = micros (?)
         // vector[idx].nanos = nanos
 
         // todo: fix timestamp conversions
-        switch (valueType) {
-            // debezium logical type mappings
-            case "io.debezium.data.Bits" -> saveBinary(avroFieldValue, columnVector, rowIdx);
-            case "io.debezium.time.ZonedTimestamp", "io.debezium.time.IsoTimestamp" -> saveIsoTimestamp(avroFieldValue, columnVector, rowIdx);
-            case "io.debezium.time.ZonedTime", "io.debezium.time.IsoTime" -> saveIsoTime(avroFieldValue, columnVector, rowIdx);
-            case "io.debezium.time.MicroDuration" -> saveLong(avroFieldValue, columnVector, rowIdx);
-            case "io.debezium.data.Json", "io.debezium.data.Xml", "io.debezium.data.Uuid", "io.debezium.data.Enum" -> saveBinary(avroFieldValue, columnVector, rowIdx);
-            case "io.debezium.time.Date" -> saveDate(avroFieldValue, columnVector, rowIdx);
-            case "io.debezium.time.Time", "io.debezium.time.MicroTime", "io.debezium.time.NanoTime" -> saveLong(avroFieldValue, columnVector, rowIdx);
-            case "io.debezium.time.Timestamp", "io.debezium.time.MicroTimestamp", "io.debezium.time.NanoTimestamp" -> saveLocalTimestamp(avroFieldValue, columnVector, rowIdx);
-            case "io.debezium.time.IsoDate" -> saveIsoDate(avroFieldValue, columnVector, rowIdx);
-            case "io.debezium.data.VariableScaleDecimal" -> saveVariableScaleDecimal(avroFieldValue, columnVector, rowIdx);
-            // kaka-connect logical type mappings
-            case "org.apache.kafka.connect.data.Decimal" -> saveDecimal(schema, avroFieldValue, columnVector, rowIdx);
-            case "org.apache.kafka.connect.data.Date" -> saveDate(avroFieldValue, columnVector, rowIdx);
-            case "org.apache.kafka.connect.data.Time" -> saveLong(avroFieldValue, columnVector, rowIdx);
-            case "org.apache.kafka.connect.data.Timestamp" -> saveLocalTimestamp(avroFieldValue, columnVector, rowIdx);
-            // avro logical type mappings
-            case "decimal" -> saveDecimal(schema, avroFieldValue, columnVector, rowIdx);
-            case "uuid" -> saveBinary(avroFieldValue, columnVector, rowIdx);
-            case "date" -> saveDate(avroFieldValue, columnVector, rowIdx);
-            case "time-millis", "time-micros" -> saveLong(avroFieldValue, columnVector, rowIdx);
-            case "timestamp-millis", "timestamp-micros" -> saveTimestamp(avroFieldValue, columnVector, rowIdx);
-            case "local-timestamp-millis", "local-timestamp-micros" -> saveLocalTimestamp(avroFieldValue, columnVector, rowIdx);
-            // standard avro types
-            case "boolean", "int", "long" -> saveLong(avroFieldValue, columnVector, rowIdx);
-            case "string", "enum", "bytes", "fixed" -> saveBinary(avroFieldValue, columnVector, rowIdx);
-            case "float", "double" -> saveDouble(avroFieldValue, columnVector, rowIdx);
-            case "union" -> {
+        var logicalType = schema.getLogicalType();
+        if (logicalType != null) {
+            saveLogicalValue(logicalType, schema, avroFieldValue, orcField, rowIdx, columnVector);
+            return;
+        }
+
+        switch (schema.getType()) {
+            case STRING, ENUM, BYTES, FIXED -> saveBinary(avroFieldValue, columnVector, rowIdx);
+            case FLOAT, DOUBLE -> saveDouble(avroFieldValue, columnVector, rowIdx);
+            case BOOLEAN, INT, LONG -> saveLong(avroFieldValue, columnVector, rowIdx);
+            case UNION -> {
                 // use first not null schema
                 if (schema.getType() == Schema.Type.UNION) {
                     for (Schema s : schema.getTypes()) {
@@ -159,11 +126,42 @@ public class AvroToOrcMapper {
                     }
                 }
             }
-            case "map" -> saveMap(schema, avroFieldValue, columnVector, orcField, rowIdx);
-            case "record" -> saveRecord(avroFieldValue, columnVector, orcField, rowIdx);
-            case "array" -> saveArray(schema, avroFieldValue, columnVector, orcField, rowIdx);
+            case RECORD -> saveRecord(avroFieldValue, columnVector, orcField, rowIdx);
+            case MAP -> saveMap(schema, avroFieldValue, columnVector, orcField, rowIdx);
+            case ARRAY -> saveArray(schema, avroFieldValue, columnVector, orcField, rowIdx);
             case null, default -> throw new IllegalArgumentException("Unsupported type");
         }
+    }
+
+    private void saveLogicalValue(LogicalType logicalType, Schema schema, Object avroFieldValue, TypeDescription orcField, int rowIdx, ColumnVector columnVector) {
+        switch (logicalType) {
+            case LogicalTypes.Decimal ignored -> saveDecimal(schema, avroFieldValue, columnVector, rowIdx);
+            case LogicalTypes.Uuid ignored ->  saveBinary(avroFieldValue, columnVector, rowIdx);
+            case LogicalTypes.TimeMicros ignored -> saveLong(avroFieldValue, columnVector, rowIdx);
+            case LogicalTypes.TimeMillis ignored -> saveLong(avroFieldValue, columnVector, rowIdx);
+            case LogicalTypes.TimestampMicros ignored -> {
+                var adjustToUtc = (boolean) schema.getObjectProp("adjust-to-utc");
+
+                if (adjustToUtc) {
+                    saveTimestamp(avroFieldValue, columnVector, rowIdx);
+                } else {
+                    saveLocalTimestamp(avroFieldValue, columnVector, rowIdx);
+                }
+            }
+            case LogicalTypes.TimestampMillis ignored -> {
+                var adjustToUtc = (boolean) schema.getObjectProp("adjust-to-utc");
+
+                if (adjustToUtc) {
+                    saveTimestamp(avroFieldValue, columnVector, rowIdx);
+                } else {
+                    saveLocalTimestamp(avroFieldValue, columnVector, rowIdx);
+                }
+            }
+            case LogicalTypes.LocalTimestampMicros ignored -> saveLocalTimestamp(avroFieldValue, columnVector, rowIdx);
+            case LogicalTypes.LocalTimestampMillis ignored -> saveLocalTimestamp(avroFieldValue, columnVector, rowIdx);
+            case LogicalTypes.Date ignored -> saveDate(avroFieldValue, columnVector, rowIdx);
+            default -> throw new IllegalArgumentException("Unsupported logical type: " + logicalType);
+        };
     }
 
     private void saveBinary(Object avroValue, ColumnVector vector, int rowIdx) {
@@ -178,49 +176,10 @@ public class AvroToOrcMapper {
         typedVector.vector[rowIdx] = epochDay;
     }
 
-    private void saveIsoDate(Object avroValue, ColumnVector vector, int rowIdx) {
-        var date = parseIsoDate(avroValue);
-        var typedVector = (DateColumnVector) vector;
-        typedVector.vector[rowIdx] = date.toEpochDay();
-    }
-
-    private void saveIsoTimestamp(Object avroValue, ColumnVector vector, int rowIdx) {
-        var timestamp = parseIsoTimestamp(avroValue);
-        var instant = timestamp.toInstant();
-        var typedVector = (TimestampColumnVector) vector;
-        typedVector.time[rowIdx] = instant.toEpochMilli();
-        typedVector.nanos[rowIdx] = instant.getNano();
-    }
-
-    private void saveIsoTime(Object avroValue, ColumnVector vector, int rowIdx) {
-        var time = parseIsoTime(avroValue);
-        var typedVector = (LongColumnVector) vector;
-        typedVector.vector[rowIdx] = time.toLocalTime().toNanoOfDay();
-    }
-
     private void saveDecimal(Schema avroSchema, Object avroValue, ColumnVector vector, int rowIdx) {
         var bytes = convertToBytes(avroValue);
         var decimalLogicalType = (LogicalTypes.Decimal) avroSchema.getLogicalType();
         var scale = decimalLogicalType.getScale();
-
-        var typedVector = (DecimalColumnVector) vector;
-        typedVector.vector[rowIdx] = new HiveDecimalWritable(bytes, scale);
-    }
-
-    private void saveVariableScaleDecimal(Object avroValue, ColumnVector vector, int rowIdx) {
-        // Debezium VariableScaleDecimal is a struct: { "scale": int, "value": bytes }
-        var record = (GenericRecord) avroValue;
-        var scale = (Integer) record.get("scale");
-        var valueBytes = (ByteBuffer) record.get("value");
-
-        if (valueBytes == null) {
-            vector.isNull[rowIdx] = true;
-            vector.noNulls = false;
-            return;
-        }
-
-        var bytes = new byte[valueBytes.remaining()];
-        valueBytes.get(bytes);
 
         var typedVector = (DecimalColumnVector) vector;
         typedVector.vector[rowIdx] = new HiveDecimalWritable(bytes, scale);
