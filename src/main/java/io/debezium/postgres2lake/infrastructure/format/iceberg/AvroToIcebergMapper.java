@@ -70,7 +70,9 @@ public class AvroToIcebergMapper {
                     }
 
                     if (logicalType instanceof LogicalTypes.TimeMillis) {
-                        yield LocalTime.ofNanoOfDay(number.intValue() * 1_000_000L);
+                        yield Instant.ofEpochMilli(number.intValue())
+                                .atZone(ZoneOffset.UTC)
+                                .toLocalTime();
                     }
                 }
 
