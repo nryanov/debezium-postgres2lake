@@ -9,6 +9,7 @@ import io.debezium.postgres2lake.infrastructure.format.parquet.ParquetCompressio
 import io.smallrye.config.ConfigMapping;
 
 import java.time.Duration;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -58,6 +59,8 @@ public interface OutputConfiguration {
         Map<String, String> properties();
 
         Optional<FileIO> fileIO();
+
+        Map<String, IcebergTableSpec> tableSpecs();
     }
 
     interface Paimon {
@@ -87,8 +90,8 @@ public interface OutputConfiguration {
 
         Map<String, String> properties();
 
-        // optional(none), hour, day, month, year, truncate(width), identity, bucket(buckets)
+        List<String> partitionBy();
 
-        // [only a hint for compute engine] sort: optional(none), default(pk), list of fields
+        List<String> sortBy();
     }
 }

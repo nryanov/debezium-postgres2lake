@@ -16,6 +16,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.OffsetDateTime;
+import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -70,7 +71,9 @@ public class AvroToIcebergMapper {
                     }
 
                     if (logicalType instanceof LogicalTypes.TimeMillis) {
-                        yield LocalTime.ofNanoOfDay(number.intValue() * 1_000_000L);
+                        yield Instant.ofEpochMilli(number.intValue())
+                                .atZone(ZoneOffset.UTC)
+                                .toLocalTime();
                     }
                 }
 
