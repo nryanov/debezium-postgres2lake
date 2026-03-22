@@ -11,6 +11,8 @@ hadoop = "3.4.1"
 # test dependencies
 junit = "5.12.2"
 testcontsiners = "2.0.3"
+spark = "4.0.1" # for tests only
+jakarta = "5.0.0"
 
 [libraries]
 quarkus-platform = { group = "io.quarkus.platform", name = "quarkus-bom", version.ref = "quarkus" }
@@ -35,5 +37,10 @@ hadoop-aws = { group = "org.apache.hadoop", name = "hadoop-aws", version.ref = "
 # test dependencies
 junit-bom = { group = "org.junit", name = "junit-bom", version.ref = "junit" }
 testcontainers-bom = { group = "org.testcontainers", name = "testcontainers-bom", version.ref = "testcontsiners" }
+
+paimon-spark = { group = "org.apache.paimon", name = "paimon-spark-4.0", version.ref = "paimon" }
+iceberg-spark = { group = "org.apache.iceberg", name = "iceberg-spark-runtime-4.0_2.13", version.ref = "iceberg" }
+spark-core = { group = "org.apache.spark", name = "spark-core_2.13", version.ref = "spark" }
+spark-sql = { group = "org.apache.spark", name = "spark-sql_2.13", version.ref = "spark" }
 
 [plugins]
