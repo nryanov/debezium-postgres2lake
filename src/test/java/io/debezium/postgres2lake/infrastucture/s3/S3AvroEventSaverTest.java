@@ -1,18 +1,39 @@
 package io.debezium.postgres2lake.infrastucture.s3;
 
-import org.apache.spark.sql.SparkSession;
+import io.debezium.postgres2lake.infrastucture.profile.AvroOutputFormatProfile;
+import io.quarkus.test.junit.QuarkusTest;
+import io.quarkus.test.common.QuarkusTestResource;
+import io.quarkus.test.junit.TestProfile;
 import org.junit.jupiter.api.Test;
 
-public class S3AvroEventSaverTest {
-    @Test
-    public void successfullyReadAvro() {
-        var spark = SparkSession
-                .builder()
-                .config("spark.ui.enabled", false)
-                .master("local[1]")
-                .appName("development")
-                .getOrCreate();
+import java.sql.DriverManager;
 
-        System.out.println(spark.version());
+import static org.awaitility.Awaitility.await;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static java.util.concurrent.TimeUnit.SECONDS;
+
+@QuarkusTest
+@TestProfile(AvroOutputFormatProfile.class)
+@QuarkusTestResource(PostgresMinioTestResource.class)
+class S3AvroEventSaverTest {
+
+    private static final long TEST_PK = 100_001L;
+
+    @Test
+    void debeziumWritesAvroReadableBySpark() {
+        try (var conn = DriverManager.getConnection(
+                PostgresMinioTestResource.getJdbcUrl(),
+                "postgres",
+                "postgres")) {
+            IntegrationTestData.insertSampleRow(conn, TEST_PK);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+
+        await().atMost(120, SECONDS).pollInterval(1, SECONDS).until(() ->
+                SparkIntegrationSupport.countFileRowsWithPk("avro", SparkIntegrationSupport.fileDatasetBasePath(), TEST_PK) >= 1L
+        );
+
+        assertEquals(1L, SparkIntegrationSupport.countFileRowsWithPk("avro", SparkIntegrationSupport.fileDatasetBasePath(), TEST_PK));
     }
 }
