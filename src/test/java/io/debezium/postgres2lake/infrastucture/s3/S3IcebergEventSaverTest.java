@@ -1,9 +1,11 @@
 package io.debezium.postgres2lake.infrastucture.s3;
 
+import io.debezium.postgres2lake.domain.EventSaver;
 import io.debezium.postgres2lake.infrastucture.profile.IcebergOutputFormatProfile;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.TestProfile;
+import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
 
 import java.sql.DriverManager;
@@ -16,6 +18,8 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 @TestProfile(IcebergOutputFormatProfile.class)
 @QuarkusTestResource(PostgresMinioTestResource.class)
 class S3IcebergEventSaverTest {
+    @Inject
+    private EventSaver eventSaver;
 
     private static final long TEST_PK = 100_004L;
 
@@ -30,8 +34,16 @@ class S3IcebergEventSaverTest {
             throw new RuntimeException(e);
         }
 
-        await().atMost(120, SECONDS).pollInterval(1, SECONDS).until(() ->
-                SparkIntegrationSupport.countIcebergRowsWithPk(TEST_PK) >= 1L
+        // force flush
+        eventSaver.flush();
+
+        await().atMost(120, SECONDS).pollInterval(1, SECONDS).until(() -> {
+                    try {
+                        return SparkIntegrationSupport.countIcebergRowsWithPk(TEST_PK) >= 1L;
+                    } catch (Exception e) {
+                        return false;
+                    }
+                }
         );
 
         assertEquals(1L, SparkIntegrationSupport.countIcebergRowsWithPk(TEST_PK));
