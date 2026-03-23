@@ -30,8 +30,13 @@ class S3AvroEventSaverTest {
             throw new RuntimeException(e);
         }
 
-        await().atMost(120, SECONDS).pollInterval(1, SECONDS).until(() ->
-                SparkIntegrationSupport.countFileRowsWithPk("avro", SparkIntegrationSupport.fileDatasetBasePath(), TEST_PK) >= 1L
+        await().atLeast(120, SECONDS).pollInterval(1, SECONDS).until(() -> {
+                    try {
+                        return SparkIntegrationSupport.countFileRowsWithPk("avro", SparkIntegrationSupport.fileDatasetBasePath(), TEST_PK) >= 1L;
+                    } catch (Exception e) {
+                        return false;
+                    }
+                }
         );
 
         assertEquals(1L, SparkIntegrationSupport.countFileRowsWithPk("avro", SparkIntegrationSupport.fileDatasetBasePath(), TEST_PK));

@@ -60,33 +60,33 @@ public class PostgresMinioTestResource implements QuarkusTestResourceLifecycleMa
     @Override
     public Map<String, String> start() {
         synchronized (LOCK) {
-            if (postgres == null) {
-                postgres = new PostgreSQLContainer<>(DockerImageName.parse("postgres:17"))
-                        .withDatabaseName("postgres")
-                        .withUsername("postgres")
-                        .withPassword("postgres")
-                        .withCommand(
-                                "postgres",
-                                "-c", "wal_level=logical",
-                                "-c", "max_wal_senders=5",
-                                "-c", "max_replication_slots=5"
-                        );
-                postgres.start();
-            }
-            if (minio == null) {
-                minio = new GenericContainer<>(DockerImageName.parse("minio/minio:RELEASE.2025-02-28T09-55-16Z"))
-                        .withEnv("MINIO_ROOT_USER", "admin")
-                        .withEnv("MINIO_ROOT_PASSWORD", "password")
-                        .withCommand("server", "/data")
-                        .withExposedPorts(9000);
-                minio.start();
-            }
+//            if (postgres == null) {
+//                postgres = new PostgreSQLContainer<>(DockerImageName.parse("postgres:17"))
+//                        .withDatabaseName("postgres")
+//                        .withUsername("postgres")
+//                        .withPassword("postgres")
+//                        .withCommand(
+//                                "postgres",
+//                                "-c", "wal_level=logical",
+//                                "-c", "max_wal_senders=5",
+//                                "-c", "max_replication_slots=5"
+//                        );
+//                postgres.start();
+//            }
+//            if (minio == null) {
+//                minio = new GenericContainer<>(DockerImageName.parse("minio/minio:RELEASE.2025-02-28T09-55-16Z"))
+//                        .withEnv("MINIO_ROOT_USER", "admin")
+//                        .withEnv("MINIO_ROOT_PASSWORD", "password")
+//                        .withCommand("server", "/data")
+//                        .withExposedPorts(9000);
+//                minio.start();
+//            }
 
-            jdbcUrl = postgres.getJdbcUrl();
-            minioEndpoint = "http://" + minio.getHost() + ":" + minio.getMappedPort(9000);
+            jdbcUrl = "jdbc:postgresql://localhost:5432/postgres";
+            minioEndpoint = "http://localhost:9000";
 
             if (!schemaAndBucketReady) {
-                createWarehouseBucketIfNeeded();
+//                createWarehouseBucketIfNeeded();
                 applySchemaOnce();
                 schemaAndBucketReady = true;
             }
@@ -112,7 +112,7 @@ public class PostgresMinioTestResource implements QuarkusTestResourceLifecycleMa
     }
 
     private void applySchemaOnce() {
-        try (Connection conn = DriverManager.getConnection(jdbcUrl, postgres.getUsername(), postgres.getPassword());
+        try (Connection conn = DriverManager.getConnection(jdbcUrl, "postgres", "postgres");
              Statement st = conn.createStatement()) {
             var sql = readClasspathResource("/integration-test-schema.sql");
             for (var part : sql.split(";")) {
@@ -140,8 +140,8 @@ public class PostgresMinioTestResource implements QuarkusTestResourceLifecycleMa
     }
 
     private Map<String, String> buildConfigOverrides() {
-        var host = postgres.getHost();
-        var port = String.valueOf(postgres.getMappedPort(5432));
+        var host = "localhost";
+        var port = "5432";
         var jdbc = "jdbc:postgresql://" + host + ":" + port + "/postgres";
         var ep = minioEndpoint;
 
