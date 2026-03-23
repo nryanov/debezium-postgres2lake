@@ -9,6 +9,8 @@ import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.S3Configuration;
+import software.amazon.awssdk.services.s3.model.BucketAlreadyExistsException;
+import software.amazon.awssdk.services.s3.model.BucketAlreadyOwnedByYouException;
 import software.amazon.awssdk.services.s3.model.CreateBucketRequest;
 
 import java.io.BufferedReader;
@@ -103,9 +105,7 @@ public class PostgresMinioTestResource implements QuarkusTestResourceLifecycleMa
                 .build()) {
             try {
                 s3.createBucket(CreateBucketRequest.builder().bucket("warehouse").build());
-            } catch (software.amazon.awssdk.services.s3.model.BucketAlreadyExistsException ignored) {
-                // ok
-            } catch (software.amazon.awssdk.services.s3.model.BucketAlreadyOwnedByYouException ignored) {
+            } catch (BucketAlreadyExistsException | BucketAlreadyOwnedByYouException ignored) {
                 // ok
             }
         }
