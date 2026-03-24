@@ -1,4 +1,4 @@
-package io.debezium.postgres2lake.test;
+package io.debezium.postgres2lake.test.helper;
 
 public abstract class PostgresQueries {
     public static String createTableWithAllPrimitiveTypes(String table) {

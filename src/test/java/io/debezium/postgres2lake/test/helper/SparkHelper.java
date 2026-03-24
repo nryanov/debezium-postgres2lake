@@ -1,4 +1,4 @@
-package io.debezium.postgres2lake.test;
+package io.debezium.postgres2lake.test.helper;
 
 import org.apache.spark.sql.SparkSession;
 
@@ -42,7 +42,7 @@ public final class SparkHelper {
                 .config("spark.sql.catalog.iceberg_catalog.s3.client-factory-impl",
                         "io.debezium.postgres2lake.infrastructure.format.iceberg.InstrumentedS3FileIOAwsClientFactory")
                 .config("spark.sql.catalog.paimon", "org.apache.paimon.spark.SparkCatalog")
-                .config("spark.sql.catalog.paimon.warehouse", "s3a://warehouse/paimon-warehouse")
+                .config("spark.sql.catalog.paimon.warehouse", "s3a://warehouse")
                 .config("spark.sql.catalog.paimon.option.type", "jdbc")
                 .config("spark.sql.catalog.paimon.option.jdbc-url", jdbcUrl)
                 .config("spark.sql.catalog.paimon.option.jdbc-user", "postgres")
@@ -54,6 +54,11 @@ public final class SparkHelper {
 
     public void show(String format, String path) {
         var df = spark.read().format(format).load(path);
+        df.show();
+    }
+
+    public void showIcebergData() {
+        var df = spark.sql("SELECT * FROM iceberg_catalog.development.data");
         df.show();
     }
 

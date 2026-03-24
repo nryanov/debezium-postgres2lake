@@ -1,4 +1,4 @@
-package io.debezium.postgres2lake.test;
+package io.debezium.postgres2lake.test.helper;
 
 import org.testcontainers.containers.PostgreSQLContainer;
 

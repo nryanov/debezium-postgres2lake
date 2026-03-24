@@ -1,6 +1,7 @@
-package io.debezium.postgres2lake.test;
+package io.debezium.postgres2lake.test.resource;
 
 import io.debezium.postgres2lake.test.annotation.InjectMinioHelper;
+import io.debezium.postgres2lake.test.helper.MinioHelper;
 import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.utility.DockerImageName;
@@ -66,6 +67,15 @@ public class MinioResource implements QuarkusTestResourceLifecycleManager {
                 properties.put("output.orc.file-io.properties.fs.s3a.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem");
                 properties.put("output.orc.file-io.properties.fs.s3a.path.style.access", "true");
                 properties.put("output.orc.file-io.properties.fs.s3a.endpoint", endpoint);
+            }
+            case "iceberg" -> {
+                properties.put("output.iceberg.properties.io-impl", "org.apache.iceberg.aws.s3.S3FileIO");
+                properties.put("output.iceberg.properties.warehouse", String.format("s3a://%s", bucket));
+                properties.put("output.iceberg.properties.s3.endpoint", endpoint);
+                properties.put("output.iceberg.properties.s3.access-key-id", ACCESS_KEY);
+                properties.put("output.iceberg.properties.s3.secret-access-key", SECRET_ACCESS_KEY);
+                properties.put("output.iceberg.properties.s3.path-style-access", "true");
+                properties.put("output.iceberg.properties.s3.client-factory-impl", "io.debezium.postgres2lake.infrastructure.format.iceberg.InstrumentedS3FileIOAwsClientFactory");
             }
             default -> {}
         }
