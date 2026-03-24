@@ -4,7 +4,9 @@ debezium = "3.4.1.Final"
 iceberg = "1.10.1"
 paimon = "1.3.1"
 parquet = "1.17.0"
-orc = "2.2.2" # todo: return to 1.9.8?
+#orc = "2.2.2" # todo: return to 1.9.8?
+orc = "1.9.8"
+protobuf = "4.29.6"
 confluent = "8.1.1"
 awssdk = "2.41.24"
 hadoop = "3.4.1"
@@ -23,6 +25,7 @@ iceberg-platform = { group = "org.apache.iceberg", name = "iceberg-bom", version
 parquet-avro = { group = "org.apache.parquet", name = "parquet-avro", version.ref = "parquet" }
 confluent-avro = { group = "io.confluent", name = "kafka-connect-avro-converter", version.ref = "confluent" }
 orc-core = { group = "org.apache.orc", name = "orc-core", version.ref = "orc" }
+protobuf-java = { group = "com.google.protobuf", name = "protobuf-java", version.ref = "protobuf" }
 
 # paimon
 paimon-core = { group = "org.apache.paimon", name = "paimon-core", version.ref = "paimon" }

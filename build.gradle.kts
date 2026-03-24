@@ -30,6 +30,7 @@ dependencies {
         exclude(group = "org.postgresql")
         exclude(group = "io.netty")
         exclude(group = "org.junit.jupiter")
+        exclude(group = "com.google.protobuf", module = "protobuf-java")
     }
     implementation(enforcedPlatform(libs.aws.platform))
     implementation(enforcedPlatform(libs.iceberg.platform)) {
@@ -39,10 +40,14 @@ dependencies {
     // iceberg
     implementation("org.apache.iceberg:iceberg-core")
     implementation("org.apache.iceberg:iceberg-api")
-    implementation("org.apache.iceberg:iceberg-data")
+    implementation("org.apache.iceberg:iceberg-data") {
+        exclude(group = "org.apache.orc")
+    }
     implementation("org.apache.iceberg:iceberg-aws")
     implementation("org.apache.iceberg:iceberg-parquet")
-    implementation("org.apache.iceberg:iceberg-orc")
+    implementation("org.apache.iceberg:iceberg-orc") {
+        exclude(group = "org.apache.orc")
+    }
 
     // paimon
     // todo: exclude caffeine cache
@@ -83,6 +88,8 @@ dependencies {
         exclude(group = "org.slf4j", module = "slf4j-api")
         exclude(group = "asm")
         exclude(group = "org.apache.logging.log4j")
+        exclude(group = "org.apache.orc")
+        exclude(group = "com.google.protobuf", module = "protobuf-java")
     }
     // quarkus
     implementation("io.quarkus.arc:arc")
@@ -92,7 +99,9 @@ dependencies {
     implementation("io.debezium:debezium-core")
     implementation("io.debezium:debezium-api")
     implementation("io.debezium:debezium-embedded")
-    implementation("io.debezium:debezium-connector-postgres")
+    implementation("io.debezium:debezium-connector-postgres") {
+        exclude(group = "com.google.protobuf", module = "protobuf-java")
+    }
     // parquet
     implementation(libs.parquet.avro) {
         exclude(group = "org.slf4j", module = "slf4j-api")
@@ -101,9 +110,12 @@ dependencies {
     implementation(libs.orc.core) {
         exclude(group = "org.slf4j", module = "slf4j-api")
     }
+    // protobuf
+    implementation(libs.protobuf.java)
     // avro
     implementation(libs.confluent.avro)
 
+    // Test dependencies
     testImplementation(platform(libs.junit.bom))
     testImplementation(platform(libs.testcontainers.bom))
     testImplementation("org.junit.jupiter:junit-jupiter-api")
@@ -113,10 +125,14 @@ dependencies {
     testImplementation(libs.paimon.spark) {
         exclude(group = "org.apache.logging.log4j")
         exclude(group = "org.slf4j", module = "jul-to-slf4j")
+        exclude(group = "org.apache.orc")
+        exclude(group = "com.google.protobuf", module = "protobuf-java")
     }
     testImplementation(libs.iceberg.spark) {
         exclude(group = "org.apache.logging.log4j")
         exclude(group = "org.slf4j", module = "jul-to-slf4j")
+        exclude(group = "org.apache.orc")
+        exclude(group = "com.google.protobuf", module = "protobuf-java")
     }
     testImplementation(libs.spark.core) {
         exclude(group = "org.slf4j", module = "slf4j-log4j12")
@@ -124,6 +140,7 @@ dependencies {
         exclude(group = "log4j", module = "log4j")
         exclude(group = "org.apache.logging.log4j", module = "log4j-slf4j-impl")
         exclude(group = "org.apache.logging.log4j", module = "log4j-slf4j2-impl")
+        exclude(group = "com.google.protobuf", module = "protobuf-java")
     }
     testImplementation(libs.spark.sql) {
         exclude(group = "org.slf4j", module = "slf4j-log4j12")
@@ -132,6 +149,8 @@ dependencies {
         exclude(group = "org.apache.logging.log4j", module = "log4j-slf4j-impl")
         exclude(group = "org.apache.logging.log4j", module = "log4j-slf4j2-impl")
         exclude(group = "org.apache.arrow")
+        exclude(group = "org.apache.orc")
+        exclude(group = "com.google.protobuf", module = "protobuf-java")
     }
     testImplementation(libs.spark.avro) {
         exclude(group = "org.slf4j", module = "slf4j-log4j12")
