@@ -60,6 +60,13 @@ public class MinioResource implements QuarkusTestResourceLifecycleManager {
                 properties.put("output.parquet.file-io.properties.fs.s3a.path.style.access", "true");
                 properties.put("output.parquet.file-io.properties.fs.s3a.endpoint", endpoint);
             }
+            case "orc" -> {
+                properties.put("output.orc.file-io.properties.fs.s3a.access.key", ACCESS_KEY);
+                properties.put("output.orc.file-io.properties.fs.s3a.secret.key", SECRET_ACCESS_KEY);
+                properties.put("output.orc.file-io.properties.fs.s3a.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem");
+                properties.put("output.orc.file-io.properties.fs.s3a.path.style.access", "true");
+                properties.put("output.orc.file-io.properties.fs.s3a.endpoint", endpoint);
+            }
             default -> {}
         }
 
