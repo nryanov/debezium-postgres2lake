@@ -77,6 +77,14 @@ public class MinioResource implements QuarkusTestResourceLifecycleManager {
                 properties.put("output.iceberg.properties.s3.path-style-access", "true");
                 properties.put("output.iceberg.properties.s3.client-factory-impl", "io.debezium.postgres2lake.infrastructure.format.iceberg.InstrumentedS3FileIOAwsClientFactory");
             }
+            case "paimon" -> {
+                properties.put("output.paimon.properties.warehouse", String.format("s3a://%s", bucket));
+                properties.put("output.paimon.file-io.properties.fs.s3a.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem");
+                properties.put("output.paimon.file-io.properties.fs.s3a.access.key", ACCESS_KEY);
+                properties.put("output.paimon.file-io.properties.fs.s3a.secret.key", SECRET_ACCESS_KEY);
+                properties.put("output.paimon.file-io.properties.fs.s3a.path.style.access", "true");
+                properties.put("output.paimon.file-io.properties.fs.s3a.endpoint", endpoint);
+            }
             default -> {}
         }
 

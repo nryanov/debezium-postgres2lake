@@ -78,6 +78,14 @@ public class PostgresResource implements QuarkusTestResourceLifecycleManager {
                 properties.put("output.iceberg.properties.jdbc.password", postgres.getPassword());
                 properties.put("output.iceberg.properties.jdbc.schema-version", "V1");
             }
+            case "paimon" -> {
+                properties.put("output.paimon.properties.type", "jdbc");
+                properties.put("output.paimon.properties.jdbc-url", postgres.getJdbcUrl());
+                properties.put("output.paimon.properties.jdbc-user", postgres.getUsername());
+                properties.put("output.paimon.properties.jdbc-password", postgres.getPassword());
+                properties.put("output.paimon.properties.jdbc-driver", "org.postgresql.Driver");
+                properties.put("output.paimon.properties.jdbc-table-prefix", "paimon_");
+            }
             case null, default -> {}
         }
 

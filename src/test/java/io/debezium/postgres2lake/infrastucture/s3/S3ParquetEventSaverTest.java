@@ -33,7 +33,7 @@ import static org.awaitility.Awaitility.await;
         @ResourceArg(name = MinioResource.BUCKET_NAME_ARG, value = "warehouse"),
         @ResourceArg(name = MinioResource.FORMAT_TYPE_ARG, value = "parquet")
 })
-class S3ParquetEventSaverTest {
+public class S3ParquetEventSaverTest {
     @Inject
     private EventSaver eventSaver;
 

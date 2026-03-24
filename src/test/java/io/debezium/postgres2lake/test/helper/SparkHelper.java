@@ -62,6 +62,11 @@ public final class SparkHelper {
         df.show();
     }
 
+    public void showPaimonData() {
+        var df = spark.sql("SELECT * FROM paimon.development.data");
+        df.show();
+    }
+
     public long countFileRowsWithPk(String format, String path, long primaryKey) {
         var df = spark.read().format(format).load(path);
         return df.filter(col("primary_key").equalTo(lit(primaryKey))).count();

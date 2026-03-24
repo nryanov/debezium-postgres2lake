@@ -34,7 +34,7 @@ import static org.awaitility.Awaitility.await;
         @ResourceArg(name = MinioResource.BUCKET_NAME_ARG, value = "warehouse"),
         @ResourceArg(name = MinioResource.FORMAT_TYPE_ARG, value = "iceberg")
 })
-class S3IcebergEventSaverTest {
+public class S3IcebergEventSaverTest {
     @Inject
     private EventSaver eventSaver;
 
