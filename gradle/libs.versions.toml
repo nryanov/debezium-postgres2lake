@@ -10,9 +10,9 @@ awssdk = "2.41.24"
 hadoop = "3.4.1"
 # test dependencies
 junit = "5.12.2"
-testcontsiners = "2.0.3"
+testcontsiners = "1.21.4"
 spark = "4.0.1" # for tests only
-jakarta = "5.0.0"
+awaitility = "4.2.2"
 
 [libraries]
 quarkus-platform = { group = "io.quarkus.platform", name = "quarkus-bom", version.ref = "quarkus" }
@@ -42,5 +42,7 @@ paimon-spark = { group = "org.apache.paimon", name = "paimon-spark-4.0", version
 iceberg-spark = { group = "org.apache.iceberg", name = "iceberg-spark-runtime-4.0_2.13", version.ref = "iceberg" }
 spark-core = { group = "org.apache.spark", name = "spark-core_2.13", version.ref = "spark" }
 spark-sql = { group = "org.apache.spark", name = "spark-sql_2.13", version.ref = "spark" }
+spark-avro = { group = "org.apache.spark", name = "spark-avro_2.13", version.ref = "spark" }
+awaitility = { group = "org.awaitility", name = "awaitility", version.ref = "awaitility" }
 
 [plugins]
