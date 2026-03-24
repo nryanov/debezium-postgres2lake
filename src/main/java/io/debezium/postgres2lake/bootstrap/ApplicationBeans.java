@@ -20,12 +20,14 @@ import io.debezium.postgres2lake.service.OutputLocationGenerator;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Produces;
 import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 
 @ApplicationScoped
 public class ApplicationBeans {
     @Inject
     private OutputConfiguration outputConfiguration;
 
+    @Singleton
     @Produces
     EventSaver eventSaver() {
         return switch (outputConfiguration.format()) {

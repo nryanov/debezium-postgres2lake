@@ -24,4 +24,8 @@ public class PostgresHelper {
             throw new RuntimeException(e);
         }
     }
+
+    public String jdbcUrl() {
+        return container.getJdbcUrl();
+    }
 }

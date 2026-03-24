@@ -8,15 +8,14 @@ import software.amazon.awssdk.services.s3.S3Configuration;
 import software.amazon.awssdk.services.s3.model.BucketAlreadyExistsException;
 import software.amazon.awssdk.services.s3.model.BucketAlreadyOwnedByYouException;
 import software.amazon.awssdk.services.s3.model.CreateBucketRequest;
+import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
+import software.amazon.awssdk.services.s3.model.ListObjectsV2Request;
 
 import java.net.URI;
 
 public class MinioHelper {
     private final S3Client s3Client;
-
-    public MinioHelper(S3Client s3Client) {
-        this.s3Client = s3Client;
-    }
+    private final String endpoint;
 
     public MinioHelper(String endpoint, String accessKey, String secretAccessKey) {
         this.s3Client = S3Client.builder()
@@ -26,6 +25,8 @@ public class MinioHelper {
                         AwsBasicCredentials.create(accessKey, secretAccessKey)))
                 .serviceConfiguration(S3Configuration.builder().pathStyleAccessEnabled(true).build())
                 .build();
+
+        this.endpoint = endpoint;
     }
 
     public void createBucket(String bucket) {
@@ -34,5 +35,27 @@ public class MinioHelper {
         } catch (BucketAlreadyExistsException | BucketAlreadyOwnedByYouException ignored) {
             // ignore already existing bucket
         }
+    }
+
+    public void clearBucket(String bucket) {
+        var listObjectsRq = ListObjectsV2Request
+                .builder()
+                .bucket(bucket)
+                .build();
+        var objects = s3Client.listObjectsV2(listObjectsRq);
+
+        objects.contents().forEach(content -> {
+            var deleteObjectRq = DeleteObjectRequest
+                    .builder()
+                    .bucket(bucket)
+                    .key(content.key())
+                    .build();
+
+            s3Client.deleteObject(deleteObjectRq);
+        });
+    }
+
+    public String endpoint() {
+        return endpoint;
     }
 }

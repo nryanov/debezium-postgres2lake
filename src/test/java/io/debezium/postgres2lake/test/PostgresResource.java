@@ -46,6 +46,7 @@ public class PostgresResource implements QuarkusTestResourceLifecycleManager {
         postgres.start();
 
         postgresHelper = new PostgresHelper(postgres);
+        setup();
 
         var properties = new HashMap<String, String>();
         properties.put("debezium.engine.database.hostname", postgres.getHost());
@@ -57,12 +58,19 @@ public class PostgresResource implements QuarkusTestResourceLifecycleManager {
         properties.put("debezium.engine.publication.name", publicationName);
         properties.put("debezium.engine.snapshot.mode", "NO_DATA");
         properties.put("debezium.engine.topic.prefix", prefix);
-
-        properties.put("debezium.engine.publication.autocreate.mode", "false");
+        // default properties
+        properties.put("debezium.engine.name", "test");
+        properties.put("debezium.engine.publication.autocreate.mode", "disabled");
+        properties.put("debezium.engine.plugin.name", "pgoutput");
         properties.put("debezium.engine.tombstones.on.delete", "false");
         properties.put("debezium.engine.offset.storage", "org.apache.kafka.connect.storage.MemoryOffsetBackingStore");
 
         return properties;
+    }
+
+    private void setup() {
+        postgresHelper.executeSql(PostgresQueries.createLogicalSlot(slotName));
+        postgresHelper.executeSql(PostgresQueries.createPublication(publicationName));
     }
 
     @Override
