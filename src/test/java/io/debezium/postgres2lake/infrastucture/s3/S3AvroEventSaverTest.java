@@ -31,7 +31,8 @@ import static org.awaitility.Awaitility.await;
         @ResourceArg(name = PostgresResource.SLOT_NAME_ARG, value = "debezium_slot")
 })
 @QuarkusTestResource(value = MinioResource.class, initArgs = {
-        @ResourceArg(name = MinioResource.BUCKET_NAME_ARG, value = "warehouse")
+        @ResourceArg(name = MinioResource.BUCKET_NAME_ARG, value = "warehouse"),
+        @ResourceArg(name = MinioResource.FORMAT_TYPE_ARG, value = "avro")
 })
 public class S3AvroEventSaverTest {
     @Inject

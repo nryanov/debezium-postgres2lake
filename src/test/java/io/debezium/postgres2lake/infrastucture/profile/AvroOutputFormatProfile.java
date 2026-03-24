@@ -10,7 +10,9 @@ public class AvroOutputFormatProfile implements QuarkusTestProfile {
         return Map.of(
                 "output.format", "AVRO",
                 "output.threshold.records", "1",
-                "output.threshold.time", "30s"
+                "output.threshold.time", "30s",
+                "output.avro.naming-strategy.partitioner", "UNPARTITIONED",
+                "output.avro.naming-strategy.file-name", "PROCESSING_TIME"
         );
     }
 }

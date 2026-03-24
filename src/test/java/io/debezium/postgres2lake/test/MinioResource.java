@@ -10,6 +10,7 @@ import java.util.Map;
 
 public class MinioResource implements QuarkusTestResourceLifecycleManager {
     public static final String BUCKET_NAME_ARG = "bucket";
+    public static final String FORMAT_TYPE_ARG = "format";
 
     private static GenericContainer<?> minio;
     private final static String ACCESS_KEY = "admin";
@@ -17,13 +18,15 @@ public class MinioResource implements QuarkusTestResourceLifecycleManager {
 
     private MinioHelper minioHelper;
     private String bucket;
+    private String format;
 
     @Override
     public void init(Map<String, String> initArgs) {
         this.bucket = initArgs.get(BUCKET_NAME_ARG);
+        this.format = initArgs.get(FORMAT_TYPE_ARG);
 
-        if (bucket == null) {
-            throw new IllegalArgumentException("Bucket name should be passed as initArg in MinioResource");
+        if (bucket == null || format == null) {
+            throw new IllegalArgumentException("Bucket name and format type should be passed as initArg in MinioResource");
         }
     }
 
@@ -42,12 +45,23 @@ public class MinioResource implements QuarkusTestResourceLifecycleManager {
         minioHelper.createBucket(bucket);
 
         var properties = new HashMap<String, String>();
-        // avro settings
-        properties.put("output.avro.file-io.properties.fs.s3a.access.key", ACCESS_KEY);
-        properties.put("output.avro.file-io.properties.fs.s3a.secret.key", SECRET_ACCESS_KEY);
-        properties.put("output.avro.file-io.properties.fs.s3a.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem");
-        properties.put("output.avro.file-io.properties.fs.s3a.path.style.access", "true");
-        properties.put("output.avro.file-io.properties.fs.s3a.endpoint", endpoint);
+        switch (format) {
+            case "avro" -> {
+                properties.put("output.avro.file-io.properties.fs.s3a.access.key", ACCESS_KEY);
+                properties.put("output.avro.file-io.properties.fs.s3a.secret.key", SECRET_ACCESS_KEY);
+                properties.put("output.avro.file-io.properties.fs.s3a.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem");
+                properties.put("output.avro.file-io.properties.fs.s3a.path.style.access", "true");
+                properties.put("output.avro.file-io.properties.fs.s3a.endpoint", endpoint);
+            }
+            case "parquet" -> {
+                properties.put("output.parquet.file-io.properties.fs.s3a.access.key", ACCESS_KEY);
+                properties.put("output.parquet.file-io.properties.fs.s3a.secret.key", SECRET_ACCESS_KEY);
+                properties.put("output.parquet.file-io.properties.fs.s3a.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem");
+                properties.put("output.parquet.file-io.properties.fs.s3a.path.style.access", "true");
+                properties.put("output.parquet.file-io.properties.fs.s3a.endpoint", endpoint);
+            }
+            default -> {}
+        }
 
         return properties;
     }
