@@ -115,4 +115,9 @@ abstract public class AbstractEventSaver<T> implements EventSaver {
     protected abstract void appendEvent(EventRecord event, T writer) throws Exception;
 
     protected abstract void commitPendingEvents(T writer) throws Exception;
+
+    // for testing purposes only
+    public int getCurrentRecords() {
+        return currentRecords;
+    }
 }
