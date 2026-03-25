@@ -151,8 +151,6 @@ public abstract class PostgresQueries {
                 """, table, pk);
     }
 
-    // --- SMALLINT ---
-
     public static String createSmallintTable(String table) {
         return String.format("""
                 CREATE TABLE IF NOT EXISTS %s (
@@ -171,8 +169,6 @@ public abstract class PostgresQueries {
                 VALUES (%d, 1::smallint, 2::smallint, ARRAY[1::smallint, 2::smallint], ARRAY[3::smallint, 4::smallint])
                 """, table, pk);
     }
-
-    // --- INTEGER ---
 
     public static String createIntegerTable(String table) {
         return String.format("""
@@ -193,8 +189,6 @@ public abstract class PostgresQueries {
                 """, table, pk);
     }
 
-    // --- BIGINT ---
-
     public static String createBigintTable(String table) {
         return String.format("""
                 CREATE TABLE IF NOT EXISTS %s (
@@ -214,8 +208,6 @@ public abstract class PostgresQueries {
                 """, table, pk);
     }
 
-    // --- DECIMAL (variable scale) ---
-
     public static String createDecimalTable(String table) {
         return String.format("""
                 CREATE TABLE IF NOT EXISTS %s (
@@ -234,8 +226,6 @@ public abstract class PostgresQueries {
                 VALUES (%d, 1.5, 2.5, ARRAY[1.0::decimal, 2.0::decimal], ARRAY[3.0::decimal, 4.0::decimal])
                 """, table, pk);
     }
-
-    // --- NUMERIC(36, 10) ---
 
     public static String createNumericTable(String table) {
         return String.format("""
@@ -260,8 +250,6 @@ public abstract class PostgresQueries {
                 """, table, pk);
     }
 
-    // --- REAL ---
-
     public static String createRealTable(String table) {
         return String.format("""
                 CREATE TABLE IF NOT EXISTS %s (
@@ -280,8 +268,6 @@ public abstract class PostgresQueries {
                 VALUES (%d, 1.5::real, 2.5::real, ARRAY[1.0::real, 2.0::real], ARRAY[3.0::real, 4.0::real])
                 """, table, pk);
     }
-
-    // --- DOUBLE PRECISION ---
 
     public static String createDoublePrecisionTable(String table) {
         return String.format("""
@@ -302,8 +288,6 @@ public abstract class PostgresQueries {
                 """, table, pk);
     }
 
-    // --- CHAR(1) ---
-
     public static String createCharTable(String table) {
         return String.format("""
                 CREATE TABLE IF NOT EXISTS %s (
@@ -322,8 +306,6 @@ public abstract class PostgresQueries {
                 VALUES (%d, 'a', 'b', ARRAY['a'::char(1), 'b'::char(1)], ARRAY['c'::char(1), 'd'::char(1)])
                 """, table, pk);
     }
-
-    // --- VARCHAR(255) ---
 
     public static String createVarcharTable(String table) {
         return String.format("""
@@ -344,8 +326,6 @@ public abstract class PostgresQueries {
                 """, table, pk);
     }
 
-    // --- TEXT ---
-
     public static String createTextTable(String table) {
         return String.format("""
                 CREATE TABLE IF NOT EXISTS %s (
@@ -364,8 +344,6 @@ public abstract class PostgresQueries {
                 VALUES (%d, 'hello', 'world', ARRAY['hello'::text, 'world'::text], ARRAY['foo'::text, 'bar'::text])
                 """, table, pk);
     }
-
-    // --- TIMESTAMP WITHOUT TIME ZONE ---
 
     public static String createTimestampTable(String table) {
         return String.format("""
@@ -390,8 +368,6 @@ public abstract class PostgresQueries {
                 """, table, pk);
     }
 
-    // --- TIMESTAMP WITH TIME ZONE ---
-
     public static String createTimestampTzTable(String table) {
         return String.format("""
                 CREATE TABLE IF NOT EXISTS %s (
@@ -414,8 +390,6 @@ public abstract class PostgresQueries {
                     ARRAY['2020-06-15 18:30:00+00'::timestamptz, '2020-06-16 18:30:00+00'::timestamptz])
                 """, table, pk);
     }
-
-    // --- DATE ---
 
     public static String createDateTable(String table) {
         return String.format("""
@@ -440,8 +414,6 @@ public abstract class PostgresQueries {
                 """, table, pk);
     }
 
-    // --- TIME WITHOUT TIME ZONE ---
-
     public static String createTimeTable(String table) {
         return String.format("""
                 CREATE TABLE IF NOT EXISTS %s (
@@ -464,8 +436,6 @@ public abstract class PostgresQueries {
                     ARRAY['08:00:00'::time, '09:00:00'::time])
                 """, table, pk);
     }
-
-    // --- BOOLEAN ---
 
     public static String createBooleanTable(String table) {
         return String.format("""
