@@ -8,12 +8,14 @@ public class PostgresHelper {
     private final PostgreSQLContainer<?> container;
 
     private final String username;
+    private final String password;
     private final String database;
 
     public PostgresHelper(PostgreSQLContainer<?> container) {
         this.container = container;
 
         this.username = container.getUsername();
+        this.password = container.getPassword();
         this.database = container.getDatabaseName();
     }
 
@@ -27,5 +29,17 @@ public class PostgresHelper {
 
     public String jdbcUrl() {
         return container.getJdbcUrl();
+    }
+
+    public String getUsername() {
+        return username;
+    }
+
+    public String getPassword() {
+        return password;
+    }
+
+    public String getDatabase() {
+        return database;
     }
 }

@@ -15,7 +15,10 @@ import java.net.URI;
 
 public class MinioHelper {
     private final S3Client s3Client;
+
     private final String endpoint;
+    private final String accessKey;
+    private final String secretAccessKey;
 
     public MinioHelper(String endpoint, String accessKey, String secretAccessKey) {
         this.s3Client = S3Client.builder()
@@ -27,6 +30,8 @@ public class MinioHelper {
                 .build();
 
         this.endpoint = endpoint;
+        this.accessKey = accessKey;
+        this.secretAccessKey = secretAccessKey;
     }
 
     public void createBucket(String bucket) {
@@ -57,5 +62,13 @@ public class MinioHelper {
 
     public String endpoint() {
         return endpoint;
+    }
+
+    public String getAccessKey() {
+        return accessKey;
+    }
+
+    public String getSecretAccessKey() {
+        return secretAccessKey;
     }
 }
