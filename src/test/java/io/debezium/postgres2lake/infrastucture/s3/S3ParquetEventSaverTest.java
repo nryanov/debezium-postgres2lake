@@ -8,7 +8,6 @@ import io.debezium.postgres2lake.test.resource.MinioResource;
 import io.debezium.postgres2lake.test.helper.PostgresHelper;
 import io.debezium.postgres2lake.test.helper.PostgresQueries;
 import io.debezium.postgres2lake.test.resource.PostgresResource;
-import io.debezium.postgres2lake.test.helper.SparkHelper;
 import io.debezium.postgres2lake.test.annotation.InjectMinioHelper;
 import io.debezium.postgres2lake.test.annotation.InjectPostgresHelper;
 import io.quarkus.test.common.ResourceArg;
@@ -57,8 +56,5 @@ public class S3ParquetEventSaverTest {
         await().atMost(Duration.ofSeconds(120)).pollInterval(Duration.ofSeconds(1)).until(() -> testEventSaver.getCurrentRecords() > 0);
         // force flush
         eventSaver.flush();
-
-        var sparkHelper = new SparkHelper(postgresHelper, minioHelper);
-        sparkHelper.show("parquet", s3Path);
     }
 }
