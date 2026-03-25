@@ -104,44 +104,14 @@ dependencies {
     // avro
     implementation(libs.confluent.avro)
 
+    // test dependencies
     testImplementation(platform(libs.junit.bom))
     testImplementation(platform(libs.testcontainers.bom))
     testImplementation("org.junit.jupiter:junit-jupiter-api")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 
-    testImplementation(libs.paimon.spark) {
-        exclude(group = "org.apache.logging.log4j")
-        exclude(group = "org.slf4j", module = "jul-to-slf4j")
-    }
-    testImplementation(libs.iceberg.spark) {
-        exclude(group = "org.apache.logging.log4j")
-        exclude(group = "org.slf4j", module = "jul-to-slf4j")
-    }
-    testImplementation(libs.spark.core) {
-        exclude(group = "org.slf4j", module = "slf4j-log4j12")
-        exclude(group = "org.slf4j", module = "jul-to-slf4j")
-        exclude(group = "log4j", module = "log4j")
-        exclude(group = "org.apache.logging.log4j", module = "log4j-slf4j-impl")
-        exclude(group = "org.apache.logging.log4j", module = "log4j-slf4j2-impl")
-    }
-    testImplementation(libs.spark.sql) {
-        exclude(group = "org.slf4j", module = "slf4j-log4j12")
-        exclude(group = "org.slf4j", module = "jul-to-slf4j")
-        exclude(group = "log4j", module = "log4j")
-        exclude(group = "org.apache.logging.log4j", module = "log4j-slf4j-impl")
-        exclude(group = "org.apache.logging.log4j", module = "log4j-slf4j2-impl")
-        exclude(group = "org.apache.arrow")
-    }
-    testImplementation(libs.spark.avro) {
-        exclude(group = "org.slf4j", module = "slf4j-log4j12")
-        exclude(group = "org.slf4j", module = "jul-to-slf4j")
-        exclude(group = "log4j", module = "log4j")
-        exclude(group = "org.apache.logging.log4j", module = "log4j-slf4j-impl")
-        exclude(group = "org.apache.logging.log4j", module = "log4j-slf4j2-impl")
-    }
     testImplementation(libs.awaitility)
-
     testImplementation("io.quarkus:quarkus-junit")
     testImplementation("org.testcontainers:postgresql")
     testImplementation("org.testcontainers:junit-jupiter")
