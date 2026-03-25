@@ -4,6 +4,7 @@ import io.debezium.postgres2lake.test.annotation.InjectMinioHelper;
 import io.debezium.postgres2lake.test.helper.MinioHelper;
 import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
 import org.testcontainers.containers.GenericContainer;
+import org.testcontainers.containers.MinIOContainer;
 import org.testcontainers.utility.DockerImageName;
 
 import java.util.HashMap;
@@ -13,7 +14,7 @@ public class MinioResource implements QuarkusTestResourceLifecycleManager {
     public static final String BUCKET_NAME_ARG = "bucket";
     public static final String FORMAT_TYPE_ARG = "format";
 
-    private static GenericContainer<?> minio;
+    private static MinIOContainer minio;
     private final static String ACCESS_KEY = "admin";
     private final static String SECRET_ACCESS_KEY = "password";
 
@@ -33,14 +34,16 @@ public class MinioResource implements QuarkusTestResourceLifecycleManager {
 
     @Override
     public Map<String, String> start() {
-        minio = new GenericContainer<>(DockerImageName.parse("minio/minio:RELEASE.2025-02-28T09-55-16Z"))
-                .withEnv("MINIO_ROOT_USER", ACCESS_KEY)
-                .withEnv("MINIO_ROOT_PASSWORD", SECRET_ACCESS_KEY)
-                .withCommand("server", "/data")
-                .withExposedPorts(9000);
-        minio.start();
+        if (minio == null) {
+            minio = new MinIOContainer(
+                    DockerImageName.
+                            parse("minio/minio:RELEASE.2025-02-28T09-55-16Z")
+                            .asCompatibleSubstituteFor("minio")
+            ).withUserName(ACCESS_KEY).withPassword(SECRET_ACCESS_KEY);
+            minio.start();
+        }
 
-        var endpoint = "http://" + minio.getHost() + ":" + minio.getMappedPort(9000);
+        var endpoint = minio.getS3URL();
 
         minioHelper = new MinioHelper(endpoint, ACCESS_KEY, SECRET_ACCESS_KEY);
         minioHelper.createBucket(bucket);

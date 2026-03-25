@@ -38,7 +38,6 @@ import java.util.UUID;
 import static org.awaitility.Awaitility.await;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @QuarkusTest
 @TestProfile(AvroOutputFormatProfile.class)
@@ -55,13 +54,13 @@ public class S3AvroEventSaverTest {
     private static final String BUCKET = "warehouse";
     private static final String PUBLICATION = "debezium_publication";
 
-    private static final GenericData GENERIC_DATA = new GenericData();
     static {
-        GENERIC_DATA.addLogicalTypeConversion(new Conversions.DecimalConversion());
-        GENERIC_DATA.addLogicalTypeConversion(new Conversions.UUIDConversion());
-        GENERIC_DATA.addLogicalTypeConversion(new TimeConversions.DateConversion());
-        GENERIC_DATA.addLogicalTypeConversion(new TimeConversions.TimeMicrosConversion());
-        GENERIC_DATA.addLogicalTypeConversion(new TimeConversions.TimestampMicrosConversion());
+        var data = GenericData.get();
+        data.addLogicalTypeConversion(new Conversions.DecimalConversion());
+        data.addLogicalTypeConversion(new Conversions.UUIDConversion());
+        data.addLogicalTypeConversion(new TimeConversions.DateConversion());
+        data.addLogicalTypeConversion(new TimeConversions.TimeMicrosConversion());
+        data.addLogicalTypeConversion(new TimeConversions.TimestampMicrosConversion());
     }
 
     @Inject
@@ -79,8 +78,6 @@ public class S3AvroEventSaverTest {
         minioHelper.clearBucket(BUCKET);
     }
 
-    // --- SMALLINT ---
-
     @Test
     void testSmallintType() {
         var table = "public.test_smallint";
@@ -95,8 +92,6 @@ public class S3AvroEventSaverTest {
         assertEquals(row.get("required_array_field"), List.of(1, 2));
         assertEquals(row.get("optional_array_field"), List.of(3, 4));
     }
-
-    // --- INTEGER ---
 
     @Test
     void testIntegerType() {
@@ -113,8 +108,6 @@ public class S3AvroEventSaverTest {
         assertEquals(row.get("optional_array_field"), List.of(3, 4));
     }
 
-    // --- BIGINT ---
-
     @Test
     void testBigintType() {
         var table = "public.test_bigint";
@@ -129,8 +122,6 @@ public class S3AvroEventSaverTest {
         assertEquals(row.get("required_array_field"), List.of(1L, 2L));
         assertEquals(row.get("optional_array_field"), List.of(3L, 4L));
     }
-
-    // --- DECIMAL (variable scale -> double) ---
 
     @Test
     void testDecimalType() {
@@ -147,8 +138,6 @@ public class S3AvroEventSaverTest {
         assertEquals(row.get("optional_array_field"), List.of(3.0, 4.0));
     }
 
-    // --- NUMERIC(36, 10) ---
-
     @Test
     void testNumericType() {
         var table = "public.test_numeric";
@@ -163,8 +152,6 @@ public class S3AvroEventSaverTest {
         assertEquals(row.get("required_array_field"), List.of(new BigDecimal("1.1234567890"), new BigDecimal("2.1234567890")));
         assertEquals(row.get("optional_array_field"), List.of(new BigDecimal("3.1234567890"), new BigDecimal("4.1234567890")));
     }
-
-    // --- REAL ---
 
     @Test
     void testRealType() {
@@ -181,8 +168,6 @@ public class S3AvroEventSaverTest {
         assertEquals(row.get("optional_array_field"), List.of(3.0f, 4.0f));
     }
 
-    // --- DOUBLE PRECISION ---
-
     @Test
     void testDoublePrecisionType() {
         var table = "public.test_double_precision";
@@ -197,8 +182,6 @@ public class S3AvroEventSaverTest {
         assertEquals(row.get("required_array_field"), List.of(1.0, 2.0));
         assertEquals(row.get("optional_array_field"), List.of(3.0, 4.0));
     }
-
-    // --- CHAR(1) ---
 
     @Test
     void testCharType() {
@@ -215,8 +198,6 @@ public class S3AvroEventSaverTest {
         assertEquals(row.get("optional_array_field"), List.of(new Utf8("c"), new Utf8("d")));
     }
 
-    // --- VARCHAR(255) ---
-
     @Test
     void testVarcharType() {
         var table = "public.test_varchar";
@@ -232,8 +213,6 @@ public class S3AvroEventSaverTest {
         assertEquals(row.get("optional_array_field"), List.of(new Utf8("ghi"), new Utf8("jkl")));
     }
 
-    // --- TEXT ---
-
     @Test
     void testTextType() {
         var table = "public.test_text";
@@ -248,8 +227,6 @@ public class S3AvroEventSaverTest {
         assertEquals(row.get("required_array_field"), List.of(new Utf8("hello"), new Utf8("world")));
         assertEquals(row.get("optional_array_field"), List.of(new Utf8("foo"), new Utf8("bar")));
     }
-
-    // --- TIMESTAMP WITHOUT TIME ZONE ---
 
     @Test
     void testTimestampType() {
@@ -270,8 +247,6 @@ public class S3AvroEventSaverTest {
                 Instant.parse("2020-06-16T18:30:00Z")));
     }
 
-    // --- TIMESTAMP WITH TIME ZONE ---
-
     @Test
     void testTimestampTzType() {
         var table = "public.test_timestamp_tz";
@@ -290,8 +265,6 @@ public class S3AvroEventSaverTest {
                 Instant.parse("2020-06-15T18:30:00Z"),
                 Instant.parse("2020-06-16T18:30:00Z")));
     }
-
-    // --- DATE ---
 
     @Test
     void testDateType() {
@@ -312,10 +285,8 @@ public class S3AvroEventSaverTest {
                 LocalDate.of(2020, 6, 16)));
     }
 
-    // --- TIME WITHOUT TIME ZONE ---
-
     @Test
-    void testTimeType() {
+    void testTimeWithoutTimeZoneType() {
         var table = "public.test_time";
         postgresHelper.executeSql(PostgresQueries.createTimeTable(table));
         postgresHelper.executeSql(PostgresQueries.addTableToPublication(PUBLICATION, table));
@@ -371,22 +342,18 @@ public class S3AvroEventSaverTest {
                 UUID.fromString("850e8400-e29b-41d4-a716-446655440000")));
     }
 
-    // --- helpers ---
-
     private GenericRecord waitAndReadAvroRecord(String prefix) {
         var saver = (AbstractEventSaver<?>) eventSaver;
-        await().atMost(Duration.ofSeconds(120)).pollInterval(Duration.ofSeconds(1))
-                .until(() -> saver.getCurrentRecords() > 0);
+        await().atMost(Duration.ofSeconds(120)).pollInterval(Duration.ofSeconds(1)).until(() -> saver.getCurrentRecords() > 0);
         eventSaver.flush();
 
         var keys = minioHelper.listObjectKeys(BUCKET, prefix);
         assertFalse(keys.isEmpty(), "No Avro files found for prefix: " + prefix);
-        var bytes = minioHelper.getObjectBytes(BUCKET, keys.get(0));
+        var bytes = minioHelper.getObjectBytes(BUCKET, keys.getFirst());
 
         try {
-            var datumReader = new GenericDatumReader<GenericRecord>(null, null, GENERIC_DATA);
+            var datumReader = new GenericDatumReader<GenericRecord>();
             var reader = new DataFileReader<>(new SeekableByteArrayInput(bytes), datumReader);
-            assertTrue(reader.hasNext());
             return reader.next();
         } catch (IOException e) {
             throw new RuntimeException(e);
