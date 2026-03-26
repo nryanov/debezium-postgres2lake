@@ -8,6 +8,7 @@ import io.debezium.postgres2lake.test.annotation.InjectPostgresHelper;
 import io.debezium.postgres2lake.test.helper.MinioHelper;
 import io.debezium.postgres2lake.test.helper.PostgresHelper;
 import io.debezium.postgres2lake.test.helper.PostgresQueries;
+import io.debezium.postgres2lake.test.helper.TypeUtils;
 import io.debezium.postgres2lake.test.resource.MinioResource;
 import io.debezium.postgres2lake.test.resource.PostgresResource;
 import io.quarkus.test.common.QuarkusTestResource;
@@ -35,8 +36,6 @@ import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.math.BigDecimal;
-import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -368,7 +367,7 @@ public class S3OrcEventSaverTest {
         }
     }
 
-    private static Map<String, Object> readFirstOrcRow(Path path, Configuration config) throws IOException {
+    private Map<String, Object> readFirstOrcRow(Path path, Configuration config) throws IOException {
         try (Reader reader = OrcFile.createReader(path, OrcFile.readerOptions(config));
              RecordReader rows = reader.rows()) {
             var rootSchema = reader.getSchema();
@@ -382,7 +381,7 @@ public class S3OrcEventSaverTest {
         }
     }
 
-    private static Map<String, Object> readStruct(TypeDescription schema, ColumnVector[] cols, int rowIdx) {
+    private Map<String, Object> readStruct(TypeDescription schema, ColumnVector[] cols, int rowIdx) {
         var fieldNames = schema.getFieldNames();
         var children = schema.getChildren();
         var map = new LinkedHashMap<String, Object>();
@@ -394,7 +393,7 @@ public class S3OrcEventSaverTest {
         return map;
     }
 
-    private static Object readValue(TypeDescription type, ColumnVector vector, int rowIdx) {
+    private Object readValue(TypeDescription type, ColumnVector vector, int rowIdx) {
         if (!vector.noNulls && vector.isNull[rowIdx]) {
             return null;
         }
@@ -422,47 +421,17 @@ public class S3OrcEventSaverTest {
         };
     }
 
-    private static Object readString(BytesColumnVector v, int row) {
+    private Object readString(BytesColumnVector v, int row) {
         var bytes = extractBytes(v, row);
-        var raw = new String(bytes, StandardCharsets.UTF_8);
-        if (raw.length() == 36 && raw.charAt(8) == '-') {
-            try {
-                return UUID.fromString(raw);
-            } catch (IllegalArgumentException ignored) {
-                // ignore
-            }
-        }
-        // Avro UUID logical type often stored as 16 raw bytes; avoid misreading 16-char text as random UUID bytes.
-        if (bytes.length == 16 && maybeUuid(bytes)) {
-            return uuidFrom16Bytes(bytes);
-        }
-        return new Utf8(raw);
+        return TypeUtils.readUuidOrUtf8(bytes);
     }
 
-    private static boolean maybeUuid(byte[] b) {
-        if (b.length != 16) {
-            return false;
-        }
-        // IETF variant + UUID version 4 (matches fixtures in PostgresQueries.insertUuidRow)
-        return (b[8] & 0xc0) == 0x80 && (b[6] & 0xf0) == 0x40;
+    private Object readUuidOrBytes(BytesColumnVector v, int row) {
+        var bytes = extractBytes(v, row);
+        return TypeUtils.readUuidOrUtf8Bytes(bytes);
     }
 
-    private static Object readUuidOrBytes(BytesColumnVector v, int row) {
-        var b = extractBytes(v, row);
-        if (b.length == 16) {
-            return uuidFrom16Bytes(b);
-        }
-        return new Utf8(new String(b, StandardCharsets.UTF_8));
-    }
-
-    private static UUID uuidFrom16Bytes(byte[] b) {
-        var bb = ByteBuffer.wrap(b);
-        var msb = bb.getLong();
-        var lsb = bb.getLong();
-        return new UUID(msb, lsb);
-    }
-
-    private static Object readDecimal(DecimalColumnVector vector, int rowIdx, TypeDescription type) {
+    private Object readDecimal(DecimalColumnVector vector, int rowIdx, TypeDescription type) {
         var bd = vector.vector[rowIdx].getHiveDecimal().bigDecimalValue();
         var scale = type.getScale();
         bd = bd.setScale(scale, java.math.RoundingMode.UNNECESSARY);
@@ -473,11 +442,11 @@ public class S3OrcEventSaverTest {
         return bd.doubleValue();
     }
 
-    private static Instant readTimestamp(TimestampColumnVector v, int rowIdx) {
+    private Instant readTimestamp(TimestampColumnVector v, int rowIdx) {
         return Instant.ofEpochMilli(v.time[rowIdx]).plusNanos(v.nanos[rowIdx]);
     }
 
-    private static List<Object> readList(TypeDescription type, ListColumnVector vector, int rowIdx) {
+    private List<Object> readList(TypeDescription type, ListColumnVector vector, int rowIdx) {
         var childType = type.getChildren().getFirst();
         var offset = vector.offsets[rowIdx];
         var length = vector.lengths[rowIdx];
@@ -490,7 +459,7 @@ public class S3OrcEventSaverTest {
         return out;
     }
 
-    private static byte[] extractBytes(BytesColumnVector v, int row) {
+    private byte[] extractBytes(BytesColumnVector v, int row) {
         var start = v.start[row];
         var len = v.length[row];
         var slice = new byte[len];
@@ -498,12 +467,12 @@ public class S3OrcEventSaverTest {
         return slice;
     }
 
-    private static LocalTime localTimeFromOrcTimeMicros(Object v) {
+    private LocalTime localTimeFromOrcTimeMicros(Object v) {
         return LocalTime.ofNanoOfDay(((Number) v).longValue() * 1000L);
     }
 
-    private static List<LocalTime> localTimeList(List<?> micros) {
-        return micros.stream().map(S3OrcEventSaverTest::localTimeFromOrcTimeMicros).toList();
+    private List<LocalTime> localTimeList(List<?> micros) {
+        return micros.stream().map(this::localTimeFromOrcTimeMicros).toList();
     }
 }
 

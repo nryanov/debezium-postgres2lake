@@ -40,6 +40,7 @@ public class AvroToPaimonMapper {
             idx++;
         }
 
+        // TODO: add partition keys
         builder.primaryKey(primaryKeyFields);
 
         return builder.build();

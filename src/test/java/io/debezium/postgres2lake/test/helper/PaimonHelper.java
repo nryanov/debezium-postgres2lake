@@ -7,11 +7,15 @@ import org.apache.paimon.catalog.CatalogFactory;
 import org.apache.paimon.catalog.Identifier;
 import org.apache.paimon.data.InternalRow;
 import org.apache.paimon.options.Options;
-import org.apache.paimon.reader.RecordReader;
+import org.apache.paimon.types.DataField;
+import org.apache.paimon.utils.CloseableIterator;
 
 import java.io.IOException;
+import java.util.List;
 
 public class PaimonHelper {
+    public record TableRowReader(List<DataField> fields, CloseableIterator<InternalRow> iterator) {}
+
     private final Catalog catalog;
 
     public PaimonHelper(String warehouse, PostgresHelper postgresHelper, MinioHelper minioHelper) {
@@ -35,13 +39,16 @@ public class PaimonHelper {
         catalog = CatalogFactory.createCatalog(catalogContext);
     }
 
-    public RecordReader<InternalRow> readTable(String namespace, String table) {
+    public TableRowReader readTable(String namespace, String table) {
         try {
             var tableIdentifier = Identifier.create(namespace, table);
             var paimonTable = catalog.getTable(tableIdentifier);
 
             var tableReaderBuilder = paimonTable.newReadBuilder().newRead();
-            return tableReaderBuilder.createReader(paimonTable.newReadBuilder().newScan().plan().splits());
+            var iterator = tableReaderBuilder.createReader(paimonTable.newReadBuilder().newScan().plan().splits())
+                    .toCloseableIterator();
+
+            return new TableRowReader(paimonTable.rowType().getFields(), iterator);
         } catch (Catalog.TableNotExistException | IOException e) {
             throw new RuntimeException(e);
         }
