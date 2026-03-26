@@ -423,12 +423,12 @@ public class S3OrcEventSaverTest {
 
     private Object readString(BytesColumnVector v, int row) {
         var bytes = extractBytes(v, row);
-        return TypeUtils.readUuidOrString(bytes);
+        return TypeUtils.readUuidOrUtf8(bytes);
     }
 
     private Object readUuidOrBytes(BytesColumnVector v, int row) {
         var bytes = extractBytes(v, row);
-        return TypeUtils.readUuidOrBytes(bytes);
+        return TypeUtils.readUuidOrUtf8Bytes(bytes);
     }
 
     private Object readDecimal(DecimalColumnVector vector, int rowIdx, TypeDescription type) {

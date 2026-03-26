@@ -45,7 +45,7 @@ public class S3PaimonEventSaver extends AbstractEventSaver<PaimonWriter> {
 
     @Override
     protected PaimonWriter createWriter(EventRecord event) {
-        var tableIdentifier = Identifier.create("paimon-development", "data");
+        var tableIdentifier = tableDdl.tableIdentifier(event);
         var paimonSchema = mapper.avroToPaimonSchema(event.key().getSchema(), event.value().getSchema());
         tableDdl.createTableIfNotExists(tableIdentifier, paimonSchema);
 

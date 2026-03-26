@@ -22,7 +22,6 @@ import org.apache.paimon.data.InternalRow;
 import org.apache.paimon.types.DataField;
 import org.apache.paimon.types.DataType;
 import org.jboss.logging.Logger;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
@@ -160,7 +159,6 @@ public class S3PaimonEventSaverTest {
     }
 
     @Test
-    @Disabled // TODO: fix
     void testDoublePrecisionType() {
         var table = "public.test_double_precision";
         postgresHelper.executeSql(PostgresQueries.createDoublePrecisionTable(table));
@@ -364,8 +362,8 @@ public class S3PaimonEventSaverTest {
             case org.apache.paimon.types.DoubleType v -> row.getDouble(fieldId);
             case org.apache.paimon.types.TimestampType v -> row.getTimestamp(fieldId, 6).toLocalDateTime().atOffset(ZoneOffset.UTC);
             case org.apache.paimon.types.LocalZonedTimestampType v -> row.getTimestamp(fieldId, 6).toLocalDateTime();
-            case org.apache.paimon.types.TimeType v -> LocalTime.ofNanoOfDay(row.getLong(fieldId) * 1_000_000L);
-            case org.apache.paimon.types.DecimalType v -> row.getDecimal(fieldId, v.getPrecision(), v.getScale());
+            case org.apache.paimon.types.TimeType v -> LocalTime.ofNanoOfDay(row.getInt(fieldId) * 1_000_000L);
+            case org.apache.paimon.types.DecimalType v -> row.getDecimal(fieldId, v.getPrecision(), v.getScale()).toBigDecimal();
             case org.apache.paimon.types.DateType v -> LocalDate.ofEpochDay(row.getInt(fieldId));
             case org.apache.paimon.types.VarCharType v -> TypeUtils.readUuidOrString(row.getString(fieldId).toBytes());
             case org.apache.paimon.types.BinaryType v -> TypeUtils.readUuidOrBytes(row.getBinary(fieldId));

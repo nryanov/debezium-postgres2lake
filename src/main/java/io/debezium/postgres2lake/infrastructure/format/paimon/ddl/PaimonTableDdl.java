@@ -1,5 +1,6 @@
 package io.debezium.postgres2lake.infrastructure.format.paimon.ddl;
 
+import io.debezium.postgres2lake.domain.model.EventRecord;
 import org.apache.paimon.catalog.Catalog;
 import org.apache.paimon.catalog.Identifier;
 import org.apache.paimon.schema.Schema;
@@ -9,6 +10,13 @@ public class PaimonTableDdl {
 
     public PaimonTableDdl(Catalog catalog) {
         this.catalog = catalog;
+    }
+
+    public Identifier tableIdentifier(EventRecord event) {
+        var destination = event.destination();
+        // intentionally join db & schema using `_` instead of pass it as different levels -> not all catalogs support nested schemas
+        var schema = String.format("%s_%s", destination.database(), destination.schema());
+        return new Identifier(schema, destination.table());
     }
 
     public void createTableIfNotExists(Identifier identifier, Schema schema) {
