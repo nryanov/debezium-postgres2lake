@@ -1,5 +1,6 @@
 package io.debezium.postgres2lake.infrastructure.format.iceberg.ddl;
 
+import io.debezium.postgres2lake.domain.model.EventRecord;
 import io.debezium.postgres2lake.service.OutputConfiguration;
 import org.apache.iceberg.NullOrder;
 import org.apache.iceberg.PartitionSpec;
@@ -10,6 +11,7 @@ import org.apache.iceberg.SortOrder;
 import org.apache.iceberg.Table;
 import org.apache.iceberg.TableProperties;
 import org.apache.iceberg.catalog.Catalog;
+import org.apache.iceberg.catalog.Namespace;
 import org.apache.iceberg.catalog.SupportsNamespaces;
 import org.apache.iceberg.catalog.TableIdentifier;
 
@@ -35,6 +37,13 @@ public class IcebergTableDdl {
     public IcebergTableDdl(Catalog catalog) {
         this.catalog = catalog;
         this.namespaces = (SupportsNamespaces) catalog;
+    }
+
+    public TableIdentifier tableIdentifier(EventRecord event) {
+        var destination = event.destination();
+        // intentionally join db & schema using `_` instead of pass it as different levels -> not all catalogs support nested schemas
+        var namespace = Namespace.of(String.format("%s_%s", destination.database(), destination.schema()));
+        return TableIdentifier.of(namespace, destination.table());
     }
 
     public Table createTableIfNotExists(

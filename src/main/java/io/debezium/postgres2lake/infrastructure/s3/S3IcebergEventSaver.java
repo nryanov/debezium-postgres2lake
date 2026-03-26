@@ -10,8 +10,6 @@ import io.debezium.postgres2lake.service.OutputConfiguration;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.iceberg.CatalogUtil;
 import org.apache.iceberg.catalog.Catalog;
-import org.apache.iceberg.catalog.Namespace;
-import org.apache.iceberg.catalog.TableIdentifier;
 import org.jboss.logging.Logger;
 
 import java.io.IOException;
@@ -45,13 +43,13 @@ public class S3IcebergEventSaver extends AbstractEventSaver<IcebergTableWriter> 
         this.writerFactory = new IcebergWriterFactory();
         this.tableDdl = new IcebergTableDdl(catalog);
         this.tableSpecs = new HashMap<>();
-        tableSpecs.putAll(icebergCfg.tableSpecs());
+        this.tableSpecs.putAll(icebergCfg.tableSpecs());
     }
 
     @Override
     protected IcebergTableWriter createWriter(EventRecord event) {
         var tableSchema = mapper.avroToIcebergSchema(event.key().getSchema(), event.value().getSchema());
-        var tableIdentifier = TableIdentifier.of(Namespace.of("development"), "data");
+        var tableIdentifier = tableDdl.tableIdentifier(event);
         var maybeTableSpec = Optional.ofNullable(tableSpecs.get(tableIdentifier.name()));
 
         var table = tableDdl.createTableIfNotExists(tableIdentifier, tableSchema, maybeTableSpec);
