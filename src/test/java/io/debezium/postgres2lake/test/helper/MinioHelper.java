@@ -9,13 +9,19 @@ import software.amazon.awssdk.services.s3.model.BucketAlreadyExistsException;
 import software.amazon.awssdk.services.s3.model.BucketAlreadyOwnedByYouException;
 import software.amazon.awssdk.services.s3.model.CreateBucketRequest;
 import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.ListObjectsV2Request;
+import software.amazon.awssdk.services.s3.model.S3Object;
 
 import java.net.URI;
+import java.util.List;
 
 public class MinioHelper {
     private final S3Client s3Client;
+
     private final String endpoint;
+    private final String accessKey;
+    private final String secretAccessKey;
 
     public MinioHelper(String endpoint, String accessKey, String secretAccessKey) {
         this.s3Client = S3Client.builder()
@@ -27,6 +33,8 @@ public class MinioHelper {
                 .build();
 
         this.endpoint = endpoint;
+        this.accessKey = accessKey;
+        this.secretAccessKey = secretAccessKey;
     }
 
     public void createBucket(String bucket) {
@@ -55,7 +63,33 @@ public class MinioHelper {
         });
     }
 
+    public List<String> listObjectKeys(String bucket, String prefix) {
+        var request = ListObjectsV2Request.builder()
+                .bucket(bucket)
+                .prefix(prefix)
+                .build();
+        return s3Client.listObjectsV2(request).contents().stream()
+                .map(S3Object::key)
+                .toList();
+    }
+
+    public byte[] getObjectBytes(String bucket, String key) {
+        var request = GetObjectRequest.builder()
+                .bucket(bucket)
+                .key(key)
+                .build();
+        return s3Client.getObjectAsBytes(request).asByteArray();
+    }
+
     public String endpoint() {
         return endpoint;
+    }
+
+    public String getAccessKey() {
+        return accessKey;
+    }
+
+    public String getSecretAccessKey() {
+        return secretAccessKey;
     }
 }

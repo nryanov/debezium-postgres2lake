@@ -103,14 +103,9 @@ public class AvroToOrcMapper {
             return;
         }
 
-        // todo: correctly save milli/micro/nano time
-        // vector[idx].time = micros (?)
-        // vector[idx].nanos = nanos
-
-        // todo: fix timestamp conversions
         var logicalType = schema.getLogicalType();
         if (logicalType != null) {
-            saveLogicalValue(logicalType, schema, avroFieldValue, orcField, rowIdx, columnVector);
+            saveLogicalValue(logicalType, schema, avroFieldValue, rowIdx, columnVector);
             return;
         }
 
@@ -133,32 +128,16 @@ public class AvroToOrcMapper {
         }
     }
 
-    private void saveLogicalValue(LogicalType logicalType, Schema schema, Object avroFieldValue, TypeDescription orcField, int rowIdx, ColumnVector columnVector) {
+    private void saveLogicalValue(LogicalType logicalType, Schema schema, Object avroFieldValue, int rowIdx, ColumnVector columnVector) {
         switch (logicalType) {
             case LogicalTypes.Decimal ignored -> saveDecimal(schema, avroFieldValue, columnVector, rowIdx);
             case LogicalTypes.Uuid ignored ->  saveBinary(avroFieldValue, columnVector, rowIdx);
             case LogicalTypes.TimeMicros ignored -> saveLong(avroFieldValue, columnVector, rowIdx);
             case LogicalTypes.TimeMillis ignored -> saveLong(avroFieldValue, columnVector, rowIdx);
-            case LogicalTypes.TimestampMicros ignored -> {
-                var adjustToUtc = (boolean) schema.getObjectProp("adjust-to-utc");
-
-                if (adjustToUtc) {
-                    saveTimestamp(avroFieldValue, columnVector, rowIdx);
-                } else {
-                    saveLocalTimestamp(avroFieldValue, columnVector, rowIdx);
-                }
-            }
-            case LogicalTypes.TimestampMillis ignored -> {
-                var adjustToUtc = (boolean) schema.getObjectProp("adjust-to-utc");
-
-                if (adjustToUtc) {
-                    saveTimestamp(avroFieldValue, columnVector, rowIdx);
-                } else {
-                    saveLocalTimestamp(avroFieldValue, columnVector, rowIdx);
-                }
-            }
-            case LogicalTypes.LocalTimestampMicros ignored -> saveLocalTimestamp(avroFieldValue, columnVector, rowIdx);
-            case LogicalTypes.LocalTimestampMillis ignored -> saveLocalTimestamp(avroFieldValue, columnVector, rowIdx);
+            case LogicalTypes.TimestampMicros ignored -> writeTimestampColumn(avroFieldValue, columnVector, rowIdx, true);
+            case LogicalTypes.TimestampMillis ignored -> writeTimestampColumn(avroFieldValue, columnVector, rowIdx, false);
+            case LogicalTypes.LocalTimestampMicros ignored -> writeTimestampColumn(avroFieldValue, columnVector, rowIdx, true);
+            case LogicalTypes.LocalTimestampMillis ignored -> writeTimestampColumn(avroFieldValue, columnVector, rowIdx, false);
             case LogicalTypes.Date ignored -> saveDate(avroFieldValue, columnVector, rowIdx);
             default -> throw new IllegalArgumentException("Unsupported logical type: " + logicalType);
         };
@@ -185,18 +164,13 @@ public class AvroToOrcMapper {
         typedVector.vector[rowIdx] = new HiveDecimalWritable(bytes, scale);
     }
 
-    private void saveTimestamp(Object avroValue, ColumnVector vector, int rowIdx) {
-        var millis = (long) avroValue;
+    private void writeTimestampColumn(Object avroValue, ColumnVector vector, int rowIdx, boolean isMicros) {
+        long raw = (long) avroValue;
+        long millis = isMicros ? Math.floorDiv(raw, 1000) : raw;
+        int nanos = isMicros ? (Math.floorMod(raw, 1000) * 1000) : 0;
         var typedVector = (TimestampColumnVector) vector;
         typedVector.time[rowIdx] = millis;
-        typedVector.nanos[rowIdx] = 0;
-    }
-
-    private void saveLocalTimestamp(Object avroValue, ColumnVector vector, int rowIdx) {
-        var millis = (long) avroValue;
-        var typedVector = (TimestampColumnVector) vector;
-        typedVector.time[rowIdx] = millis;
-        typedVector.nanos[rowIdx] = 0;
+        typedVector.nanos[rowIdx] = nanos;
     }
 
     private void saveArray(Schema avroSchema, Object avroValue, ColumnVector vector, TypeDescription orcField, int rowIdx) {

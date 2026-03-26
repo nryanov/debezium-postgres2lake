@@ -5,6 +5,7 @@ import io.debezium.postgres2lake.infrastucture.profile.IcebergOutputFormatProfil
 import io.debezium.postgres2lake.service.AbstractEventSaver;
 import io.debezium.postgres2lake.test.annotation.InjectMinioHelper;
 import io.debezium.postgres2lake.test.annotation.InjectPostgresHelper;
+import io.debezium.postgres2lake.test.helper.IcebergHelper;
 import io.debezium.postgres2lake.test.helper.MinioHelper;
 import io.debezium.postgres2lake.test.helper.PostgresHelper;
 import io.debezium.postgres2lake.test.helper.PostgresQueries;
@@ -15,6 +16,7 @@ import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.TestProfile;
 import jakarta.inject.Inject;
+import org.jboss.logging.Logger;
 import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
@@ -34,6 +36,8 @@ import static org.awaitility.Awaitility.await;
         @ResourceArg(name = MinioResource.FORMAT_TYPE_ARG, value = "iceberg")
 })
 public class S3IcebergEventSaverTest {
+    private final static Logger logger = Logger.getLogger(S3IcebergEventSaverTest.class);
+
     @Inject
     private EventSaver eventSaver;
 
@@ -55,5 +59,8 @@ public class S3IcebergEventSaverTest {
         await().atMost(Duration.ofSeconds(120)).pollInterval(Duration.ofSeconds(1)).until(() -> testEventSaver.getCurrentRecords() > 0);
         // force flush
         eventSaver.flush();
+
+        var icebergHelper = new IcebergHelper("s3a://warehouse", postgresHelper, minioHelper);
+        icebergHelper.readTable("development", "data");
     }
 }

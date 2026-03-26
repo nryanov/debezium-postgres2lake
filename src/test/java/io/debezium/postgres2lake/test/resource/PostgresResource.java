@@ -38,17 +38,19 @@ public class PostgresResource implements QuarkusTestResourceLifecycleManager {
 
     @Override
     public Map<String, String> start() {
-        postgres = new PostgreSQLContainer<>(DockerImageName.parse("postgres:17"))
-                .withDatabaseName("postgres")
-                .withUsername("postgres")
-                .withPassword("postgres")
-                .withCommand(
-                        "postgres",
-                        "-c", "wal_level=logical",
-                        "-c", "max_wal_senders=5",
-                        "-c", "max_replication_slots=5"
-                );
-        postgres.start();
+        if (postgres == null) {
+            postgres = new PostgreSQLContainer<>(DockerImageName.parse("postgres:17"))
+                    .withDatabaseName("postgres")
+                    .withUsername("postgres")
+                    .withPassword("postgres")
+                    .withCommand(
+                            "postgres",
+                            "-c", "wal_level=logical",
+                            "-c", "max_wal_senders=5",
+                            "-c", "max_replication_slots=5"
+                    );
+            postgres.start();
+        }
 
         postgresHelper = new PostgresHelper(postgres);
         setup();
