@@ -2,6 +2,7 @@ package io.debezium.postgres2lake.infrastructure.s3;
 
 import io.debezium.postgres2lake.domain.model.EventRecord;
 import io.debezium.postgres2lake.infrastructure.format.orc.AvroToOrcMapper;
+import io.debezium.postgres2lake.infrastructure.s3.exceptions.S3WriterOpenException;
 import io.debezium.postgres2lake.infrastructure.format.orc.OrcCompressionCodec;
 import io.debezium.postgres2lake.infrastructure.format.orc.OrcOpenedWriter;
 import io.debezium.postgres2lake.service.AbstractEventSaver;
@@ -63,7 +64,8 @@ public class S3OrcEventSaver extends AbstractEventSaver<OrcOpenedWriter> {
 
             return OrcFile.createWriter(new Path(location), options);
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            logger.errorf(e, "Error happened while creating ORC writer: %s", e.getLocalizedMessage());
+            throw new S3WriterOpenException("Failed to open ORC writer for: " + location, e);
         }
     }
 

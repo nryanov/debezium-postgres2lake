@@ -2,14 +2,15 @@ package io.debezium.postgres2lake.infrastructure.s3;
 
 import io.debezium.postgres2lake.domain.model.EventRecord;
 import io.debezium.postgres2lake.infrastructure.format.paimon.AvroToPaimonMapper;
+import io.debezium.postgres2lake.infrastructure.s3.exceptions.S3PaimonTableAccessException;
 import io.debezium.postgres2lake.infrastructure.format.paimon.PaimonWriter;
+import io.debezium.postgres2lake.infrastructure.format.paimon.ddl.PaimonTableDdl;
 import io.debezium.postgres2lake.service.AbstractEventSaver;
 import io.debezium.postgres2lake.service.OutputConfiguration;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.paimon.catalog.Catalog;
 import org.apache.paimon.catalog.CatalogContext;
 import org.apache.paimon.catalog.CatalogFactory;
-import org.apache.paimon.catalog.Identifier;
 import org.apache.paimon.options.Options;
 import org.jboss.logging.Logger;
 
@@ -21,6 +22,7 @@ public class S3PaimonEventSaver extends AbstractEventSaver<PaimonWriter> {
     private static final Logger logger = Logger.getLogger(S3PaimonEventSaver.class);
 
     private final Catalog catalog;
+    private final PaimonTableDdl tableDdl;
     private final AvroToPaimonMapper mapper;
 
     public S3PaimonEventSaver(
@@ -37,19 +39,15 @@ public class S3PaimonEventSaver extends AbstractEventSaver<PaimonWriter> {
 
         var catalogContext = CatalogContext.create(options, config);
         this.catalog = CatalogFactory.createCatalog(catalogContext);
+        this.tableDdl = new PaimonTableDdl(catalog);
         this.mapper = new AvroToPaimonMapper();
     }
 
     @Override
     protected PaimonWriter createWriter(EventRecord event) {
-        var tableIdentifier = Identifier.create("paimon-development", "data");
+        var tableIdentifier = tableDdl.tableIdentifier(event);
         var paimonSchema = mapper.avroToPaimonSchema(event.key().getSchema(), event.value().getSchema());
-        try {
-            catalog.createDatabase("paimon-development", true);
-            catalog.createTable(tableIdentifier, paimonSchema, true);
-        } catch (Exception e) {
-            logger.errorf(e, "Error happened while creating namespace/table: %s", e.getLocalizedMessage());
-        }
+        tableDdl.createTableIfNotExists(tableIdentifier, paimonSchema);
 
         try {
             var table = catalog.getTable(tableIdentifier);
@@ -57,7 +55,8 @@ public class S3PaimonEventSaver extends AbstractEventSaver<PaimonWriter> {
 
             return new PaimonWriter(table, paimonSchema, writerBuilder, new AtomicReference<>(), new ArrayList<>(), new AtomicInteger(0));
         } catch (Catalog.TableNotExistException e) {
-            throw new RuntimeException(e);
+            logger.errorf("\"Paimon table not found after createTableIfNotExists: %s", tableIdentifier);
+            throw new S3PaimonTableAccessException("Paimon table not found after createTableIfNotExists: " + tableIdentifier, e);
         }
     }
 
