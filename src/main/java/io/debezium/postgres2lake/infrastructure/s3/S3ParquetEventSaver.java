@@ -2,6 +2,8 @@ package io.debezium.postgres2lake.infrastructure.s3;
 
 import io.debezium.postgres2lake.domain.model.EventRecord;
 import io.debezium.postgres2lake.infrastructure.format.parquet.ParquetCompressionCodec;
+import io.debezium.postgres2lake.infrastructure.s3.exceptions.S3InvalidOutputUriException;
+import io.debezium.postgres2lake.infrastructure.s3.exceptions.S3WriterOpenException;
 import io.debezium.postgres2lake.service.AbstractEventSaver;
 import io.debezium.postgres2lake.service.OutputConfiguration;
 import io.debezium.postgres2lake.service.OutputLocationGenerator;
@@ -38,8 +40,8 @@ public class S3ParquetEventSaver extends AbstractEventSaver<ParquetWriter<Generi
 
     @Override
     protected ParquetWriter<GenericRecord> createWriter(EventRecord event) {
+        var location = outputLocationGenerator.generateLocation("warehouse", event);
         try {
-            var location = outputLocationGenerator.generateLocation("warehouse", event);
             logger.infof("Opening parquet writer for `%s`", location);
             var path = new Path(new URI(location));
             var config = new Configuration();
@@ -55,12 +57,11 @@ public class S3ParquetEventSaver extends AbstractEventSaver<ParquetWriter<Generi
 
             return writer;
         } catch (URISyntaxException e) {
-            // todo: domain URI error
-            throw new RuntimeException(e);
+            logger.errorf("Invalid output URI: %s", location);
+            throw new S3InvalidOutputUriException("Invalid output URI: " + location, e);
         } catch (IOException e) {
-            // todo: domain IO error
             logger.errorf(e, "Error happened while creating parquet writer: %s", e.getLocalizedMessage());
-            throw new RuntimeException(e);
+            throw new S3WriterOpenException("Failed to open Parquet writer for: " + location, e);
         }
     }
 

@@ -3,6 +3,8 @@ package io.debezium.postgres2lake.service;
 import io.debezium.postgres2lake.domain.EventSaver;
 import io.debezium.postgres2lake.domain.model.EventCommitter;
 import io.debezium.postgres2lake.domain.model.EventRecord;
+import io.debezium.postgres2lake.service.exceptions.EventAppendException;
+import io.debezium.postgres2lake.service.exceptions.EventFlushException;
 import org.jboss.logging.Logger;
 
 import java.util.ArrayList;
@@ -70,6 +72,7 @@ abstract public class AbstractEventSaver<T> implements EventSaver {
                 }
             } catch (Exception e) {
                 logger.errorf(e, "Error happened while handle new events batch: %s", e.getLocalizedMessage());
+                throw new EventAppendException("Failed to handle new events batch", e);
             }
 
             committers.add(committer);
@@ -105,7 +108,8 @@ abstract public class AbstractEventSaver<T> implements EventSaver {
                 currentRecords = 0;
                 logger.infof("Successfully reset records backlog");
             } catch (Exception e) {
-                throw new RuntimeException(e);
+                logger.errorf(e, "Error happened while flushing pending events: %s", e.getLocalizedMessage());
+                throw new EventFlushException("Failed to flush pending events or commit offsets", e);
             }
         }
     }
