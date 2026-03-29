@@ -77,6 +77,8 @@ public interface OutputConfiguration {
         OutputPartitionStrategy partitioner();
 
         OutputFileNameGenerationStrategy fileName();
+
+        Optional<String> recordPartitionField();
     }
 
     interface Threshold {
