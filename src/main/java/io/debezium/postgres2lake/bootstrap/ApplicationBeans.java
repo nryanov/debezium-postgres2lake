@@ -9,6 +9,7 @@ import io.debezium.postgres2lake.infrastructure.format.orc.OrcCompressionCodec;
 import io.debezium.postgres2lake.infrastructure.format.parquet.ParquetCompressionCodec;
 import io.debezium.postgres2lake.infrastructure.partitioner.EventTimeEventPartitioner;
 import io.debezium.postgres2lake.infrastructure.partitioner.ProcessedTimeEventPartitioner;
+import io.debezium.postgres2lake.infrastructure.partitioner.RecordFieldEventPartitioner;
 import io.debezium.postgres2lake.infrastructure.partitioner.UnpartitionedEventPartitioner;
 import io.debezium.postgres2lake.infrastructure.s3.S3AvroEventSaver;
 import io.debezium.postgres2lake.infrastructure.s3.S3IcebergEventSaver;
@@ -106,6 +107,13 @@ public class ApplicationBeans {
             case UNPARTITIONED -> new UnpartitionedEventPartitioner();
             case PROCESSING_TIME -> new ProcessedTimeEventPartitioner();
             case EVENT_TIME -> new EventTimeEventPartitioner();
+            case RECORD_FIELD -> {
+                var field = strategy.recordPartitionField()
+                        .filter(s -> !s.isBlank())
+                        .orElseThrow(() -> new IllegalArgumentException(
+                                "output.*.naming-strategy.record-partition-field is required when partitioner is RECORD_FIELD"));
+                yield new RecordFieldEventPartitioner(field);
+            }
         };
 
         return new OutputLocationGenerator(partitionStrategy, namingStrategy, format);

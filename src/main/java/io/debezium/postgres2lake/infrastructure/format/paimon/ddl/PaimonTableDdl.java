@@ -14,7 +14,7 @@ public class PaimonTableDdl {
 
     public Identifier tableIdentifier(EventRecord event) {
         var destination = event.destination();
-        // intentionally join db & schema using `_` instead of pass it as different levels -> not all catalogs support nested schemas
+        // intentionally join db & paimonSchema using `_` instead of pass it as different levels -> not all catalogs support nested schemas
         var schema = String.format("%s_%s", destination.database(), destination.schema());
         return new Identifier(schema, destination.table());
     }

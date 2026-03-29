@@ -21,7 +21,7 @@ public class IcebergHelper {
         props.put("uri", postgresHelper.jdbcUrl());
         props.put("jdbc.user", postgresHelper.getUsername());
         props.put("jdbc.password", postgresHelper.getPassword());
-        props.put("jdbc.schema-version", "V1");
+        props.put("jdbc.paimonSchema-version", "V1");
         props.put("io-impl", "org.apache.iceberg.aws.s3.S3FileIO");
         props.put("warehouse", warehouse);
         props.put("s3.endpoint", minioHelper.endpoint());

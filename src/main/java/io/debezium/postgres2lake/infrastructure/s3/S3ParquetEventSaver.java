@@ -2,16 +2,17 @@ package io.debezium.postgres2lake.infrastructure.s3;
 
 import io.debezium.postgres2lake.domain.model.EventRecord;
 import io.debezium.postgres2lake.infrastructure.format.parquet.ParquetCompressionCodec;
+import io.debezium.postgres2lake.infrastructure.format.parquet.ParquetTableWriter;
 import io.debezium.postgres2lake.infrastructure.s3.exceptions.S3InvalidOutputUriException;
 import io.debezium.postgres2lake.infrastructure.s3.exceptions.S3WriterOpenException;
 import io.debezium.postgres2lake.service.AbstractEventSaver;
 import io.debezium.postgres2lake.service.OutputConfiguration;
 import io.debezium.postgres2lake.service.OutputLocationGenerator;
+import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.parquet.avro.AvroParquetWriter;
-import org.apache.parquet.hadoop.ParquetWriter;
 import org.apache.parquet.hadoop.util.HadoopOutputFile;
 import org.jboss.logging.Logger;
 
@@ -19,7 +20,7 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 
-public class S3ParquetEventSaver extends AbstractEventSaver<ParquetWriter<GenericRecord>> {
+public class S3ParquetEventSaver extends AbstractEventSaver<ParquetTableWriter> {
     private static final Logger logger = Logger.getLogger(S3ParquetEventSaver.class);
 
     private final OutputLocationGenerator outputLocationGenerator;
@@ -39,8 +40,8 @@ public class S3ParquetEventSaver extends AbstractEventSaver<ParquetWriter<Generi
     }
 
     @Override
-    protected ParquetWriter<GenericRecord> createWriter(EventRecord event) {
-        var location = outputLocationGenerator.generateLocation("warehouse", event);
+    protected ParquetTableWriter createWriter(EventRecord event) {
+        var location = resolvePartition(event);
         try {
             logger.infof("Opening parquet writer for `%s`", location);
             var path = new Path(new URI(location));
@@ -50,12 +51,12 @@ public class S3ParquetEventSaver extends AbstractEventSaver<ParquetWriter<Generi
             var builder = AvroParquetWriter
                     .<GenericRecord>builder(HadoopOutputFile.fromPath(path, config))
                     .withCompressionCodec(compressionCodec.codecName)
-                    .withSchema(event.value().getSchema());
+                    .withSchema(event.valueSchema());
             var writer = builder.build();
 
             logger.infof("Successfully opened writer for `%s`", location);
 
-            return writer;
+            return new ParquetTableWriter(writer, event.valueSchema(), location);
         } catch (URISyntaxException e) {
             logger.errorf("Invalid output URI: %s", location);
             throw new S3InvalidOutputUriException("Invalid output URI: " + location, e);
@@ -66,12 +67,22 @@ public class S3ParquetEventSaver extends AbstractEventSaver<ParquetWriter<Generi
     }
 
     @Override
-    protected void appendEvent(EventRecord event, ParquetWriter<GenericRecord> writer) throws IOException {
-        writer.write(event.value());
+    protected void handleSchemaChanges(EventRecord event, Schema currentSchema) {
+        // nothing to do
     }
 
     @Override
-    protected void commitPendingEvents(ParquetWriter<GenericRecord> writer) throws IOException {
-        writer.close();
+    protected String resolvePartition(EventRecord event) {
+        return outputLocationGenerator.generateLocation("warehouse", event);
+    }
+
+    @Override
+    protected void appendEvent(EventRecord event, ParquetTableWriter writer) throws IOException {
+        writer.writer().write(event.value());
+    }
+
+    @Override
+    protected void commitPendingEvents(ParquetTableWriter writer) throws IOException {
+        writer.writer().close();
     }
 }

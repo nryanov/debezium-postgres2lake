@@ -3,8 +3,11 @@ package io.debezium.postgres2lake.service;
 import io.debezium.postgres2lake.domain.EventSaver;
 import io.debezium.postgres2lake.domain.model.EventCommitter;
 import io.debezium.postgres2lake.domain.model.EventRecord;
+import io.debezium.postgres2lake.domain.model.PartitionAware;
+import io.debezium.postgres2lake.domain.model.SchemaAware;
 import io.debezium.postgres2lake.service.exceptions.EventAppendException;
 import io.debezium.postgres2lake.service.exceptions.EventFlushException;
+import org.apache.avro.Schema;
 import org.jboss.logging.Logger;
 
 import java.util.ArrayList;
@@ -16,7 +19,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
-abstract public class AbstractEventSaver<T> implements EventSaver {
+abstract public class AbstractEventSaver<T extends SchemaAware & PartitionAware> implements EventSaver {
     private static final Logger logger = Logger.getLogger(AbstractEventSaver.class);
 
     private final List<EventCommitter> committers;
@@ -65,8 +68,7 @@ abstract public class AbstractEventSaver<T> implements EventSaver {
                 var eventsIter = events.iterator();
                 while (eventsIter.hasNext()) {
                     var event = eventsIter.next();
-                    var destination = event.rawDestination();
-                    var openedDescriptor = openedDescriptors.computeIfAbsent(destination, ignored -> createWriter(event));
+                    var openedDescriptor = getOrCreateWriter(event);
                     appendEvent(event, openedDescriptor);
                     currentRecords++;
                 }
@@ -113,6 +115,46 @@ abstract public class AbstractEventSaver<T> implements EventSaver {
             }
         }
     }
+
+    private T getOrCreateWriter(EventRecord event) throws Exception {
+        var destination = event.rawDestination();
+        var currentOpenedWriter = openedDescriptors.get(destination);
+
+        if (currentOpenedWriter == null) {
+            currentOpenedWriter = createWriter(event);
+            openedDescriptors.put(destination, currentOpenedWriter);
+        } else {
+            // check paimonSchema changes & partition rollover
+            var currentSchema = currentOpenedWriter.schema();
+            var eventSchema = event.valueSchema();
+
+            var currentPartition = currentOpenedWriter.partition();
+            var eventPartition = resolvePartition(event);
+
+            var anyChanges = false;
+
+            if (!currentSchema.equals(eventSchema)) {
+                logger.infof("Detect paimonSchema change for source %s", destination);
+                handleSchemaChanges(event, currentSchema);
+                anyChanges = true;
+            } else if (!currentPartition.equals(eventPartition)) {
+                logger.infof("Detect partition rollover for source %s", destination);
+                anyChanges = true;
+            }
+
+            if (anyChanges) {
+                commitPendingEvents(currentOpenedWriter);
+                currentOpenedWriter = createWriter(event);
+                openedDescriptors.put(destination, currentOpenedWriter);
+            }
+        }
+
+        return currentOpenedWriter;
+    }
+
+    protected abstract void handleSchemaChanges(EventRecord event, Schema currentSchema);
+
+    protected abstract String resolvePartition(EventRecord event);
 
     protected abstract T createWriter(EventRecord event);
 

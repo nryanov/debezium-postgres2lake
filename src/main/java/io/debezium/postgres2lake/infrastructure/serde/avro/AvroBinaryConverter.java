@@ -38,7 +38,7 @@ public class AvroBinaryConverter implements Converter {
             var avroSchema = avroData.fromConnectSchema(schema);
             var avroObject = (GenericRecord) avroData.fromConnectData(schema, value);
 
-            // TODO: use in-memory schema registry to avoid saving whole schema in the message
+            // TODO: use in-memory paimonSchema registry to avoid saving whole paimonSchema in the message
             var bout = new ByteArrayOutputStream();
             var writer = new DataFileWriter<GenericRecord>(new GenericDatumWriter<>(avroSchema)).create(avroSchema, bout);
             writer.append(avroObject);

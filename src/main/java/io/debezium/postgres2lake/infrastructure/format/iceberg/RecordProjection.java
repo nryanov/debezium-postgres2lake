@@ -24,8 +24,8 @@ public class RecordProjection implements Record {
      *
      * <p>This projection does not work with repeated types like lists and maps.
      *
-     * @param dataSchema schema of rows wrapped by this projection
-     * @param projectedSchema result schema of the projected rows
+     * @param dataSchema paimonSchema of rows wrapped by this projection
+     * @param projectedSchema result paimonSchema of the projected rows
      * @return a wrapper to project rows
      */
     public static RecordProjection create(Schema dataSchema, Schema projectedSchema) {

@@ -8,6 +8,7 @@ import io.debezium.postgres2lake.infrastructure.format.orc.OrcOpenedWriter;
 import io.debezium.postgres2lake.service.AbstractEventSaver;
 import io.debezium.postgres2lake.service.OutputConfiguration;
 import io.debezium.postgres2lake.service.OutputLocationGenerator;
+import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
@@ -43,11 +44,11 @@ public class S3OrcEventSaver extends AbstractEventSaver<OrcOpenedWriter> {
 
     @Override
     protected OrcOpenedWriter createWriter(EventRecord event) {
-        var location = outputLocationGenerator.generateLocation("warehouse", event);
-        var writer = createFileWriter(location, mapper.avroToOrcSchema(event.value().getSchema()));
+        var location = resolvePartition(event);
+        var writer = createFileWriter(location, mapper.avroToOrcSchema(event.valueSchema()));
         var batch = writer.getSchema().createRowBatch(); // todo: configure batch size
 
-        return new OrcOpenedWriter(writer, batch);
+        return new OrcOpenedWriter(writer, batch, event.valueSchema(), location);
     }
 
     private Writer createFileWriter(String location, TypeDescription schema) {
@@ -67,6 +68,16 @@ public class S3OrcEventSaver extends AbstractEventSaver<OrcOpenedWriter> {
             logger.errorf(e, "Error happened while creating ORC writer: %s", e.getLocalizedMessage());
             throw new S3WriterOpenException("Failed to open ORC writer for: " + location, e);
         }
+    }
+
+    @Override
+    protected void handleSchemaChanges(EventRecord event, Schema currentSchema) {
+        // nothing to do
+    }
+
+    @Override
+    protected String resolvePartition(EventRecord event) {
+        return outputLocationGenerator.generateLocation("warehouse", event);
     }
 
     @Override

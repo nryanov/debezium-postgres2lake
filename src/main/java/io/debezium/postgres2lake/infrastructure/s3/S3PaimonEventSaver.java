@@ -7,6 +7,7 @@ import io.debezium.postgres2lake.infrastructure.format.paimon.PaimonWriter;
 import io.debezium.postgres2lake.infrastructure.format.paimon.ddl.PaimonTableDdl;
 import io.debezium.postgres2lake.service.AbstractEventSaver;
 import io.debezium.postgres2lake.service.OutputConfiguration;
+import org.apache.avro.Schema;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.paimon.catalog.Catalog;
 import org.apache.paimon.catalog.CatalogContext;
@@ -46,18 +47,29 @@ public class S3PaimonEventSaver extends AbstractEventSaver<PaimonWriter> {
     @Override
     protected PaimonWriter createWriter(EventRecord event) {
         var tableIdentifier = tableDdl.tableIdentifier(event);
-        var paimonSchema = mapper.avroToPaimonSchema(event.key().getSchema(), event.value().getSchema());
+        var paimonSchema = mapper.avroToPaimonSchema(event.key().getSchema(), event.valueSchema());
         tableDdl.createTableIfNotExists(tableIdentifier, paimonSchema);
 
         try {
             var table = catalog.getTable(tableIdentifier);
             var writerBuilder = table.newStreamWriteBuilder();
 
-            return new PaimonWriter(table, paimonSchema, writerBuilder, new AtomicReference<>(), new ArrayList<>(), new AtomicInteger(0));
+            return new PaimonWriter(table, paimonSchema, event.valueSchema(), writerBuilder, new AtomicReference<>(), new ArrayList<>(), new AtomicInteger(0));
         } catch (Catalog.TableNotExistException e) {
             logger.errorf("\"Paimon table not found after createTableIfNotExists: %s", tableIdentifier);
             throw new S3PaimonTableAccessException("Paimon table not found after createTableIfNotExists: " + tableIdentifier, e);
         }
+    }
+
+    @Override
+    protected void handleSchemaChanges(EventRecord event, Schema currentSchema) {
+        // TODO: execute TABLE ALTER
+    }
+
+    @Override
+    protected String resolvePartition(EventRecord event) {
+        // paimon resolve partition in StreamWriteBuilder
+        return "";
     }
 
     @Override
@@ -70,7 +82,7 @@ public class S3PaimonEventSaver extends AbstractEventSaver<PaimonWriter> {
 
         // todo: fix bucket id resolution
         var bucket = 0;
-        write.write(mapper.createPaimonRecord(wrapper.schema(), event), bucket);
+        write.write(mapper.createPaimonRecord(wrapper.paimonSchema(), event), bucket);
     }
 
     @Override
