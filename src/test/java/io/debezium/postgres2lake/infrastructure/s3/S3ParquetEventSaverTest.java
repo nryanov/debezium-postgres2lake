@@ -1,7 +1,7 @@
-package io.debezium.postgres2lake.infrastucture.s3;
+package io.debezium.postgres2lake.infrastructure.s3;
 
 import io.debezium.postgres2lake.domain.EventSaver;
-import io.debezium.postgres2lake.infrastucture.profile.ParquetOutputFormatProfile;
+import io.debezium.postgres2lake.infrastructure.profile.ParquetOutputFormatProfile;
 import io.debezium.postgres2lake.service.AbstractEventSaver;
 import io.debezium.postgres2lake.test.annotation.InjectMinioHelper;
 import io.debezium.postgres2lake.test.annotation.InjectPostgresHelper;

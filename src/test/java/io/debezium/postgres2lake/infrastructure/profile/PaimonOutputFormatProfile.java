@@ -1,4 +1,4 @@
-package io.debezium.postgres2lake.infrastucture.profile;
+package io.debezium.postgres2lake.infrastructure.profile;
 
 import io.quarkus.test.junit.QuarkusTestProfile;
 

@@ -1,7 +1,7 @@
-package io.debezium.postgres2lake.infrastucture.s3;
+package io.debezium.postgres2lake.infrastructure.s3;
 
 import io.debezium.postgres2lake.domain.EventSaver;
-import io.debezium.postgres2lake.infrastucture.profile.OrcPartitionRolloverProfile;
+import io.debezium.postgres2lake.infrastructure.profile.ParquetOutputFormatProfile;
 import io.debezium.postgres2lake.service.AbstractEventSaver;
 import io.debezium.postgres2lake.test.annotation.InjectMinioHelper;
 import io.debezium.postgres2lake.test.annotation.InjectPostgresHelper;
@@ -24,7 +24,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 @QuarkusTest
-@TestProfile(OrcPartitionRolloverProfile.class)
+@TestProfile(ParquetOutputFormatProfile.class)
 @QuarkusTestResource(value = PostgresResource.class, initArgs = {
         @ResourceArg(name = PostgresResource.PREFIX_NAME_ARG, value = "default"),
         @ResourceArg(name = PostgresResource.PUBLICATION_NAME_ARG, value = "debezium_publication"),
@@ -32,9 +32,9 @@ import org.junit.jupiter.api.Test;
 })
 @QuarkusTestResource(value = MinioResource.class, initArgs = {
         @ResourceArg(name = MinioResource.BUCKET_NAME_ARG, value = "warehouse"),
-        @ResourceArg(name = MinioResource.FORMAT_TYPE_ARG, value = "orc")
+        @ResourceArg(name = MinioResource.FORMAT_TYPE_ARG, value = "parquet")
 })
-public class S3OrcPartitionRolloverTest {
+public class S3ParquetSchemaRolloverTest {
 
     private static final String BUCKET = "warehouse";
     private static final String PUBLICATION = "debezium_publication";
@@ -64,11 +64,11 @@ public class S3OrcPartitionRolloverTest {
     }
 
     @Test
-    void partitionChangeInOneTransactionCreatesTwoOrcFiles() {
-        var table = "public.test_partition_rollover_orc";
-        postgresHelper.executeSql(SchemaRolloverTestQueries.createPartitionRolloverTable(table));
+    void schemaChangeInOneTransactionCreatesTwoParquetFiles() {
+        var table = "public.test_schema_rollover_parquet";
+        postgresHelper.executeSql(SchemaRolloverTestQueries.createMinimalSchemaRolloverTable(table));
         postgresHelper.executeSql(PostgresQueries.addTableToPublication(PUBLICATION, table));
-        postgresHelper.executeSql(SchemaRolloverTestQueries.partitionRolloverTransaction(table));
+        postgresHelper.executeSql(SchemaRolloverTestQueries.schemaRolloverTransaction(table));
 
         var saver = (AbstractEventSaver<?>) eventSaver;
         WriterRolloverAssertions.awaitAndFlush(eventSaver, saver);
@@ -76,8 +76,8 @@ public class S3OrcPartitionRolloverTest {
         WriterRolloverAssertions.assertAtLeastTwoDataFiles(
                 minioHelper,
                 BUCKET,
-                "default/public/test_partition_rollover_orc/",
-                ".orc",
-                "Expected at least two ORC files after partition rollover");
+                "default/public/test_schema_rollover_parquet/",
+                ".parquet",
+                "Expected at least two Parquet files after schema rollover");
     }
 }
