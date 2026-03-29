@@ -1,9 +1,8 @@
-package io.debezium.postgres2lake.infrastructure.serde.avro;
+package io.debezium.postgres2lake.infrastructure.debezium.avro;
 
 import io.debezium.engine.ChangeEvent;
 import io.debezium.postgres2lake.domain.model.EventRecord;
 import io.debezium.postgres2lake.domain.model.Operation;
-import jakarta.enterprise.context.ApplicationScoped;
 import org.apache.avro.JsonProperties;
 import org.apache.avro.LogicalType;
 import org.apache.avro.LogicalTypes;
@@ -28,8 +27,7 @@ import java.util.Set;
 
 import static io.debezium.postgres2lake.infrastructure.format.avro.AvroUtils.*;
 
-@ApplicationScoped
-public class UnwrappedGenericRecordSerde {
+public class UnwrappedEventRecordDeserializer {
     private static final String CONNECT_TYPE_NAME = "connect.name";
     private static final String INITIAL_TYPE_NAME = "initial-type";
 
@@ -54,9 +52,9 @@ public class UnwrappedGenericRecordSerde {
             EventRecord.UNWRAPPED_EVENT_TIME_FIELD_NAME
     );
 
-    private final GenericRecordSerde serde;
+    private final GenericRecordDeserializer serde;
 
-    public UnwrappedGenericRecordSerde(GenericRecordSerde serde) {
+    public UnwrappedEventRecordDeserializer(GenericRecordDeserializer serde) {
         this.serde = serde;
     }
 
@@ -64,8 +62,8 @@ public class UnwrappedGenericRecordSerde {
         var keyPart = (byte[]) event.key();
         var valuePart = (byte[]) event.value();
 
-        var key = serde.deserialize(keyPart);
-        var value = serde.deserialize(valuePart);
+        var key = serde.deserializeKey(event.destination(), keyPart);
+        var value = serde.deserializeValue(event.destination(), valuePart);
         var operation = resolveOperation(value);
         var unwrappedValue = unwrap(operation, value);
 

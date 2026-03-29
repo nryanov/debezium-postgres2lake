@@ -1,10 +1,11 @@
 package io.debezium.postgres2lake.infrastructure.debezium;
 
+import io.confluent.connect.avro.AvroConverter;
 import io.debezium.connector.postgresql.PostgresConnector;
 import io.debezium.engine.ChangeEvent;
 import io.debezium.engine.DebeziumEngine;
 import io.debezium.engine.format.Binary;
-import io.debezium.postgres2lake.infrastructure.serde.avro.AvroBinaryConverter;
+import io.debezium.postgres2lake.infrastructure.debezium.avro.AvroBinaryConverter;
 import io.quarkus.runtime.ShutdownEvent;
 import io.quarkus.runtime.StartupEvent;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -69,8 +70,20 @@ public class DebeziumEngineFactory {
         properties.put("tombstones.on.delete", "false");
 
         // avro
-        switch (configuration.avro()) {
-            case CONFLUENT -> {}
+        switch (configuration.avro().format()) {
+            case CONFLUENT -> {
+                properties.setProperty("key.converter.delegate.converter.type", AvroConverter.class.getName());
+                properties.setProperty("value.converter.delegate.converter.type", AvroConverter.class.getName());
+                // required configs: schema.registry.url
+                configuration.avro().properties().forEach((key, value) -> {
+                    properties.setProperty(String.format("key.converter.delegate.converter.type.%s", key), value);
+                    properties.setProperty(String.format("value.converter.delegate.converter.type.%s", key), value);
+                });
+
+                // not-overridable configs:
+                properties.setProperty("key.converter.delegate.converter.type.avro.use.logical.type.converters", "false");
+                properties.setProperty("value.converter.delegate.converter.type.avro.use.logical.type.converters", "false");
+            }
             case BINARY -> {
                 properties.setProperty("key.converter.delegate.converter.type", AvroBinaryConverter.class.getName());
                 properties.setProperty("value.converter.delegate.converter.type", AvroBinaryConverter.class.getName());

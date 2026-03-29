@@ -1,6 +1,5 @@
-package io.debezium.postgres2lake.infrastructure.serde.avro;
+package io.debezium.postgres2lake.infrastructure.debezium.avro;
 
-import jakarta.enterprise.context.ApplicationScoped;
 import org.apache.avro.file.DataFileReader;
 import org.apache.avro.file.SeekableByteArrayInput;
 import org.apache.avro.generic.GenericDatumReader;
@@ -8,9 +7,18 @@ import org.apache.avro.generic.GenericRecord;
 
 import java.io.IOException;
 
-@ApplicationScoped
-public class GenericRecordSerde {
-    public GenericRecord deserialize(byte[] data) {
+public class GenericRecordBinaryDeserializer implements GenericRecordDeserializer {
+    @Override
+    public GenericRecord deserializeValue(String topic, byte[] data) {
+        return deserialize(data);
+    }
+
+    @Override
+    public GenericRecord deserializeKey(String topic, byte[] data) {
+        return deserialize(data);
+    }
+
+    private GenericRecord deserialize(byte[] data) {
         try {
             var bin = new SeekableByteArrayInput(data);
             var reader = new DataFileReader<GenericRecord>(bin, new GenericDatumReader<>());
