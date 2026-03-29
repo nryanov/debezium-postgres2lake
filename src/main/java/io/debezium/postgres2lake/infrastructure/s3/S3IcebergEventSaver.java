@@ -7,6 +7,7 @@ import io.debezium.postgres2lake.infrastructure.format.iceberg.ddl.IcebergTableD
 import io.debezium.postgres2lake.infrastructure.format.iceberg.writer.IcebergWriterFactory;
 import io.debezium.postgres2lake.service.AbstractEventSaver;
 import io.debezium.postgres2lake.service.OutputConfiguration;
+import org.apache.avro.Schema;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.iceberg.CatalogUtil;
 import org.apache.iceberg.catalog.Catalog;
@@ -48,13 +49,24 @@ public class S3IcebergEventSaver extends AbstractEventSaver<IcebergTableWriter> 
 
     @Override
     protected IcebergTableWriter createWriter(EventRecord event) {
-        var tableSchema = mapper.avroToIcebergSchema(event.key().getSchema(), event.value().getSchema());
+        var tableSchema = mapper.avroToIcebergSchema(event.key().getSchema(), event.valueSchema());
         var tableIdentifier = tableDdl.tableIdentifier(event);
         var maybeTableSpec = Optional.ofNullable(tableSpecs.get(tableIdentifier.name()));
 
         var table = tableDdl.createTableIfNotExists(tableIdentifier, tableSchema, maybeTableSpec);
 
-        return new IcebergTableWriter(table, writerFactory.create(table));
+        return new IcebergTableWriter(table, writerFactory.create(table), event.valueSchema());
+    }
+
+    @Override
+    protected void handleSchemaChanges(EventRecord event, Schema currentSchema) {
+        // TODO: execute TABLE ALTER
+    }
+
+    @Override
+    protected String resolvePartition(EventRecord event) {
+        // iceberg resolve partition in tableIo
+        return "";
     }
 
     @Override

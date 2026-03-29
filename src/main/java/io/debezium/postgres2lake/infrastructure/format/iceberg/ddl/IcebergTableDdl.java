@@ -41,7 +41,7 @@ public class IcebergTableDdl {
 
     public TableIdentifier tableIdentifier(EventRecord event) {
         var destination = event.destination();
-        // intentionally join db & schema using `_` instead of pass it as different levels -> not all catalogs support nested schemas
+        // intentionally join db & paimonSchema using `_` instead of pass it as different levels -> not all catalogs support nested schemas
         var namespace = Namespace.of(String.format("%s_%s", destination.database(), destination.schema()));
         return TableIdentifier.of(namespace, destination.table());
     }

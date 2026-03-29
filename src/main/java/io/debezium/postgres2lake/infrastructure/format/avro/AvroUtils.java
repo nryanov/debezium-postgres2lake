@@ -71,7 +71,7 @@ public abstract class AvroUtils {
     public static Schema unwrapUnion(Schema schema) {
         if (schema.getType() == Schema.Type.UNION) {
             for (var type : schema.getTypes()) {
-                // return first non-null schema
+                // return first non-null paimonSchema
                 if (type.getType() != Schema.Type.NULL) {
                     return type;
                 }

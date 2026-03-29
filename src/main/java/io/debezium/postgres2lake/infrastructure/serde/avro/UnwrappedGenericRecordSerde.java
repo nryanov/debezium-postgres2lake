@@ -189,7 +189,7 @@ public class UnwrappedGenericRecordSerde {
             return normalizeConnectLogicalTypeValue(initialType, value);
         }
 
-        // return as-is because schema is already has needed metadata
+        // return as-is because paimonSchema is already has needed metadata
         return value;
     }
 

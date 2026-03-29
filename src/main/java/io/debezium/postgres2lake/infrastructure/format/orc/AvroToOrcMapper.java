@@ -40,7 +40,7 @@ public class AvroToOrcMapper {
             case DOUBLE -> TypeDescription.createDouble();
             case FIXED, BYTES -> TypeDescription.createBinary();
             case UNION -> {
-                // use first not null schema
+                // use first not null paimonSchema
                 if (schema.getType() == Schema.Type.UNION) {
                     for (Schema s : schema.getTypes()) {
                         if (s.getType() != Schema.Type.NULL) yield avroToOrcSchema(s);
@@ -114,7 +114,7 @@ public class AvroToOrcMapper {
             case FLOAT, DOUBLE -> saveDouble(avroFieldValue, columnVector, rowIdx);
             case BOOLEAN, INT, LONG -> saveLong(avroFieldValue, columnVector, rowIdx);
             case UNION -> {
-                // use first not null schema
+                // use first not null paimonSchema
                 if (schema.getType() == Schema.Type.UNION) {
                     for (Schema s : schema.getTypes()) {
                         if (s.getType() != Schema.Type.NULL) saveValue(s, avroFieldValue, orcField, rowIdx, columnVector);
