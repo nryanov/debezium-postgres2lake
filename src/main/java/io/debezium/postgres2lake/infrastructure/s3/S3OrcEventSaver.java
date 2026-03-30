@@ -44,11 +44,11 @@ public class S3OrcEventSaver extends AbstractEventSaver<OrcOpenedWriter> {
 
     @Override
     protected OrcOpenedWriter createWriter(EventRecord event) {
-        var location = resolvePartition(event);
+        var location = outputLocationGenerator.generateLocation("warehouse", event);
         var writer = createFileWriter(location, mapper.avroToOrcSchema(event.valueSchema()));
         var batch = writer.getSchema().createRowBatch(); // todo: configure batch size
 
-        return new OrcOpenedWriter(writer, batch, event.valueSchema(), location);
+        return new OrcOpenedWriter(writer, batch, event.valueSchema(), resolvePartition(event));
     }
 
     private Writer createFileWriter(String location, TypeDescription schema) {
@@ -77,7 +77,7 @@ public class S3OrcEventSaver extends AbstractEventSaver<OrcOpenedWriter> {
 
     @Override
     protected String resolvePartition(EventRecord event) {
-        return outputLocationGenerator.generateLocation("warehouse", event);
+        return outputLocationGenerator.getPartition("warehouse", event);
     }
 
     @Override

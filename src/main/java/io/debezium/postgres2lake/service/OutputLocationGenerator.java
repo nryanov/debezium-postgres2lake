@@ -16,6 +16,10 @@ public class OutputLocationGenerator {
         this.fileFormat = fileFormat;
     }
 
+    public String getPartition(String bucket, EventRecord record) {
+        return partitioner.resolvePartition(bucket, record);
+    }
+
     public String generateLocation(String bucket, EventRecord record) {
         var partition = partitioner.resolvePartition(bucket, record);
         return fileNameGenerator.generate(partition, fileFormat);

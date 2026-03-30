@@ -8,7 +8,13 @@ import java.util.Map;
 public interface DebeziumConfiguration {
     Map<String, String> engine();
 
-    AvroFormat avro();
+    Avro avro();
+
+    interface Avro {
+        AvroFormat format();
+
+        Map<String, String> properties();
+    }
 
     enum AvroFormat {
         CONFLUENT, BINARY

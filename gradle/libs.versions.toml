@@ -21,6 +21,7 @@ iceberg-platform = { group = "org.apache.iceberg", name = "iceberg-bom", version
 
 parquet-avro = { group = "org.apache.parquet", name = "parquet-avro", version.ref = "parquet" }
 confluent-avro = { group = "io.confluent", name = "kafka-connect-avro-converter", version.ref = "confluent" }
+confluent-avro-serializer = { group = "io.confluent", name = "kafka-avro-serializer", version.ref = "confluent" }
 orc-core = { group = "org.apache.orc", name = "orc-core", version.ref = "orc" }
 
 # paimon

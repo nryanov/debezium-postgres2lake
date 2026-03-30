@@ -63,3 +63,9 @@ services:
       LIQUIBASE_SEARCH_PATH: /liquibase/changelog
     volumes:
       - "./liquibase/pg:/liquibase/changelog"
+
+  # http://localhost:8080/apis/ccompat/v7 -- confluent API
+  schema-registry:
+    image: apicurio/apicurio-registry:3.0.9
+    ports:
+      - "8080:8080"

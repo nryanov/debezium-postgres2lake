@@ -2,6 +2,10 @@ package io.debezium.postgres2lake.bootstrap;
 
 import io.debezium.postgres2lake.domain.EventSaver;
 import io.debezium.postgres2lake.domain.model.OutputFileFormat;
+import io.debezium.postgres2lake.infrastructure.debezium.DebeziumConfiguration;
+import io.debezium.postgres2lake.infrastructure.debezium.avro.GenericRecordBinaryDeserializer;
+import io.debezium.postgres2lake.infrastructure.debezium.avro.GenericRecordConfluentDeserializer;
+import io.debezium.postgres2lake.infrastructure.debezium.avro.UnwrappedEventRecordDeserializer;
 import io.debezium.postgres2lake.infrastructure.file.ProcessingTimeEventFileNameGenerator;
 import io.debezium.postgres2lake.infrastructure.file.UuidEventFileNameGenerator;
 import io.debezium.postgres2lake.infrastructure.format.avro.AvroCompressionCodec;
@@ -27,6 +31,22 @@ import jakarta.inject.Singleton;
 public class ApplicationBeans {
     @Inject
     private OutputConfiguration outputConfiguration;
+
+    @Inject
+    private DebeziumConfiguration debeziumConfiguration;
+
+    @Singleton
+    @Produces
+    UnwrappedEventRecordDeserializer unwrappedEventRecordDeserializer() {
+        var avro = debeziumConfiguration.avro();
+
+        var genericDeserializer = switch (avro.format()) {
+            case CONFLUENT -> new GenericRecordConfluentDeserializer(avro.properties());
+            case BINARY -> new GenericRecordBinaryDeserializer();
+        };
+
+        return new UnwrappedEventRecordDeserializer(genericDeserializer);
+    }
 
     @Singleton
     @Produces

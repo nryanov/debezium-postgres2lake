@@ -103,6 +103,7 @@ dependencies {
     }
     // avro
     implementation(libs.confluent.avro)
+    implementation(libs.confluent.avro.serializer)
 
     // test dependencies
     testImplementation(platform(libs.junit.bom))
@@ -116,6 +117,22 @@ dependencies {
     testImplementation("org.testcontainers:postgresql")
     testImplementation("org.testcontainers:minio")
     testImplementation("org.testcontainers:junit-jupiter")
+}
+
+val confluentAlignVersion: String = libs.versions.confluent.get()
+
+// TODO: use exclude instead of forcing?
+configurations.configureEach {
+    resolutionStrategy {
+        force(
+            "io.confluent:kafka-connect-avro-converter:$confluentAlignVersion",
+            "io.confluent:kafka-connect-avro-data:$confluentAlignVersion",
+            "io.confluent:kafka-avro-serializer:$confluentAlignVersion",
+            "io.confluent:kafka-schema-registry-client:$confluentAlignVersion",
+            "io.confluent:kafka-schema-serializer:$confluentAlignVersion",
+            "io.confluent:common-utils:$confluentAlignVersion",
+        )
+    }
 }
 
 java {
