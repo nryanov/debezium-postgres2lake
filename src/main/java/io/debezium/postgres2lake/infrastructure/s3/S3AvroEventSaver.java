@@ -42,7 +42,7 @@ public class S3AvroEventSaver extends AbstractEventSaver<AvroTableWriter> {
 
     @Override
     protected AvroTableWriter createWriter(EventRecord event) {
-        var location = resolvePartition(event);
+        var location = outputLocationGenerator.generateLocation("warehouse", event);
 
         try {
             logger.infof("Opening avro writer for `%s`", location);
@@ -61,7 +61,7 @@ public class S3AvroEventSaver extends AbstractEventSaver<AvroTableWriter> {
 
             logger.infof("Successfully opened writer for `%s`", location);
 
-            return new AvroTableWriter(writer, schema, location);
+            return new AvroTableWriter(writer, schema, resolvePartition(event));
         } catch (URISyntaxException e) {
             logger.errorf("Invalid output URI: %s", location);
             throw new S3InvalidOutputUriException("Invalid output URI: " + location, e);
@@ -78,7 +78,7 @@ public class S3AvroEventSaver extends AbstractEventSaver<AvroTableWriter> {
 
     @Override
     protected String resolvePartition(EventRecord event) {
-        return outputLocationGenerator.generateLocation("warehouse", event);
+        return outputLocationGenerator.getPartition("warehouse", event);
     }
 
     @Override

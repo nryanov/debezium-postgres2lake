@@ -41,7 +41,7 @@ public class S3ParquetEventSaver extends AbstractEventSaver<ParquetTableWriter> 
 
     @Override
     protected ParquetTableWriter createWriter(EventRecord event) {
-        var location = resolvePartition(event);
+        var location = outputLocationGenerator.generateLocation("warehouse", event);
         try {
             logger.infof("Opening parquet writer for `%s`", location);
             var path = new Path(new URI(location));
@@ -56,7 +56,7 @@ public class S3ParquetEventSaver extends AbstractEventSaver<ParquetTableWriter> 
 
             logger.infof("Successfully opened writer for `%s`", location);
 
-            return new ParquetTableWriter(writer, event.valueSchema(), location);
+            return new ParquetTableWriter(writer, event.valueSchema(), resolvePartition(event));
         } catch (URISyntaxException e) {
             logger.errorf("Invalid output URI: %s", location);
             throw new S3InvalidOutputUriException("Invalid output URI: " + location, e);
@@ -73,7 +73,7 @@ public class S3ParquetEventSaver extends AbstractEventSaver<ParquetTableWriter> 
 
     @Override
     protected String resolvePartition(EventRecord event) {
-        return outputLocationGenerator.generateLocation("warehouse", event);
+        return outputLocationGenerator.getPartition("warehouse", event);
     }
 
     @Override
