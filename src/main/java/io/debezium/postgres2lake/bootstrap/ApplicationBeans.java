@@ -9,17 +9,11 @@ import io.debezium.postgres2lake.infrastructure.debezium.avro.UnwrappedEventReco
 import io.debezium.postgres2lake.infrastructure.file.ProcessingTimeEventFileNameGenerator;
 import io.debezium.postgres2lake.infrastructure.file.UuidEventFileNameGenerator;
 import io.debezium.postgres2lake.infrastructure.format.avro.AvroCompressionCodec;
-import io.debezium.postgres2lake.infrastructure.format.orc.OrcCompressionCodec;
-import io.debezium.postgres2lake.infrastructure.format.parquet.ParquetCompressionCodec;
 import io.debezium.postgres2lake.infrastructure.partitioner.EventTimeEventPartitioner;
 import io.debezium.postgres2lake.infrastructure.partitioner.ProcessedTimeEventPartitioner;
 import io.debezium.postgres2lake.infrastructure.partitioner.RecordFieldEventPartitioner;
 import io.debezium.postgres2lake.infrastructure.partitioner.UnpartitionedEventPartitioner;
 import io.debezium.postgres2lake.infrastructure.s3.S3AvroEventSaver;
-import io.debezium.postgres2lake.infrastructure.s3.S3IcebergEventSaver;
-import io.debezium.postgres2lake.infrastructure.s3.S3OrcEventSaver;
-import io.debezium.postgres2lake.infrastructure.s3.S3PaimonEventSaver;
-import io.debezium.postgres2lake.infrastructure.s3.S3ParquetEventSaver;
 import io.debezium.postgres2lake.service.OutputConfiguration;
 import io.debezium.postgres2lake.service.OutputLocationGenerator;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -66,54 +60,7 @@ public class ApplicationBeans {
                         avro.codec().orElse(AvroCompressionCodec.NONE)
                 );
             }
-            case ORC -> {
-                if (outputConfiguration.orc().isEmpty()) {
-                    throw new IllegalArgumentException("Empty orc format output configuration");
-                }
-
-                var orc = outputConfiguration.orc().get();
-                var locationGenerator = resolveOutputLocationGenerator(orc.namingStrategy(), OutputFileFormat.orc);
-                yield new S3OrcEventSaver(
-                        outputConfiguration.threshold(),
-                        locationGenerator,
-                        orc.fileIO(),
-                        orc.codec().orElse(OrcCompressionCodec.NONE)
-                );
-            }
-            case PARQUET -> {
-                if (outputConfiguration.parquet().isEmpty()) {
-                    throw new IllegalArgumentException("Empty parquet format output configuration");
-                }
-
-                var parquet = outputConfiguration.parquet().get();
-                var locationGenerator = resolveOutputLocationGenerator(parquet.namingStrategy(), OutputFileFormat.parquet);
-                yield new S3ParquetEventSaver(
-                        outputConfiguration.threshold(),
-                        locationGenerator,
-                        parquet.fileIO(),
-                        parquet.codec().orElse(ParquetCompressionCodec.NONE)
-                );
-            }
-            case ICEBERG -> {
-                if (outputConfiguration.iceberg().isEmpty()) {
-                    throw new IllegalArgumentException("Empty iceberg format output configuration");
-                }
-
-                yield new S3IcebergEventSaver(
-                        outputConfiguration.threshold(),
-                        outputConfiguration.iceberg().get()
-                );
-            }
-            case PAIMON -> {
-                if (outputConfiguration.paimon().isEmpty()) {
-                    throw new IllegalArgumentException("Empty paimon format output configuration");
-                }
-
-                yield new S3PaimonEventSaver(
-                        outputConfiguration.threshold(),
-                        outputConfiguration.paimon().get()
-                );
-            }
+            default -> throw new IllegalArgumentException("expected only avro");
         };
     }
 
