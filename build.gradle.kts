@@ -121,6 +121,7 @@ dependencies {
 
 val confluentAlignVersion: String = libs.versions.confluent.get()
 
+// TODO: use exclude instead of forcing?
 configurations.configureEach {
     resolutionStrategy {
         force(
