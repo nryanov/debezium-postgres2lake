@@ -19,18 +19,18 @@ dependencies {
         // prefer debezium versions
         exclude(group = "com.google.protobuf", module = "protobuf-java")
     }
-    implementation(enforcedPlatform(libs.debezium.platform)) {
-        // prefer quarkus versions
-        exclude(group = "org.slf4j", module = "slf4j-api")
-        exclude(group = "io.grpc")
-        exclude(group = "com.google.api.grpc")
-        exclude(group = "com.fasterxml.jackson.core")
-        exclude(group = "com.fasterxml.jackson.datatype")
-        exclude(group = "com.fasterxml.jackson.dataformat")
-        exclude(group = "org.postgresql")
-        exclude(group = "io.netty")
-        exclude(group = "org.junit.jupiter")
-    }
+//    implementation(platform(libs.debezium.platform)) {
+//        // prefer quarkus versions
+//        exclude(group = "org.slf4j", module = "slf4j-api")
+//        exclude(group = "io.grpc")
+//        exclude(group = "com.google.api.grpc")
+//        exclude(group = "com.fasterxml.jackson.core")
+//        exclude(group = "com.fasterxml.jackson.datatype")
+//        exclude(group = "com.fasterxml.jackson.dataformat")
+//        exclude(group = "org.postgresql")
+//        exclude(group = "io.netty")
+//        exclude(group = "org.junit.jupiter")
+//    }
     implementation(enforcedPlatform(libs.aws.platform))
     implementation(enforcedPlatform(libs.iceberg.platform)) {
         exclude(group = "org.slf4j", module = "slf4j-api")
@@ -89,10 +89,16 @@ dependencies {
     implementation("io.quarkus:quarkus-core")
     implementation("io.quarkus:quarkus-micrometer-registry-prometheus")
     // debezium
-    implementation("io.debezium:debezium-core")
-    implementation("io.debezium:debezium-api")
-    implementation("io.debezium:debezium-embedded")
-    implementation("io.debezium:debezium-connector-postgres")
+//    implementation("io.debezium:debezium-core")
+//    implementation("io.debezium:debezium-api")
+//    implementation("io.debezium:debezium-embedded")
+//    implementation("io.debezium:debezium-connector-postgres")
+
+    implementation(libs.debezium.embedded)
+    implementation(libs.debezium.api)
+    implementation(libs.debezium.storage.jdbc)
+    implementation(libs.debezium.connector.postgresql)
+
     // parquet
     implementation(libs.parquet.avro) {
         exclude(group = "org.slf4j", module = "slf4j-api")
@@ -103,6 +109,7 @@ dependencies {
     }
     // avro
     implementation(libs.confluent.avro)
+    implementation(libs.confluent.kafka.avro.serializer)
 
     // test dependencies
     testImplementation(platform(libs.junit.bom))

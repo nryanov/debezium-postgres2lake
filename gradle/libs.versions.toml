@@ -19,8 +19,15 @@ debezium-platform = { group = "io.debezium", name = "debezium-bom", version.ref 
 aws-platform = { group = "software.amazon.awssdk", name = "bom", version.ref = "awssdk" }
 iceberg-platform = { group = "org.apache.iceberg", name = "iceberg-bom", version.ref = "iceberg" }
 
+debezium-embedded = { group = "io.debezium", name = "debezium-embedded", version.ref = "debezium" }
+debezium-api = { group = "io.debezium", name = "debezium-api", version.ref = "debezium" }
+debezium-storage-jdbc = { group = "io.debezium", name = "debezium-storage-jdbc", version.ref = "debezium" }
+debezium-connector-postgresql = { group = "io.debezium", name = "debezium-connector-postgres", version.ref = "debezium" }
+
 parquet-avro = { group = "org.apache.parquet", name = "parquet-avro", version.ref = "parquet" }
 confluent-avro = { group = "io.confluent", name = "kafka-connect-avro-converter", version.ref = "confluent" }
+# Distinct alias (not confluent-avro-serializer) so accessors don't clash with confluent-avro -> libs.confluent.avro
+confluent-kafka-avro-serializer = { group = "io.confluent", name = "kafka-avro-serializer", version.ref = "confluent" }
 orc-core = { group = "org.apache.orc", name = "orc-core", version.ref = "orc" }
 
 # paimon
