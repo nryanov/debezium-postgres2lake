@@ -1,7 +1,10 @@
 package io.debezium.postgres2lake.infrastructure.s3;
 
+import io.debezium.postgres2lake.domain.EventAppender;
+import io.debezium.postgres2lake.domain.SchemaConverter;
 import io.debezium.postgres2lake.domain.model.EventRecord;
-import io.debezium.postgres2lake.infrastructure.format.iceberg.AvroToIcebergMapper;
+import io.debezium.postgres2lake.infrastructure.format.iceberg.IcebergEventAppender;
+import io.debezium.postgres2lake.infrastructure.format.iceberg.IcebergSchemaConverter;
 import io.debezium.postgres2lake.infrastructure.format.iceberg.IcebergTableWriter;
 import io.debezium.postgres2lake.infrastructure.format.iceberg.ddl.IcebergTableDdl;
 import io.debezium.postgres2lake.infrastructure.format.iceberg.writer.IcebergWriterFactory;
@@ -23,10 +26,11 @@ public class S3IcebergEventSaver extends AbstractEventSaver<IcebergTableWriter> 
     private static final Logger logger = Logger.getLogger(S3IcebergEventSaver.class);
 
     private final Catalog catalog;
-    private final AvroToIcebergMapper mapper;
     private final IcebergWriterFactory writerFactory;
     private final IcebergTableDdl tableDdl;
     private final Map<String, OutputConfiguration.IcebergTableSpec> tableSpecs;
+    private final EventAppender<IcebergTableWriter> eventAppender;
+    private final SchemaConverter<org.apache.iceberg.Schema> schemaConverter;
 
     public S3IcebergEventSaver(
             OutputConfiguration.Threshold threshold,
@@ -40,16 +44,17 @@ public class S3IcebergEventSaver extends AbstractEventSaver<IcebergTableWriter> 
         icebergCfg.fileIO().ifPresent(cfg -> cfg.properties().forEach(hadoopConfiguration::set));
 
         this.catalog = CatalogUtil.buildIcebergCatalog(icebergCfg.name(), catalogProperties, hadoopConfiguration);
-        this.mapper = new AvroToIcebergMapper();
         this.writerFactory = new IcebergWriterFactory();
         this.tableDdl = new IcebergTableDdl(catalog);
         this.tableSpecs = new HashMap<>();
         this.tableSpecs.putAll(icebergCfg.tableSpecs());
+        this.eventAppender = new IcebergEventAppender();
+        this.schemaConverter = new IcebergSchemaConverter();
     }
 
     @Override
     protected IcebergTableWriter createWriter(EventRecord event) {
-        var tableSchema = mapper.avroToIcebergSchema(event.key().getSchema(), event.valueSchema());
+        var tableSchema = schemaConverter.extractSchema(event);
         var tableIdentifier = tableDdl.tableIdentifier(event);
         var maybeTableSpec = Optional.ofNullable(tableSpecs.get(tableIdentifier.name()));
 
@@ -70,9 +75,8 @@ public class S3IcebergEventSaver extends AbstractEventSaver<IcebergTableWriter> 
     }
 
     @Override
-    protected void appendEvent(EventRecord event, IcebergTableWriter wrapper) throws IOException {
-        var record = mapper.createIcebergRecord(wrapper.icebergSchema(), event.value());
-        wrapper.writer().write(record);
+    protected void appendEvent(EventRecord event, IcebergTableWriter wrapper) throws Exception {
+        eventAppender.appendEvent(event, wrapper);
     }
 
     @Override

@@ -1,7 +1,11 @@
 package io.debezium.postgres2lake.infrastructure.s3;
 
+import io.debezium.postgres2lake.domain.EventAppender;
+import io.debezium.postgres2lake.domain.SchemaConverter;
 import io.debezium.postgres2lake.domain.model.EventRecord;
 import io.debezium.postgres2lake.infrastructure.format.avro.AvroCompressionCodec;
+import io.debezium.postgres2lake.infrastructure.format.avro.AvroEventAppender;
+import io.debezium.postgres2lake.infrastructure.format.avro.AvroSchemaConverter;
 import io.debezium.postgres2lake.infrastructure.format.avro.AvroTableWriter;
 import io.debezium.postgres2lake.infrastructure.s3.exceptions.S3InvalidOutputUriException;
 import io.debezium.postgres2lake.infrastructure.s3.exceptions.S3WriterOpenException;
@@ -28,6 +32,9 @@ public class S3AvroEventSaver extends AbstractEventSaver<AvroTableWriter> {
     private final OutputConfiguration.FileIO fileIO;
     private final AvroCompressionCodec codec;
 
+    private final EventAppender<AvroTableWriter> eventAppender;
+    private final SchemaConverter<Schema> schemaConverter;
+
     public S3AvroEventSaver(
             OutputConfiguration.Threshold threshold,
             OutputLocationGenerator outputLocationGenerator,
@@ -38,6 +45,9 @@ public class S3AvroEventSaver extends AbstractEventSaver<AvroTableWriter> {
         this.outputLocationGenerator = outputLocationGenerator;
         this.fileIO = fileIO;
         this.codec = codec;
+
+        this.eventAppender = new AvroEventAppender();
+        this.schemaConverter = new AvroSchemaConverter();
     }
 
     @Override
@@ -48,7 +58,7 @@ public class S3AvroEventSaver extends AbstractEventSaver<AvroTableWriter> {
             logger.infof("Opening avro writer for `%s`", location);
             var path = new Path(new URI(location));
 
-            var schema = event.valueSchema();
+            var schema = schemaConverter.extractSchema(event);
 
             var config = new Configuration();
             fileIO.properties().forEach(config::set);
@@ -82,8 +92,8 @@ public class S3AvroEventSaver extends AbstractEventSaver<AvroTableWriter> {
     }
 
     @Override
-    protected void appendEvent(EventRecord event, AvroTableWriter writer) throws IOException {
-        writer.writer().append(event.value());
+    protected void appendEvent(EventRecord event, AvroTableWriter writer) throws Exception {
+        eventAppender.appendEvent(event, writer);
     }
 
     @Override

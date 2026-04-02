@@ -1,7 +1,10 @@
 package io.debezium.postgres2lake.infrastructure.s3;
 
+import io.debezium.postgres2lake.domain.EventAppender;
+import io.debezium.postgres2lake.domain.SchemaConverter;
 import io.debezium.postgres2lake.domain.model.EventRecord;
-import io.debezium.postgres2lake.infrastructure.format.orc.AvroToOrcMapper;
+import io.debezium.postgres2lake.infrastructure.format.orc.OrcEventAppender;
+import io.debezium.postgres2lake.infrastructure.format.orc.OrcSchemaConverter;
 import io.debezium.postgres2lake.infrastructure.s3.exceptions.S3WriterOpenException;
 import io.debezium.postgres2lake.infrastructure.format.orc.OrcCompressionCodec;
 import io.debezium.postgres2lake.infrastructure.format.orc.OrcTableWriter;
@@ -9,10 +12,8 @@ import io.debezium.postgres2lake.service.AbstractEventSaver;
 import io.debezium.postgres2lake.service.OutputConfiguration;
 import io.debezium.postgres2lake.service.OutputLocationGenerator;
 import org.apache.avro.Schema;
-import org.apache.avro.generic.GenericRecord;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.hive.ql.exec.vector.VectorizedRowBatch;
 import org.apache.orc.OrcFile;
 import org.apache.orc.TypeDescription;
 import org.apache.orc.Writer;
@@ -27,7 +28,8 @@ public class S3OrcEventSaver extends AbstractEventSaver<OrcTableWriter> {
     private final OutputLocationGenerator outputLocationGenerator;
     private final OutputConfiguration.FileIO fileIO;
     private final OrcCompressionCodec codec;
-    private final AvroToOrcMapper mapper;
+    private final EventAppender<OrcTableWriter> eventAppender;
+    private final SchemaConverter<TypeDescription> schemaConverter;
 
     public S3OrcEventSaver(
             OutputConfiguration.Threshold threshold,
@@ -39,13 +41,14 @@ public class S3OrcEventSaver extends AbstractEventSaver<OrcTableWriter> {
         this.outputLocationGenerator = outputLocationGenerator;
         this.fileIO = fileIO;
         this.codec = codec;
-        this.mapper = new AvroToOrcMapper();
+        this.eventAppender = new OrcEventAppender();
+        this.schemaConverter = new OrcSchemaConverter();
     }
 
     @Override
     protected OrcTableWriter createWriter(EventRecord event) {
         var location = outputLocationGenerator.generateLocation("warehouse", event);
-        var writer = createFileWriter(location, mapper.avroToOrcSchema(event.valueSchema()));
+        var writer = createFileWriter(location, schemaConverter.extractSchema(event));
         var batch = writer.getSchema().createRowBatch(); // todo: configure batch size
 
         return new OrcTableWriter(writer, batch, event.valueSchema(), resolvePartition(event));
@@ -81,17 +84,8 @@ public class S3OrcEventSaver extends AbstractEventSaver<OrcTableWriter> {
     }
 
     @Override
-    protected void appendEvent(EventRecord event, OrcTableWriter writer) throws IOException {
-        var batch = writer.batch();
-        var row = batch.size;
-        batch.size += 1;
-
-        saveRecord(event.value(), writer.writer().getSchema(), row, batch);
-
-        if (batch.size == batch.getMaxSize()) {
-            writer.writer().addRowBatch(batch);
-            batch.reset();
-        }
+    protected void appendEvent(EventRecord event, OrcTableWriter writer) throws Exception {
+        eventAppender.appendEvent(event, writer);
     }
 
     @Override
@@ -103,20 +97,5 @@ public class S3OrcEventSaver extends AbstractEventSaver<OrcTableWriter> {
         }
 
         writer.writer().close();
-    }
-
-    private void saveRecord(GenericRecord record, TypeDescription schema, int rowIdx, VectorizedRowBatch vector) {
-        var avroFields = record.getSchema().getFields();
-        var orcFields = schema.getChildren();
-
-        for (var fieldIdx = 0; fieldIdx < avroFields.size(); fieldIdx++) {
-            var avroField = avroFields.get(fieldIdx);
-            var avroValue = record.get(fieldIdx);
-
-            var columnVector = vector.cols[fieldIdx];
-            var orcField = orcFields.get(fieldIdx);
-
-            mapper.saveValue(avroField.schema(), avroValue, orcField, rowIdx, columnVector);
-        }
     }
 }

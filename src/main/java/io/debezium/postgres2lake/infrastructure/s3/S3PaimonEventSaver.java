@@ -1,7 +1,10 @@
 package io.debezium.postgres2lake.infrastructure.s3;
 
+import io.debezium.postgres2lake.domain.EventAppender;
+import io.debezium.postgres2lake.domain.SchemaConverter;
 import io.debezium.postgres2lake.domain.model.EventRecord;
-import io.debezium.postgres2lake.infrastructure.format.paimon.AvroToPaimonMapper;
+import io.debezium.postgres2lake.infrastructure.format.paimon.PaimonEventAppender;
+import io.debezium.postgres2lake.infrastructure.format.paimon.PaimonSchemaConverter;
 import io.debezium.postgres2lake.infrastructure.s3.exceptions.S3PaimonTableAccessException;
 import io.debezium.postgres2lake.infrastructure.format.paimon.PaimonTableWriter;
 import io.debezium.postgres2lake.infrastructure.format.paimon.ddl.PaimonTableDdl;
@@ -24,7 +27,8 @@ public class S3PaimonEventSaver extends AbstractEventSaver<PaimonTableWriter> {
 
     private final Catalog catalog;
     private final PaimonTableDdl tableDdl;
-    private final AvroToPaimonMapper mapper;
+    private final EventAppender<PaimonTableWriter> eventAppender;
+    private final SchemaConverter<org.apache.paimon.schema.Schema> schemaConverter;
 
     public S3PaimonEventSaver(
             OutputConfiguration.Threshold threshold,
@@ -41,13 +45,14 @@ public class S3PaimonEventSaver extends AbstractEventSaver<PaimonTableWriter> {
         var catalogContext = CatalogContext.create(options, config);
         this.catalog = CatalogFactory.createCatalog(catalogContext);
         this.tableDdl = new PaimonTableDdl(catalog);
-        this.mapper = new AvroToPaimonMapper();
+        this.eventAppender = new PaimonEventAppender();
+        this.schemaConverter = new PaimonSchemaConverter();
     }
 
     @Override
     protected PaimonTableWriter createWriter(EventRecord event) {
         var tableIdentifier = tableDdl.tableIdentifier(event);
-        var paimonSchema = mapper.avroToPaimonSchema(event.key().getSchema(), event.valueSchema());
+        var paimonSchema = schemaConverter.extractSchema(event);
         tableDdl.createTableIfNotExists(tableIdentifier, paimonSchema);
 
         try {
@@ -74,15 +79,7 @@ public class S3PaimonEventSaver extends AbstractEventSaver<PaimonTableWriter> {
 
     @Override
     protected void appendEvent(EventRecord event, PaimonTableWriter wrapper) throws Exception {
-        var write = wrapper.writer().get();
-        if (write == null) {
-            write = wrapper.writeBuilder().newWrite();
-            wrapper.writer().set(write);
-        }
-
-        // todo: fix bucket id resolution
-        var bucket = 0;
-        write.write(mapper.createPaimonRecord(wrapper.paimonSchema(), event), bucket);
+        eventAppender.appendEvent(event, wrapper);
     }
 
     @Override

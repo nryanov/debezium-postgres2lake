@@ -1,7 +1,11 @@
 package io.debezium.postgres2lake.infrastructure.s3;
 
+import io.debezium.postgres2lake.domain.EventAppender;
+import io.debezium.postgres2lake.domain.SchemaConverter;
 import io.debezium.postgres2lake.domain.model.EventRecord;
 import io.debezium.postgres2lake.infrastructure.format.parquet.ParquetCompressionCodec;
+import io.debezium.postgres2lake.infrastructure.format.parquet.ParquetEventAppender;
+import io.debezium.postgres2lake.infrastructure.format.parquet.ParquetSchemaConverter;
 import io.debezium.postgres2lake.infrastructure.format.parquet.ParquetTableWriter;
 import io.debezium.postgres2lake.infrastructure.s3.exceptions.S3InvalidOutputUriException;
 import io.debezium.postgres2lake.infrastructure.s3.exceptions.S3WriterOpenException;
@@ -26,6 +30,8 @@ public class S3ParquetEventSaver extends AbstractEventSaver<ParquetTableWriter> 
     private final OutputLocationGenerator outputLocationGenerator;
     private final OutputConfiguration.FileIO fileIO;
     private final ParquetCompressionCodec compressionCodec;
+    private final EventAppender<ParquetTableWriter> eventAppender;
+    private final SchemaConverter<Schema> schemaConverter;
 
     public S3ParquetEventSaver(
             OutputConfiguration.Threshold threshold,
@@ -37,6 +43,8 @@ public class S3ParquetEventSaver extends AbstractEventSaver<ParquetTableWriter> 
         this.outputLocationGenerator = outputLocationGenerator;
         this.fileIO = fileIO;
         this.compressionCodec = compressionCodec;
+        this.eventAppender = new ParquetEventAppender();
+        this.schemaConverter = new ParquetSchemaConverter();
     }
 
     @Override
@@ -51,7 +59,7 @@ public class S3ParquetEventSaver extends AbstractEventSaver<ParquetTableWriter> 
             var builder = AvroParquetWriter
                     .<GenericRecord>builder(HadoopOutputFile.fromPath(path, config))
                     .withCompressionCodec(compressionCodec.codecName)
-                    .withSchema(event.valueSchema());
+                    .withSchema(schemaConverter.extractSchema(event));
             var writer = builder.build();
 
             logger.infof("Successfully opened writer for `%s`", location);
@@ -77,8 +85,8 @@ public class S3ParquetEventSaver extends AbstractEventSaver<ParquetTableWriter> 
     }
 
     @Override
-    protected void appendEvent(EventRecord event, ParquetTableWriter writer) throws IOException {
-        writer.writer().write(event.value());
+    protected void appendEvent(EventRecord event, ParquetTableWriter writer) throws Exception {
+        eventAppender.appendEvent(event, writer);
     }
 
     @Override
