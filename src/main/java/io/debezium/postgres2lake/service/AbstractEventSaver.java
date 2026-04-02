@@ -132,16 +132,17 @@ abstract public class AbstractEventSaver<T extends EventAppender> implements Eve
             var anyChanges = false;
 
             if (!currentSchema.equals(eventSchema)) {
-                logger.infof("Detect paimonSchema change for source %s", destination);
+                logger.infof("Detect schema change for source %s", destination);
+                currentAppender.commitPendingEvents();
                 handleSchemaChanges(event, currentSchema);
                 anyChanges = true;
             } else if (!currentPartition.equals(eventPartition)) {
                 logger.infof("Detect partition rollover for source %s", destination);
+                currentAppender.commitPendingEvents();
                 anyChanges = true;
             }
 
             if (anyChanges) {
-                currentAppender.commitPendingEvents();
                 currentAppender = createEventAppender(event);
                 openedEventAppender.put(destination, currentAppender);
             }
