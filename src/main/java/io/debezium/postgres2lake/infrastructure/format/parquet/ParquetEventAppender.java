@@ -10,4 +10,9 @@ public class ParquetEventAppender implements EventAppender<ParquetTableWriter> {
     public void appendEvent(EventRecord event, ParquetTableWriter writer) throws IOException {
         writer.writer().write(event.value());
     }
+
+    @Override
+    public void commitPendingEvents(ParquetTableWriter writer) throws Exception {
+        writer.writer().close();
+    }
 }

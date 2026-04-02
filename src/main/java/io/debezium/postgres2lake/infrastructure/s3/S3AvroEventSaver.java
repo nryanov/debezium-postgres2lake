@@ -97,7 +97,7 @@ public class S3AvroEventSaver extends AbstractEventSaver<AvroTableWriter> {
     }
 
     @Override
-    protected void commitPendingEvents(AvroTableWriter writer) throws IOException {
-        writer.writer().close();
+    protected void commitPendingEvents(AvroTableWriter writer) throws Exception {
+        eventAppender.commitPendingEvents(writer);
     }
 }

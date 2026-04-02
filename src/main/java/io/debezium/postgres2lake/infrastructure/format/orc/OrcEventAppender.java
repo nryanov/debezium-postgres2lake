@@ -42,6 +42,16 @@ public class OrcEventAppender implements EventAppender<OrcTableWriter> {
         }
     }
 
+    @Override
+    public void commitPendingEvents(OrcTableWriter writer) throws Exception {
+        if (writer.batch().size != 0) {
+            writer.writer().addRowBatch(writer.batch());
+            writer.batch().reset();
+        }
+
+        writer.writer().close();
+    }
+
     private void saveRecord(GenericRecord record, TypeDescription schema, int rowIdx, VectorizedRowBatch vector) {
         var avroFields = record.getSchema().getFields();
         var orcFields = schema.getChildren();

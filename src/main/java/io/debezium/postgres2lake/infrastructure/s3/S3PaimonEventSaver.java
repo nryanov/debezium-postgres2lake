@@ -84,13 +84,7 @@ public class S3PaimonEventSaver extends AbstractEventSaver<PaimonTableWriter> {
 
     @Override
     protected void commitPendingEvents(PaimonTableWriter wrapper) throws Exception {
-        var write = wrapper.writer().get();
-        var pendingCommit = write.prepareCommit(false, wrapper.commitId().incrementAndGet());
-        wrapper.pendingCommits().addAll(pendingCommit);
-
-        var commit = wrapper.writeBuilder().newCommit();
-        commit.commit(wrapper.commitId().get(), wrapper.pendingCommits());
-        wrapper.pendingCommits().clear();
+        eventAppender.commitPendingEvents(wrapper);
     }
 }
 

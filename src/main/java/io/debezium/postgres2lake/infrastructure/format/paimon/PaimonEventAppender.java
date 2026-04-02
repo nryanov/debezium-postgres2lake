@@ -36,6 +36,17 @@ public class PaimonEventAppender implements EventAppender<PaimonTableWriter> {
         write.write(createPaimonRecord(writer.paimonSchema(), event), bucket);
     }
 
+    @Override
+    public void commitPendingEvents(PaimonTableWriter writer) throws Exception {
+        var write = writer.writer().get();
+        var pendingCommit = write.prepareCommit(false, writer.commitId().incrementAndGet());
+        writer.pendingCommits().addAll(pendingCommit);
+
+        var commit = writer.writeBuilder().newCommit();
+        commit.commit(writer.commitId().get(), writer.pendingCommits());
+        writer.pendingCommits().clear();
+    }
+
     private GenericRow createPaimonRecord(Schema paimonSchema, EventRecord event) {
         var arity = paimonSchema.fields().size();
         var row = new GenericRow(arity);

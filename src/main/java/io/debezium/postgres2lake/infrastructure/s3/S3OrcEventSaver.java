@@ -89,13 +89,7 @@ public class S3OrcEventSaver extends AbstractEventSaver<OrcTableWriter> {
     }
 
     @Override
-    protected void commitPendingEvents(OrcTableWriter writer) throws IOException {
-        if (writer.batch().size != 0) {
-            logger.infof("Add rows batch: %s", writer.batch().count());
-            writer.writer().addRowBatch(writer.batch());
-            writer.batch().reset();
-        }
-
-        writer.writer().close();
+    protected void commitPendingEvents(OrcTableWriter writer) throws Exception {
+        eventAppender.commitPendingEvents(writer);
     }
 }

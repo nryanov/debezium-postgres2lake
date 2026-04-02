@@ -90,7 +90,7 @@ public class S3ParquetEventSaver extends AbstractEventSaver<ParquetTableWriter> 
     }
 
     @Override
-    protected void commitPendingEvents(ParquetTableWriter writer) throws IOException {
-        writer.writer().close();
+    protected void commitPendingEvents(ParquetTableWriter writer) throws Exception {
+        eventAppender.commitPendingEvents(writer);
     }
 }

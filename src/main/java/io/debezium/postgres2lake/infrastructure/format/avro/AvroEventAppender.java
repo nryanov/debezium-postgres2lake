@@ -10,4 +10,9 @@ public class AvroEventAppender implements EventAppender<AvroTableWriter> {
     public void appendEvent(EventRecord event, AvroTableWriter writer) throws IOException {
         writer.writer().append(event.value());
     }
+
+    @Override
+    public void commitPendingEvents(AvroTableWriter writer) throws Exception {
+        writer.writer().close();
+    }
 }

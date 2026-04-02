@@ -20,6 +20,7 @@ import java.time.LocalTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -33,6 +34,25 @@ public class IcebergEventAppender implements EventAppender<IcebergTableWriter> {
     public void appendEvent(EventRecord event, IcebergTableWriter writer) throws IOException {
         var record = createIcebergRecord(writer.icebergSchema(), event.value());
         writer.writer().write(record);
+    }
+
+    @Override
+    public void commitPendingEvents(IcebergTableWriter writer) throws Exception {
+        var rs = writer.writer().complete();
+
+        if (rs.deleteFiles().length > 0) {
+            var delta = writer.table().newRowDelta();
+            var dataFiles = rs.dataFiles();
+            var deleteFiles = rs.deleteFiles();
+            Arrays.stream(dataFiles).forEach(delta::addRows);
+            Arrays.stream(deleteFiles).forEach(delta::addDeletes);
+            delta.commit();
+        } else {
+            var dataFiles = rs.dataFiles();
+            var appendIo = writer.table().newAppend();
+            Arrays.stream(dataFiles).forEach(appendIo::appendFile);
+            appendIo.commit();
+        }
     }
 
     private Record createIcebergRecord(Schema icebergSchema, org.apache.avro.generic.GenericRecord avroRecord) {
