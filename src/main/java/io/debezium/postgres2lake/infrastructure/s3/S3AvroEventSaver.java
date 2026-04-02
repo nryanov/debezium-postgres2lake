@@ -24,7 +24,7 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 
-public class S3AvroEventSaver extends AbstractEventSaver<AvroTableWriter> {
+public class S3AvroEventSaver extends AbstractEventSaver<AvroEventAppender> {
     private static final Logger logger = Logger.getLogger(S3AvroEventSaver.class);
 
     private final OutputLocationGenerator outputLocationGenerator;
@@ -39,7 +39,7 @@ public class S3AvroEventSaver extends AbstractEventSaver<AvroTableWriter> {
             OutputConfiguration.FileIO fileIO,
             AvroCompressionCodec codec
     ) {
-        super(threshold, new AvroEventAppender());
+        super(threshold);
         this.outputLocationGenerator = outputLocationGenerator;
         this.fileIO = fileIO;
         this.codec = codec;
@@ -48,7 +48,7 @@ public class S3AvroEventSaver extends AbstractEventSaver<AvroTableWriter> {
     }
 
     @Override
-    protected AvroTableWriter createWriter(EventRecord event) {
+    protected AvroEventAppender createEventAppender(EventRecord event) {
         var location = outputLocationGenerator.generateLocation("warehouse", event);
 
         try {
@@ -68,7 +68,7 @@ public class S3AvroEventSaver extends AbstractEventSaver<AvroTableWriter> {
 
             logger.infof("Successfully opened writer for `%s`", location);
 
-            return new AvroTableWriter(writer, schema, resolvePartition(event));
+            return new AvroEventAppender(new AvroTableWriter(writer, schema, resolvePartition(event)));
         } catch (URISyntaxException e) {
             logger.errorf("Invalid output URI: %s", location);
             throw new S3InvalidOutputUriException("Invalid output URI: " + location, e);

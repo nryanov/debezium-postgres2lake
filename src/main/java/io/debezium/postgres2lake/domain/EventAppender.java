@@ -1,10 +1,14 @@
 package io.debezium.postgres2lake.domain;
 
 import io.debezium.postgres2lake.domain.model.EventRecord;
-import io.debezium.postgres2lake.domain.model.TableWriter;
+import org.apache.avro.Schema;
 
-public interface EventAppender<W extends TableWriter> {
-    void appendEvent(EventRecord event, W writer) throws Exception;
+public interface EventAppender {
+    void appendEvent(EventRecord event) throws Exception;
 
-    void commitPendingEvents(W writer) throws Exception;
+    void commitPendingEvents() throws Exception;
+
+    String currentPartition();
+
+    Schema currentSchema();
 }

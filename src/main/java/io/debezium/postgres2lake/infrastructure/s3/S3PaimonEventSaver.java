@@ -21,7 +21,7 @@ import java.util.ArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
-public class S3PaimonEventSaver extends AbstractEventSaver<PaimonTableWriter> {
+public class S3PaimonEventSaver extends AbstractEventSaver<PaimonEventAppender> {
     private static final Logger logger = Logger.getLogger(S3PaimonEventSaver.class);
 
     private final Catalog catalog;
@@ -32,7 +32,7 @@ public class S3PaimonEventSaver extends AbstractEventSaver<PaimonTableWriter> {
             OutputConfiguration.Threshold threshold,
             OutputConfiguration.Paimon paimon
     ) {
-        super(threshold, new PaimonEventAppender());
+        super(threshold);
 
         var config = new Configuration();
         paimon.fileIO().ifPresent(cfg -> cfg.properties().forEach(config::set));
@@ -47,7 +47,7 @@ public class S3PaimonEventSaver extends AbstractEventSaver<PaimonTableWriter> {
     }
 
     @Override
-    protected PaimonTableWriter createWriter(EventRecord event) {
+    protected PaimonEventAppender createEventAppender(EventRecord event) {
         var tableIdentifier = tableDdl.tableIdentifier(event);
         var paimonSchema = schemaConverter.extractSchema(event);
         tableDdl.createTableIfNotExists(tableIdentifier, paimonSchema);
@@ -55,8 +55,9 @@ public class S3PaimonEventSaver extends AbstractEventSaver<PaimonTableWriter> {
         try {
             var table = catalog.getTable(tableIdentifier);
             var writerBuilder = table.newStreamWriteBuilder();
+            var tableWriter = new PaimonTableWriter(table, paimonSchema, event.valueSchema(), writerBuilder, new AtomicReference<>(), new ArrayList<>(), new AtomicInteger(0));
 
-            return new PaimonTableWriter(table, paimonSchema, event.valueSchema(), writerBuilder, new AtomicReference<>(), new ArrayList<>(), new AtomicInteger(0));
+            return new PaimonEventAppender(tableWriter);
         } catch (Catalog.TableNotExistException e) {
             logger.errorf("\"Paimon table not found after createTableIfNotExists: %s", tableIdentifier);
             throw new S3PaimonTableAccessException("Paimon table not found after createTableIfNotExists: " + tableIdentifier, e);

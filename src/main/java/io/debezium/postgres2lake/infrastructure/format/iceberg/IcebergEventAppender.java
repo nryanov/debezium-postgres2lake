@@ -29,15 +29,21 @@ import static io.debezium.postgres2lake.infrastructure.format.avro.AvroUtils.con
 import static io.debezium.postgres2lake.infrastructure.format.avro.AvroUtils.convertToString;
 import static io.debezium.postgres2lake.infrastructure.format.avro.AvroUtils.convertToUuid;
 
-public class IcebergEventAppender implements EventAppender<IcebergTableWriter> {
+public class IcebergEventAppender implements EventAppender {
+    private final IcebergTableWriter writer;
+
+    public IcebergEventAppender(IcebergTableWriter writer) {
+        this.writer = writer;
+    }
+
     @Override
-    public void appendEvent(EventRecord event, IcebergTableWriter writer) throws IOException {
+    public void appendEvent(EventRecord event) throws IOException {
         var record = createIcebergRecord(writer.icebergSchema(), event.value());
         writer.writer().write(record);
     }
 
     @Override
-    public void commitPendingEvents(IcebergTableWriter writer) throws Exception {
+    public void commitPendingEvents() throws Exception {
         var rs = writer.writer().complete();
 
         if (rs.deleteFiles().length > 0) {
@@ -53,6 +59,17 @@ public class IcebergEventAppender implements EventAppender<IcebergTableWriter> {
             Arrays.stream(dataFiles).forEach(appendIo::appendFile);
             appendIo.commit();
         }
+    }
+
+    @Override
+    public String currentPartition() {
+        // partition is resolved via iceberg fileIO
+        return "";
+    }
+
+    @Override
+    public org.apache.avro.Schema currentSchema() {
+        return writer.schema();
     }
 
     private Record createIcebergRecord(Schema icebergSchema, org.apache.avro.generic.GenericRecord avroRecord) {

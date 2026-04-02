@@ -19,7 +19,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
-public class S3IcebergEventSaver extends AbstractEventSaver<IcebergTableWriter> {
+public class S3IcebergEventSaver extends AbstractEventSaver<IcebergEventAppender> {
     private static final Logger logger = Logger.getLogger(S3IcebergEventSaver.class);
 
     private final Catalog catalog;
@@ -32,7 +32,7 @@ public class S3IcebergEventSaver extends AbstractEventSaver<IcebergTableWriter> 
             OutputConfiguration.Threshold threshold,
             OutputConfiguration.Iceberg icebergCfg
     ) {
-        super(threshold, new IcebergEventAppender());
+        super(threshold);
 
         var catalogProperties = new HashMap<>(icebergCfg.properties());
 
@@ -48,14 +48,15 @@ public class S3IcebergEventSaver extends AbstractEventSaver<IcebergTableWriter> 
     }
 
     @Override
-    protected IcebergTableWriter createWriter(EventRecord event) {
+    protected IcebergEventAppender createEventAppender(EventRecord event) {
         var tableSchema = schemaConverter.extractSchema(event);
         var tableIdentifier = tableDdl.tableIdentifier(event);
         var maybeTableSpec = Optional.ofNullable(tableSpecs.get(tableIdentifier.name()));
 
         var table = tableDdl.createTableIfNotExists(tableIdentifier, tableSchema, maybeTableSpec);
+        var tableWriter = new IcebergTableWriter(table, writerFactory.create(table), tableSchema, event.valueSchema());
 
-        return new IcebergTableWriter(table, writerFactory.create(table), tableSchema, event.valueSchema());
+        return new IcebergEventAppender(tableWriter);
     }
 
     @Override

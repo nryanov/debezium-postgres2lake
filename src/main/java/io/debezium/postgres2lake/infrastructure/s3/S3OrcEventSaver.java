@@ -1,6 +1,5 @@
 package io.debezium.postgres2lake.infrastructure.s3;
 
-import io.debezium.postgres2lake.domain.EventAppender;
 import io.debezium.postgres2lake.domain.SchemaConverter;
 import io.debezium.postgres2lake.domain.model.EventRecord;
 import io.debezium.postgres2lake.infrastructure.format.orc.OrcEventAppender;
@@ -21,7 +20,7 @@ import org.jboss.logging.Logger;
 
 import java.io.IOException;
 
-public class S3OrcEventSaver extends AbstractEventSaver<OrcTableWriter> {
+public class S3OrcEventSaver extends AbstractEventSaver<OrcEventAppender> {
 
     private static final Logger logger = Logger.getLogger(S3OrcEventSaver.class);
 
@@ -36,7 +35,7 @@ public class S3OrcEventSaver extends AbstractEventSaver<OrcTableWriter> {
             OutputConfiguration.FileIO fileIO,
             OrcCompressionCodec codec
     ) {
-        super(threshold, new OrcEventAppender());
+        super(threshold);
 
         this.outputLocationGenerator = outputLocationGenerator;
         this.fileIO = fileIO;
@@ -45,12 +44,13 @@ public class S3OrcEventSaver extends AbstractEventSaver<OrcTableWriter> {
     }
 
     @Override
-    protected OrcTableWriter createWriter(EventRecord event) {
+    protected OrcEventAppender createEventAppender(EventRecord event) {
         var location = outputLocationGenerator.generateLocation("warehouse", event);
         var writer = createFileWriter(location, schemaConverter.extractSchema(event));
         var batch = writer.getSchema().createRowBatch(); // todo: configure batch size
 
-        return new OrcTableWriter(writer, batch, event.valueSchema(), resolvePartition(event));
+        var tableWriter = new OrcTableWriter(writer, batch, event.valueSchema(), resolvePartition(event));
+        return new OrcEventAppender(tableWriter);
     }
 
     private Writer createFileWriter(String location, TypeDescription schema) {

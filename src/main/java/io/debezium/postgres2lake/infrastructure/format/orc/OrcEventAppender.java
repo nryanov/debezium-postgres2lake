@@ -27,9 +27,15 @@ import java.util.Map;
 
 import static io.debezium.postgres2lake.infrastructure.format.avro.AvroUtils.convertToBytes;
 
-public class OrcEventAppender implements EventAppender<OrcTableWriter> {
+public class OrcEventAppender implements EventAppender {
+    private final OrcTableWriter writer;
+
+    public OrcEventAppender(OrcTableWriter writer) {
+        this.writer = writer;
+    }
+
     @Override
-    public void appendEvent(EventRecord event, OrcTableWriter writer) throws IOException {
+    public void appendEvent(EventRecord event) throws IOException {
         var batch = writer.batch();
         var row = batch.size;
         batch.size += 1;
@@ -43,13 +49,23 @@ public class OrcEventAppender implements EventAppender<OrcTableWriter> {
     }
 
     @Override
-    public void commitPendingEvents(OrcTableWriter writer) throws Exception {
+    public void commitPendingEvents() throws Exception {
         if (writer.batch().size != 0) {
             writer.writer().addRowBatch(writer.batch());
             writer.batch().reset();
         }
 
         writer.writer().close();
+    }
+
+    @Override
+    public String currentPartition() {
+        return writer.partition();
+    }
+
+    @Override
+    public Schema currentSchema() {
+        return writer.schema();
     }
 
     private void saveRecord(GenericRecord record, TypeDescription schema, int rowIdx, VectorizedRowBatch vector) {

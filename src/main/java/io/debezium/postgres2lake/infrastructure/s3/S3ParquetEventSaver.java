@@ -23,7 +23,7 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 
-public class S3ParquetEventSaver extends AbstractEventSaver<ParquetTableWriter> {
+public class S3ParquetEventSaver extends AbstractEventSaver<ParquetEventAppender> {
     private static final Logger logger = Logger.getLogger(S3ParquetEventSaver.class);
 
     private final OutputLocationGenerator outputLocationGenerator;
@@ -37,7 +37,7 @@ public class S3ParquetEventSaver extends AbstractEventSaver<ParquetTableWriter> 
             OutputConfiguration.FileIO fileIO,
             ParquetCompressionCodec compressionCodec
     ) {
-        super(threshold, new ParquetEventAppender());
+        super(threshold);
         this.outputLocationGenerator = outputLocationGenerator;
         this.fileIO = fileIO;
         this.compressionCodec = compressionCodec;
@@ -45,7 +45,7 @@ public class S3ParquetEventSaver extends AbstractEventSaver<ParquetTableWriter> 
     }
 
     @Override
-    protected ParquetTableWriter createWriter(EventRecord event) {
+    protected ParquetEventAppender createEventAppender(EventRecord event) {
         var location = outputLocationGenerator.generateLocation("warehouse", event);
         try {
             logger.infof("Opening parquet writer for `%s`", location);
@@ -61,7 +61,9 @@ public class S3ParquetEventSaver extends AbstractEventSaver<ParquetTableWriter> 
 
             logger.infof("Successfully opened writer for `%s`", location);
 
-            return new ParquetTableWriter(writer, event.valueSchema(), resolvePartition(event));
+            var tableWriter = new ParquetTableWriter(writer, event.valueSchema(), resolvePartition(event));
+
+            return new ParquetEventAppender(tableWriter);
         } catch (URISyntaxException e) {
             logger.errorf("Invalid output URI: %s", location);
             throw new S3InvalidOutputUriException("Invalid output URI: " + location, e);

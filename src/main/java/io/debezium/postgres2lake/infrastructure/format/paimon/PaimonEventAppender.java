@@ -22,9 +22,15 @@ import static io.debezium.postgres2lake.infrastructure.format.avro.AvroUtils.con
 import static io.debezium.postgres2lake.infrastructure.format.avro.AvroUtils.convertToString;
 import static io.debezium.postgres2lake.infrastructure.format.avro.AvroUtils.unwrapUnion;
 
-public class PaimonEventAppender implements EventAppender<PaimonTableWriter> {
+public class PaimonEventAppender implements EventAppender {
+    private final PaimonTableWriter writer;
+
+    public PaimonEventAppender(PaimonTableWriter writer) {
+        this.writer = writer;
+    }
+
     @Override
-    public void appendEvent(EventRecord event, PaimonTableWriter writer) throws Exception {
+    public void appendEvent(EventRecord event) throws Exception {
         var write = writer.writer().get();
         if (write == null) {
             write = writer.writeBuilder().newWrite();
@@ -37,7 +43,7 @@ public class PaimonEventAppender implements EventAppender<PaimonTableWriter> {
     }
 
     @Override
-    public void commitPendingEvents(PaimonTableWriter writer) throws Exception {
+    public void commitPendingEvents() throws Exception {
         var write = writer.writer().get();
         var pendingCommit = write.prepareCommit(false, writer.commitId().incrementAndGet());
         writer.pendingCommits().addAll(pendingCommit);
@@ -45,6 +51,17 @@ public class PaimonEventAppender implements EventAppender<PaimonTableWriter> {
         var commit = writer.writeBuilder().newCommit();
         commit.commit(writer.commitId().get(), writer.pendingCommits());
         writer.pendingCommits().clear();
+    }
+
+    @Override
+    public String currentPartition() {
+        // partition is resolved via paimon fileIO
+        return "";
+    }
+
+    @Override
+    public org.apache.avro.Schema currentSchema() {
+        return writer.avroSchema();
     }
 
     private GenericRow createPaimonRecord(Schema paimonSchema, EventRecord event) {

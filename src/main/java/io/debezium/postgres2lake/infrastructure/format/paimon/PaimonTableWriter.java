@@ -1,6 +1,5 @@
 package io.debezium.postgres2lake.infrastructure.format.paimon;
 
-import io.debezium.postgres2lake.domain.model.TableWriter;
 import org.apache.paimon.schema.Schema;
 import org.apache.paimon.table.Table;
 import org.apache.paimon.table.sink.CommitMessage;
@@ -19,15 +18,5 @@ public record PaimonTableWriter(
         AtomicReference<StreamTableWrite> writer,
         List<CommitMessage> pendingCommits,
         AtomicInteger commitId
-) implements TableWriter {
-    @Override
-    public String partition() {
-        // paimon resolve partition in StreamWriteBuilder
-        return "";
-    }
-
-    @Override
-    public org.apache.avro.Schema schema() {
-        return avroSchema;
-    }
+) {
 }
