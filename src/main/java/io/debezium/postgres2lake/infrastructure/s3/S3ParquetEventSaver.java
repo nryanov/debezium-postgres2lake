@@ -1,6 +1,5 @@
 package io.debezium.postgres2lake.infrastructure.s3;
 
-import io.debezium.postgres2lake.domain.EventAppender;
 import io.debezium.postgres2lake.domain.SchemaConverter;
 import io.debezium.postgres2lake.domain.model.EventRecord;
 import io.debezium.postgres2lake.infrastructure.format.parquet.ParquetCompressionCodec;
@@ -30,7 +29,6 @@ public class S3ParquetEventSaver extends AbstractEventSaver<ParquetTableWriter> 
     private final OutputLocationGenerator outputLocationGenerator;
     private final OutputConfiguration.FileIO fileIO;
     private final ParquetCompressionCodec compressionCodec;
-    private final EventAppender<ParquetTableWriter> eventAppender;
     private final SchemaConverter<Schema> schemaConverter;
 
     public S3ParquetEventSaver(
@@ -39,11 +37,10 @@ public class S3ParquetEventSaver extends AbstractEventSaver<ParquetTableWriter> 
             OutputConfiguration.FileIO fileIO,
             ParquetCompressionCodec compressionCodec
     ) {
-        super(threshold);
+        super(threshold, new ParquetEventAppender());
         this.outputLocationGenerator = outputLocationGenerator;
         this.fileIO = fileIO;
         this.compressionCodec = compressionCodec;
-        this.eventAppender = new ParquetEventAppender();
         this.schemaConverter = new ParquetSchemaConverter();
     }
 
@@ -82,15 +79,5 @@ public class S3ParquetEventSaver extends AbstractEventSaver<ParquetTableWriter> 
     @Override
     protected String resolvePartition(EventRecord event) {
         return outputLocationGenerator.getPartition("warehouse", event);
-    }
-
-    @Override
-    protected void appendEvent(EventRecord event, ParquetTableWriter writer) throws Exception {
-        eventAppender.appendEvent(event, writer);
-    }
-
-    @Override
-    protected void commitPendingEvents(ParquetTableWriter writer) throws Exception {
-        eventAppender.commitPendingEvents(writer);
     }
 }

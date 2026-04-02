@@ -1,6 +1,5 @@
 package io.debezium.postgres2lake.infrastructure.s3;
 
-import io.debezium.postgres2lake.domain.EventAppender;
 import io.debezium.postgres2lake.domain.SchemaConverter;
 import io.debezium.postgres2lake.domain.model.EventRecord;
 import io.debezium.postgres2lake.infrastructure.format.paimon.PaimonEventAppender;
@@ -27,14 +26,13 @@ public class S3PaimonEventSaver extends AbstractEventSaver<PaimonTableWriter> {
 
     private final Catalog catalog;
     private final PaimonTableDdl tableDdl;
-    private final EventAppender<PaimonTableWriter> eventAppender;
     private final SchemaConverter<org.apache.paimon.schema.Schema> schemaConverter;
 
     public S3PaimonEventSaver(
             OutputConfiguration.Threshold threshold,
             OutputConfiguration.Paimon paimon
     ) {
-        super(threshold);
+        super(threshold, new PaimonEventAppender());
 
         var config = new Configuration();
         paimon.fileIO().ifPresent(cfg -> cfg.properties().forEach(config::set));
@@ -45,7 +43,6 @@ public class S3PaimonEventSaver extends AbstractEventSaver<PaimonTableWriter> {
         var catalogContext = CatalogContext.create(options, config);
         this.catalog = CatalogFactory.createCatalog(catalogContext);
         this.tableDdl = new PaimonTableDdl(catalog);
-        this.eventAppender = new PaimonEventAppender();
         this.schemaConverter = new PaimonSchemaConverter();
     }
 
@@ -75,16 +72,6 @@ public class S3PaimonEventSaver extends AbstractEventSaver<PaimonTableWriter> {
     protected String resolvePartition(EventRecord event) {
         // paimon resolve partition in StreamWriteBuilder
         return "";
-    }
-
-    @Override
-    protected void appendEvent(EventRecord event, PaimonTableWriter wrapper) throws Exception {
-        eventAppender.appendEvent(event, wrapper);
-    }
-
-    @Override
-    protected void commitPendingEvents(PaimonTableWriter wrapper) throws Exception {
-        eventAppender.commitPendingEvents(wrapper);
     }
 }
 

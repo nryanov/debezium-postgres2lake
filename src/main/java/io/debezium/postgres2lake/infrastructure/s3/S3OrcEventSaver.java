@@ -28,7 +28,6 @@ public class S3OrcEventSaver extends AbstractEventSaver<OrcTableWriter> {
     private final OutputLocationGenerator outputLocationGenerator;
     private final OutputConfiguration.FileIO fileIO;
     private final OrcCompressionCodec codec;
-    private final EventAppender<OrcTableWriter> eventAppender;
     private final SchemaConverter<TypeDescription> schemaConverter;
 
     public S3OrcEventSaver(
@@ -37,11 +36,11 @@ public class S3OrcEventSaver extends AbstractEventSaver<OrcTableWriter> {
             OutputConfiguration.FileIO fileIO,
             OrcCompressionCodec codec
     ) {
-        super(threshold);
+        super(threshold, new OrcEventAppender());
+
         this.outputLocationGenerator = outputLocationGenerator;
         this.fileIO = fileIO;
         this.codec = codec;
-        this.eventAppender = new OrcEventAppender();
         this.schemaConverter = new OrcSchemaConverter();
     }
 
@@ -81,15 +80,5 @@ public class S3OrcEventSaver extends AbstractEventSaver<OrcTableWriter> {
     @Override
     protected String resolvePartition(EventRecord event) {
         return outputLocationGenerator.getPartition("warehouse", event);
-    }
-
-    @Override
-    protected void appendEvent(EventRecord event, OrcTableWriter writer) throws Exception {
-        eventAppender.appendEvent(event, writer);
-    }
-
-    @Override
-    protected void commitPendingEvents(OrcTableWriter writer) throws Exception {
-        eventAppender.commitPendingEvents(writer);
     }
 }

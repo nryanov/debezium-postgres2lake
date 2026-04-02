@@ -1,6 +1,5 @@
 package io.debezium.postgres2lake.infrastructure.s3;
 
-import io.debezium.postgres2lake.domain.EventAppender;
 import io.debezium.postgres2lake.domain.SchemaConverter;
 import io.debezium.postgres2lake.domain.model.EventRecord;
 import io.debezium.postgres2lake.infrastructure.format.iceberg.IcebergEventAppender;
@@ -27,14 +26,13 @@ public class S3IcebergEventSaver extends AbstractEventSaver<IcebergTableWriter> 
     private final IcebergWriterFactory writerFactory;
     private final IcebergTableDdl tableDdl;
     private final Map<String, OutputConfiguration.IcebergTableSpec> tableSpecs;
-    private final EventAppender<IcebergTableWriter> eventAppender;
     private final SchemaConverter<org.apache.iceberg.Schema> schemaConverter;
 
     public S3IcebergEventSaver(
             OutputConfiguration.Threshold threshold,
             OutputConfiguration.Iceberg icebergCfg
     ) {
-        super(threshold);
+        super(threshold, new IcebergEventAppender());
 
         var catalogProperties = new HashMap<>(icebergCfg.properties());
 
@@ -46,7 +44,6 @@ public class S3IcebergEventSaver extends AbstractEventSaver<IcebergTableWriter> 
         this.tableDdl = new IcebergTableDdl(catalog);
         this.tableSpecs = new HashMap<>();
         this.tableSpecs.putAll(icebergCfg.tableSpecs());
-        this.eventAppender = new IcebergEventAppender();
         this.schemaConverter = new IcebergSchemaConverter();
     }
 
@@ -70,15 +67,5 @@ public class S3IcebergEventSaver extends AbstractEventSaver<IcebergTableWriter> 
     protected String resolvePartition(EventRecord event) {
         // iceberg resolve partition in tableIo
         return "";
-    }
-
-    @Override
-    protected void appendEvent(EventRecord event, IcebergTableWriter wrapper) throws Exception {
-        eventAppender.appendEvent(event, wrapper);
-    }
-
-    @Override
-    protected void commitPendingEvents(IcebergTableWriter wrapper) throws Exception {
-        eventAppender.commitPendingEvents(wrapper);
     }
 }

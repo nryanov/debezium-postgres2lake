@@ -1,7 +1,6 @@
 package io.debezium.postgres2lake.infrastructure.format.paimon;
 
-import io.debezium.postgres2lake.domain.model.PartitionAware;
-import io.debezium.postgres2lake.domain.model.SchemaAware;
+import io.debezium.postgres2lake.domain.model.TableWriter;
 import org.apache.paimon.schema.Schema;
 import org.apache.paimon.table.Table;
 import org.apache.paimon.table.sink.CommitMessage;
@@ -20,7 +19,7 @@ public record PaimonTableWriter(
         AtomicReference<StreamTableWrite> writer,
         List<CommitMessage> pendingCommits,
         AtomicInteger commitId
-) implements SchemaAware, PartitionAware {
+) implements TableWriter {
     @Override
     public String partition() {
         // paimon resolve partition in StreamWriteBuilder

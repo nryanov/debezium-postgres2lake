@@ -1,10 +1,10 @@
 package io.debezium.postgres2lake.service;
 
+import io.debezium.postgres2lake.domain.EventAppender;
 import io.debezium.postgres2lake.domain.EventSaver;
 import io.debezium.postgres2lake.domain.model.EventCommitter;
 import io.debezium.postgres2lake.domain.model.EventRecord;
-import io.debezium.postgres2lake.domain.model.PartitionAware;
-import io.debezium.postgres2lake.domain.model.SchemaAware;
+import io.debezium.postgres2lake.domain.model.TableWriter;
 import io.debezium.postgres2lake.service.exceptions.EventAppendException;
 import io.debezium.postgres2lake.service.exceptions.EventFlushException;
 import org.apache.avro.Schema;
@@ -19,7 +19,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
-abstract public class AbstractEventSaver<T extends SchemaAware & PartitionAware> implements EventSaver {
+abstract public class AbstractEventSaver<T extends TableWriter> implements EventSaver {
     private static final Logger logger = Logger.getLogger(AbstractEventSaver.class);
 
     private final List<EventCommitter> committers;
@@ -27,14 +27,21 @@ abstract public class AbstractEventSaver<T extends SchemaAware & PartitionAware>
     private final ScheduledExecutorService scheduledExecutor;
     private final int totalRecordsThreshold;
 
+    private final EventAppender<T> eventAppender;
+
     private int currentRecords;
 
-    public AbstractEventSaver(OutputConfiguration.Threshold threshold) {
+    public AbstractEventSaver(
+            OutputConfiguration.Threshold threshold,
+            EventAppender<T> eventAppender
+    ) {
         this.committers = new ArrayList<>();
         this.openedDescriptors = new HashMap<>();
 
         var timeoutThreshold = threshold.time();
         this.totalRecordsThreshold = threshold.records();
+
+        this.eventAppender = eventAppender;
 
         this.currentRecords = 0;
 
@@ -69,7 +76,7 @@ abstract public class AbstractEventSaver<T extends SchemaAware & PartitionAware>
                 while (eventsIter.hasNext()) {
                     var event = eventsIter.next();
                     var openedDescriptor = getOrCreateWriter(event);
-                    appendEvent(event, openedDescriptor);
+                    eventAppender.appendEvent(event, openedDescriptor);
                     currentRecords++;
                 }
             } catch (Exception e) {
@@ -98,7 +105,7 @@ abstract public class AbstractEventSaver<T extends SchemaAware & PartitionAware>
                 // save events
                 for (var entry : openedDescriptors.entrySet()) {
                     var writer = entry.getValue();
-                    commitPendingEvents(writer);
+                    eventAppender.commitPendingEvents(writer);
                 }
 
                 // commit every hold batch
@@ -143,7 +150,7 @@ abstract public class AbstractEventSaver<T extends SchemaAware & PartitionAware>
             }
 
             if (anyChanges) {
-                commitPendingEvents(currentOpenedWriter);
+                eventAppender.commitPendingEvents(currentOpenedWriter);
                 currentOpenedWriter = createWriter(event);
                 openedDescriptors.put(destination, currentOpenedWriter);
             }
@@ -157,10 +164,6 @@ abstract public class AbstractEventSaver<T extends SchemaAware & PartitionAware>
     protected abstract String resolvePartition(EventRecord event);
 
     protected abstract T createWriter(EventRecord event);
-
-    protected abstract void appendEvent(EventRecord event, T writer) throws Exception;
-
-    protected abstract void commitPendingEvents(T writer) throws Exception;
 
     // for testing purposes only
     public int getCurrentRecords() {

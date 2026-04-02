@@ -1,7 +1,6 @@
 package io.debezium.postgres2lake.infrastructure.format.iceberg;
 
-import io.debezium.postgres2lake.domain.model.PartitionAware;
-import io.debezium.postgres2lake.domain.model.SchemaAware;
+import io.debezium.postgres2lake.domain.model.TableWriter;
 import org.apache.avro.Schema;
 import org.apache.iceberg.Table;
 import org.apache.iceberg.data.Record;
@@ -12,7 +11,7 @@ public record IcebergTableWriter(
         TaskWriter<Record> writer,
         org.apache.iceberg.Schema icebergSchema,
         Schema schema
-) implements SchemaAware, PartitionAware {
+) implements TableWriter {
     @Override
     public String partition() {
         // iceberg resolve partition in tableIo

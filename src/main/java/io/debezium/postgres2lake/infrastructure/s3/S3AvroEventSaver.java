@@ -1,6 +1,5 @@
 package io.debezium.postgres2lake.infrastructure.s3;
 
-import io.debezium.postgres2lake.domain.EventAppender;
 import io.debezium.postgres2lake.domain.SchemaConverter;
 import io.debezium.postgres2lake.domain.model.EventRecord;
 import io.debezium.postgres2lake.infrastructure.format.avro.AvroCompressionCodec;
@@ -32,7 +31,6 @@ public class S3AvroEventSaver extends AbstractEventSaver<AvroTableWriter> {
     private final OutputConfiguration.FileIO fileIO;
     private final AvroCompressionCodec codec;
 
-    private final EventAppender<AvroTableWriter> eventAppender;
     private final SchemaConverter<Schema> schemaConverter;
 
     public S3AvroEventSaver(
@@ -41,12 +39,11 @@ public class S3AvroEventSaver extends AbstractEventSaver<AvroTableWriter> {
             OutputConfiguration.FileIO fileIO,
             AvroCompressionCodec codec
     ) {
-        super(threshold);
+        super(threshold, new AvroEventAppender());
         this.outputLocationGenerator = outputLocationGenerator;
         this.fileIO = fileIO;
         this.codec = codec;
 
-        this.eventAppender = new AvroEventAppender();
         this.schemaConverter = new AvroSchemaConverter();
     }
 
@@ -89,15 +86,5 @@ public class S3AvroEventSaver extends AbstractEventSaver<AvroTableWriter> {
     @Override
     protected String resolvePartition(EventRecord event) {
         return outputLocationGenerator.getPartition("warehouse", event);
-    }
-
-    @Override
-    protected void appendEvent(EventRecord event, AvroTableWriter writer) throws Exception {
-        eventAppender.appendEvent(event, writer);
-    }
-
-    @Override
-    protected void commitPendingEvents(AvroTableWriter writer) throws Exception {
-        eventAppender.commitPendingEvents(writer);
     }
 }
