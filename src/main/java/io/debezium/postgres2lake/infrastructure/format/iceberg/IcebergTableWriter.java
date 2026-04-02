@@ -10,6 +10,7 @@ import org.apache.iceberg.io.TaskWriter;
 public record IcebergTableWriter(
         Table table,
         TaskWriter<Record> writer,
+        org.apache.iceberg.Schema icebergSchema,
         Schema schema
 ) implements SchemaAware, PartitionAware {
     @Override

@@ -4,7 +4,7 @@ import io.debezium.postgres2lake.domain.model.EventRecord;
 import io.debezium.postgres2lake.infrastructure.format.orc.AvroToOrcMapper;
 import io.debezium.postgres2lake.infrastructure.s3.exceptions.S3WriterOpenException;
 import io.debezium.postgres2lake.infrastructure.format.orc.OrcCompressionCodec;
-import io.debezium.postgres2lake.infrastructure.format.orc.OrcOpenedWriter;
+import io.debezium.postgres2lake.infrastructure.format.orc.OrcTableWriter;
 import io.debezium.postgres2lake.service.AbstractEventSaver;
 import io.debezium.postgres2lake.service.OutputConfiguration;
 import io.debezium.postgres2lake.service.OutputLocationGenerator;
@@ -20,7 +20,7 @@ import org.jboss.logging.Logger;
 
 import java.io.IOException;
 
-public class S3OrcEventSaver extends AbstractEventSaver<OrcOpenedWriter> {
+public class S3OrcEventSaver extends AbstractEventSaver<OrcTableWriter> {
 
     private static final Logger logger = Logger.getLogger(S3OrcEventSaver.class);
 
@@ -43,12 +43,12 @@ public class S3OrcEventSaver extends AbstractEventSaver<OrcOpenedWriter> {
     }
 
     @Override
-    protected OrcOpenedWriter createWriter(EventRecord event) {
+    protected OrcTableWriter createWriter(EventRecord event) {
         var location = outputLocationGenerator.generateLocation("warehouse", event);
         var writer = createFileWriter(location, mapper.avroToOrcSchema(event.valueSchema()));
         var batch = writer.getSchema().createRowBatch(); // todo: configure batch size
 
-        return new OrcOpenedWriter(writer, batch, event.valueSchema(), resolvePartition(event));
+        return new OrcTableWriter(writer, batch, event.valueSchema(), resolvePartition(event));
     }
 
     private Writer createFileWriter(String location, TypeDescription schema) {
@@ -81,7 +81,7 @@ public class S3OrcEventSaver extends AbstractEventSaver<OrcOpenedWriter> {
     }
 
     @Override
-    protected void appendEvent(EventRecord event, OrcOpenedWriter writer) throws IOException {
+    protected void appendEvent(EventRecord event, OrcTableWriter writer) throws IOException {
         var batch = writer.batch();
         var row = batch.size;
         batch.size += 1;
@@ -95,7 +95,7 @@ public class S3OrcEventSaver extends AbstractEventSaver<OrcOpenedWriter> {
     }
 
     @Override
-    protected void commitPendingEvents(OrcOpenedWriter writer) throws IOException {
+    protected void commitPendingEvents(OrcTableWriter writer) throws IOException {
         if (writer.batch().size != 0) {
             logger.infof("Add rows batch: %s", writer.batch().count());
             writer.writer().addRowBatch(writer.batch());

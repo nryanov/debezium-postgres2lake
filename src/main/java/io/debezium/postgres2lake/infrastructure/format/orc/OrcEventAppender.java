@@ -1,5 +1,7 @@
 package io.debezium.postgres2lake.infrastructure.format.orc;
 
+import io.debezium.postgres2lake.domain.EventAppender;
+import io.debezium.postgres2lake.domain.model.EventRecord;
 import org.apache.avro.LogicalType;
 import org.apache.avro.LogicalTypes;
 import org.apache.avro.Schema;
@@ -15,89 +17,47 @@ import org.apache.hadoop.hive.ql.exec.vector.LongColumnVector;
 import org.apache.hadoop.hive.ql.exec.vector.MapColumnVector;
 import org.apache.hadoop.hive.ql.exec.vector.StructColumnVector;
 import org.apache.hadoop.hive.ql.exec.vector.TimestampColumnVector;
+import org.apache.hadoop.hive.ql.exec.vector.VectorizedRowBatch;
 import org.apache.hadoop.hive.serde2.io.HiveDecimalWritable;
 import org.apache.orc.TypeDescription;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
-import static io.debezium.postgres2lake.infrastructure.format.avro.AvroUtils.*;
+import static io.debezium.postgres2lake.infrastructure.format.avro.AvroUtils.convertToBytes;
 
-@Deprecated
-public class AvroToOrcMapper {
+public class OrcEventAppender implements EventAppender<OrcTableWriter> {
+    @Override
+    public void appendEvent(EventRecord event, OrcTableWriter writer) throws IOException {
+        var batch = writer.batch();
+        var row = batch.size;
+        batch.size += 1;
 
-    public TypeDescription avroToOrcSchema(Schema schema) {
-        var logicalType = schema.getLogicalType();
-        if (logicalType != null) {
-            return avroLogicalToOrcSchema(logicalType, schema);
+        saveRecord(event.value(), writer.writer().getSchema(), row, batch);
+
+        if (batch.size == batch.getMaxSize()) {
+            writer.writer().addRowBatch(batch);
+            batch.reset();
         }
-
-        return switch (schema.getType()) {
-            case INT -> TypeDescription.createInt();
-            case STRING, ENUM -> TypeDescription.createString();
-            case BOOLEAN -> TypeDescription.createBoolean();
-            case LONG -> TypeDescription.createLong();
-            case FLOAT -> TypeDescription.createFloat();
-            case DOUBLE -> TypeDescription.createDouble();
-            case FIXED, BYTES -> TypeDescription.createBinary();
-            case UNION -> {
-                // use first not null paimonSchema
-                if (schema.getType() == Schema.Type.UNION) {
-                    for (Schema s : schema.getTypes()) {
-                        if (s.getType() != Schema.Type.NULL) yield avroToOrcSchema(s);
-                    }
-                }
-
-                throw new IllegalArgumentException("Unsupported type");
-            }
-            case MAP -> TypeDescription.createMap(TypeDescription.createString(), avroToOrcSchema(schema.getValueType()));
-            case ARRAY -> TypeDescription.createList(avroToOrcSchema(schema.getElementType()));
-            case RECORD -> {
-                var struct = TypeDescription.createStruct();
-                for (var field : schema.getFields()) {
-                    struct.addField(field.name(), avroToOrcSchema(field.schema()));
-                }
-                yield struct;
-            }
-            case null, default -> throw new IllegalArgumentException("Unsupported type");
-        };
     }
 
-    private TypeDescription avroLogicalToOrcSchema(LogicalType logicalType, Schema schema) {
-        return switch (logicalType) {
-            case LogicalTypes.Decimal decimal -> TypeDescription
-                    .createDecimal()
-                    .withScale(decimal.getScale())
-                    .withPrecision(decimal.getPrecision());
-            case LogicalTypes.Uuid ignored ->  TypeDescription.createString();
-            case LogicalTypes.TimeMicros ignored -> TypeDescription.createLong();
-            case LogicalTypes.TimeMillis ignored -> TypeDescription.createInt();
-            case LogicalTypes.TimestampMicros ignored -> {
-                var adjustToUtc = (boolean) schema.getObjectProp("adjust-to-utc");
+    private void saveRecord(GenericRecord record, TypeDescription schema, int rowIdx, VectorizedRowBatch vector) {
+        var avroFields = record.getSchema().getFields();
+        var orcFields = schema.getChildren();
 
-                if (adjustToUtc) {
-                    yield TypeDescription.createTimestamp();
-                } else {
-                    yield TypeDescription.createTimestampInstant();
-                }
-            }
-            case LogicalTypes.TimestampMillis ignored -> {
-                var adjustToUtc = (boolean) schema.getObjectProp("adjust-to-utc");
+        for (var fieldIdx = 0; fieldIdx < avroFields.size(); fieldIdx++) {
+            var avroField = avroFields.get(fieldIdx);
+            var avroValue = record.get(fieldIdx);
 
-                if (adjustToUtc) {
-                    yield TypeDescription.createTimestamp();
-                } else {
-                    yield TypeDescription.createTimestampInstant();
-                }
-            }
-            case LogicalTypes.LocalTimestampMicros ignored -> TypeDescription.createTimestampInstant();
-            case LogicalTypes.LocalTimestampMillis ignored -> TypeDescription.createTimestampInstant();
-            case LogicalTypes.Date ignored -> TypeDescription.createDate();
-            default -> throw new IllegalArgumentException("Unsupported logical type: " + logicalType);
-        };
+            var columnVector = vector.cols[fieldIdx];
+            var orcField = orcFields.get(fieldIdx);
+
+            saveValue(avroField.schema(), avroValue, orcField, rowIdx, columnVector);
+        }
     }
 
-    public void saveValue(Schema schema, Object avroFieldValue, TypeDescription orcField, int rowIdx, ColumnVector columnVector) {
+    private void saveValue(Schema schema, Object avroFieldValue, TypeDescription orcField, int rowIdx, ColumnVector columnVector) {
         if (avroFieldValue == null) {
             columnVector.isNull[rowIdx] = true;
             columnVector.noNulls = false;

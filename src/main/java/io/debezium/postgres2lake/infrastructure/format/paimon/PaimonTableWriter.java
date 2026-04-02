@@ -12,7 +12,7 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
-public record PaimonWriter(
+public record PaimonTableWriter(
         Table table,
         Schema paimonSchema,
         org.apache.avro.Schema avroSchema,

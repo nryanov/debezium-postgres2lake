@@ -22,6 +22,10 @@ public record EventRecord(
         return (Long) value.get(UNWRAPPED_EVENT_TIME_FIELD_NAME);
     }
 
+    public Schema keySchema() {
+        return key.getSchema();
+    }
+
     public Schema valueSchema() {
         return value.getSchema();
     }

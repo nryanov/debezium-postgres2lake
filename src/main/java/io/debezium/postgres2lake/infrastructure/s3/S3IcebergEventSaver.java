@@ -55,7 +55,7 @@ public class S3IcebergEventSaver extends AbstractEventSaver<IcebergTableWriter> 
 
         var table = tableDdl.createTableIfNotExists(tableIdentifier, tableSchema, maybeTableSpec);
 
-        return new IcebergTableWriter(table, writerFactory.create(table), event.valueSchema());
+        return new IcebergTableWriter(table, writerFactory.create(table), tableSchema, event.valueSchema());
     }
 
     @Override
@@ -71,8 +71,7 @@ public class S3IcebergEventSaver extends AbstractEventSaver<IcebergTableWriter> 
 
     @Override
     protected void appendEvent(EventRecord event, IcebergTableWriter wrapper) throws IOException {
-        var icebergSchema = mapper.avroToIcebergSchema(event.key().getSchema(), event.value().getSchema());
-        var record = mapper.createIcebergRecord(icebergSchema, event.value());
+        var record = mapper.createIcebergRecord(wrapper.icebergSchema(), event.value());
         wrapper.writer().write(record);
     }
 
