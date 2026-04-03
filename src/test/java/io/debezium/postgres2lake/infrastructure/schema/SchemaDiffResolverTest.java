@@ -5,46 +5,21 @@ import io.debezium.postgres2lake.domain.model.AvroSchemaChanges.ColumnChange;
 import io.debezium.postgres2lake.infrastructure.schema.exceptions.IncompatibleChangeToRequiredException;
 import io.debezium.postgres2lake.infrastructure.schema.exceptions.IncompatibleTypePromotion;
 import io.debezium.postgres2lake.infrastructure.schema.exceptions.NonPrimitiveFieldPromotionException;
-import org.apache.avro.LogicalTypes;
 import org.apache.avro.Schema;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static io.debezium.postgres2lake.test.avro.AvroTestFixtures.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 public class SchemaDiffResolverTest {
 
-    private static final String NS = "io.debezium.postgres2lake.test";
-
     private final SchemaDiffResolver resolver = new SchemaDiffResolver();
-
-    private static Schema required(Schema.Type type) {
-        return Schema.create(type);
-    }
-
-    private static Schema optional(Schema.Type type) {
-        return Schema.createUnion(Schema.create(Schema.Type.NULL), Schema.create(type));
-    }
-
-    private static Schema record(String name, List<Schema.Field> fields) {
-        return Schema.createRecord(name, null, NS, false, fields);
-    }
-
-    private static Schema decimalSchema(int precision, int scale) {
-        var bytes = Schema.create(Schema.Type.BYTES);
-        LogicalTypes.decimal(precision, scale).addToSchema(bytes);
-        return bytes;
-    }
-
-    private static Schema.Field field(String name, Schema schema) {
-        return new Schema.Field(name, schema, null, null);
-    }
 
     @Test
     void addPrimitiveColumn() {
-        var nextTag = optional(Schema.Type.STRING);
+        var nextTag = nullable(required(Schema.Type.STRING));
         var current = record("Root", List.of(field("id", required(Schema.Type.LONG))));
         var next = record(
                 "Root",
@@ -114,7 +89,7 @@ public class SchemaDiffResolverTest {
     @Test
     void makeColumnOptional() {
         var current = record("Root", List.of(field("n", required(Schema.Type.INT))));
-        var next = record("Root", List.of(field("n", optional(Schema.Type.INT))));
+        var next = record("Root", List.of(field("n", nullable(required(Schema.Type.INT)))));
 
         var changes = resolver.resolveDiff(current, next).changes();
         List<ColumnChange> expectedChanges = List.of(new AvroSchemaChanges.MakeOptional(List.of(), "n"));
@@ -124,7 +99,7 @@ public class SchemaDiffResolverTest {
 
     @Test
     void incorrectAlterOptionalToRequired() {
-        var current = record("Root", List.of(field("n", optional(Schema.Type.INT))));
+        var current = record("Root", List.of(field("n", nullable(required(Schema.Type.INT)))));
         var next = record("Root", List.of(field("n", required(Schema.Type.INT))));
 
         assertThrows(
@@ -159,7 +134,7 @@ public class SchemaDiffResolverTest {
     @Test
     void combinedMakeOptionalAndWidenRequiredIntToOptionalLong() {
         var current = record("Root", List.of(field("n", required(Schema.Type.INT))));
-        var nextSchema = optional(Schema.Type.LONG);
+        var nextSchema = nullable(required(Schema.Type.LONG));
         var next = record("Root", List.of(field("n", nextSchema)));
 
         var changes = resolver.resolveDiff(current, next).changes();
@@ -208,10 +183,10 @@ public class SchemaDiffResolverTest {
     void identicalSchemasYieldsNoChanges() {
         var current = record(
                 "Root",
-                List.of(field("id", required(Schema.Type.LONG)), field("tag", optional(Schema.Type.STRING))));
+                List.of(field("id", required(Schema.Type.LONG)), field("tag", nullable(required(Schema.Type.STRING)))));
         var next = record(
                 "Root",
-                List.of(field("id", required(Schema.Type.LONG)), field("tag", optional(Schema.Type.STRING))));
+                List.of(field("id", required(Schema.Type.LONG)), field("tag", nullable(required(Schema.Type.STRING)))));
 
         var changes = resolver.resolveDiff(current, next).changes();
 
@@ -236,7 +211,7 @@ public class SchemaDiffResolverTest {
     void multiFieldDiffChangeTypeMultiset() {
         var nestedBefore = record("Nested", List.of(field("k", required(Schema.Type.INT))));
         var nestedAfter = record("Nested", List.of(field("k", required(Schema.Type.LONG))));
-        var addedSchema = optional(Schema.Type.BOOLEAN);
+        var addedSchema = nullable(required(Schema.Type.BOOLEAN));
         var current = record(
                 "Root",
                 List.of(

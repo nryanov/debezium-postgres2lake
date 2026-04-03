@@ -1,12 +1,8 @@
 package io.debezium.postgres2lake.infrastructure.format.paimon;
 
-import io.debezium.postgres2lake.domain.model.EventRecord;
-import io.debezium.postgres2lake.domain.model.Operation;
 import org.apache.avro.LogicalTypes;
 import org.apache.avro.Schema;
 import org.apache.avro.SchemaBuilder;
-import org.apache.avro.generic.GenericData;
-import org.apache.avro.generic.GenericRecord;
 import org.apache.paimon.types.ArrayType;
 import org.apache.paimon.types.BinaryType;
 import org.apache.paimon.types.BooleanType;
@@ -28,56 +24,12 @@ import org.junit.jupiter.api.Test;
 
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertInstanceOf;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static io.debezium.postgres2lake.test.avro.AvroTestFixtures.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 public class PaimonSchemaConverterTest {
 
-    private static final String NS = "io.debezium.postgres2lake.test";
-    private static final String RAW_DESTINATION = "db.schema.table";
-
     private final PaimonSchemaConverter converter = new PaimonSchemaConverter();
-
-    private static Schema required(Schema.Type type) {
-        return Schema.create(type);
-    }
-
-    private static Schema optional(Schema inner) {
-        return Schema.createUnion(Schema.create(Schema.Type.NULL), inner);
-    }
-
-    private static Schema record(String name, List<Schema.Field> fields) {
-        return Schema.createRecord(name, null, NS, false, fields);
-    }
-
-    private static Schema.Field field(String name, Schema schema) {
-        return new Schema.Field(name, schema, null, null);
-    }
-
-    private static Schema decimalSchema(int precision, int scale) {
-        var bytes = Schema.create(Schema.Type.BYTES);
-        LogicalTypes.decimal(precision, scale).addToSchema(bytes);
-        return bytes;
-    }
-
-    private static Schema timestampMillisLong(boolean adjustToUtc) {
-        var schema = SchemaBuilder.builder().longBuilder().prop("adjust-to-utc", adjustToUtc).endLong();
-        return LogicalTypes.timestampMillis().addToSchema(schema);
-    }
-
-    private static Schema timestampMicrosLong(boolean adjustToUtc) {
-        var schema = SchemaBuilder.builder().longBuilder().prop("adjust-to-utc", adjustToUtc).endLong();
-        return LogicalTypes.timestampMicros().addToSchema(schema);
-    }
-
-    private static GenericRecord emptyRecord(Schema schema) {
-        return new GenericData.Record(schema);
-    }
-
-    private static EventRecord event(GenericRecord key, GenericRecord value) {
-        return new EventRecord(Operation.INSERT, key, value, RAW_DESTINATION);
-    }
 
     private static void assertStringType(DataType t) {
         assertInstanceOf(VarCharType.class, t);
@@ -121,7 +73,7 @@ public class PaimonSchemaConverterTest {
 
     @Test
     void enumType() {
-        var enumSchema = Schema.createEnum("E", null, NS, List.of("A", "B"));
+        var enumSchema = Schema.createEnum("E", null, TEST_NAMESPACE, List.of("A", "B"));
         var dt = converter.convertAvroSchema(enumSchema);
         assertStringType(dt);
     }
@@ -134,7 +86,7 @@ public class PaimonSchemaConverterTest {
 
     @Test
     void fixedType() {
-        var fixed = Schema.createFixed("Fx", null, NS, 16);
+        var fixed = Schema.createFixed("Fx", null, TEST_NAMESPACE, 16);
         var dt = converter.convertAvroSchema(fixed);
         var bin = assertInstanceOf(BinaryType.class, dt);
         assertEquals(16, bin.getLength());
@@ -142,7 +94,7 @@ public class PaimonSchemaConverterTest {
 
     @Test
     void nullableUnionAddsNullability() {
-        var dt = converter.convertAvroSchema(optional(required(Schema.Type.INT)));
+        var dt = converter.convertAvroSchema(nullable(required(Schema.Type.INT)));
         assertInstanceOf(IntType.class, dt);
         assertTrue(dt.isNullable());
     }
@@ -269,7 +221,7 @@ public class PaimonSchemaConverterTest {
                 "Val",
                 List.of(field("col_a", required(Schema.Type.INT)), field("col_b", required(Schema.Type.BOOLEAN))));
 
-        var paimonSchema = converter.extractSchema(event(emptyRecord(keySchema), emptyRecord(valueSchema)));
+        var paimonSchema = converter.extractSchema(insertEvent(emptyRecord(keySchema), emptyRecord(valueSchema)));
 
         assertEquals(List.of("col_a"), paimonSchema.primaryKeys());
 
