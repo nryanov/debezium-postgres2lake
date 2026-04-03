@@ -1,7 +1,10 @@
 package io.debezium.postgres2lake.infrastructure.s3;
 
+import io.debezium.postgres2lake.domain.SchemaConverter;
 import io.debezium.postgres2lake.domain.model.EventRecord;
 import io.debezium.postgres2lake.infrastructure.format.avro.AvroCompressionCodec;
+import io.debezium.postgres2lake.infrastructure.format.avro.AvroEventAppender;
+import io.debezium.postgres2lake.infrastructure.format.avro.AvroSchemaConverter;
 import io.debezium.postgres2lake.infrastructure.format.avro.AvroTableWriter;
 import io.debezium.postgres2lake.infrastructure.s3.exceptions.S3InvalidOutputUriException;
 import io.debezium.postgres2lake.infrastructure.s3.exceptions.S3WriterOpenException;
@@ -21,12 +24,14 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 
-public class S3AvroEventSaver extends AbstractEventSaver<AvroTableWriter> {
+public class S3AvroEventSaver extends AbstractEventSaver<AvroEventAppender> {
     private static final Logger logger = Logger.getLogger(S3AvroEventSaver.class);
 
     private final OutputLocationGenerator outputLocationGenerator;
     private final OutputConfiguration.FileIO fileIO;
     private final AvroCompressionCodec codec;
+
+    private final SchemaConverter<Schema> schemaConverter;
 
     public S3AvroEventSaver(
             OutputConfiguration.Threshold threshold,
@@ -38,17 +43,19 @@ public class S3AvroEventSaver extends AbstractEventSaver<AvroTableWriter> {
         this.outputLocationGenerator = outputLocationGenerator;
         this.fileIO = fileIO;
         this.codec = codec;
+
+        this.schemaConverter = new AvroSchemaConverter();
     }
 
     @Override
-    protected AvroTableWriter createWriter(EventRecord event) {
+    protected AvroEventAppender createEventAppender(EventRecord event) {
         var location = outputLocationGenerator.generateLocation("warehouse", event);
 
         try {
             logger.infof("Opening avro writer for `%s`", location);
             var path = new Path(new URI(location));
 
-            var schema = event.valueSchema();
+            var schema = schemaConverter.extractSchema(event);
 
             var config = new Configuration();
             fileIO.properties().forEach(config::set);
@@ -61,7 +68,7 @@ public class S3AvroEventSaver extends AbstractEventSaver<AvroTableWriter> {
 
             logger.infof("Successfully opened writer for `%s`", location);
 
-            return new AvroTableWriter(writer, schema, resolvePartition(event));
+            return new AvroEventAppender(new AvroTableWriter(writer, schema, resolvePartition(event)));
         } catch (URISyntaxException e) {
             logger.errorf("Invalid output URI: %s", location);
             throw new S3InvalidOutputUriException("Invalid output URI: " + location, e);
@@ -72,22 +79,7 @@ public class S3AvroEventSaver extends AbstractEventSaver<AvroTableWriter> {
     }
 
     @Override
-    protected void handleSchemaChanges(EventRecord event, Schema currentSchema) {
-        // nothing to do
-    }
-
-    @Override
     protected String resolvePartition(EventRecord event) {
         return outputLocationGenerator.getPartition("warehouse", event);
-    }
-
-    @Override
-    protected void appendEvent(EventRecord event, AvroTableWriter writer) throws IOException {
-        writer.writer().append(event.value());
-    }
-
-    @Override
-    protected void commitPendingEvents(AvroTableWriter writer) throws IOException {
-        writer.writer().close();
     }
 }

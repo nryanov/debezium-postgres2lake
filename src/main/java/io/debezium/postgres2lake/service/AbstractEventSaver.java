@@ -1,13 +1,11 @@
 package io.debezium.postgres2lake.service;
 
+import io.debezium.postgres2lake.domain.EventAppender;
 import io.debezium.postgres2lake.domain.EventSaver;
 import io.debezium.postgres2lake.domain.model.EventCommitter;
 import io.debezium.postgres2lake.domain.model.EventRecord;
-import io.debezium.postgres2lake.domain.model.PartitionAware;
-import io.debezium.postgres2lake.domain.model.SchemaAware;
 import io.debezium.postgres2lake.service.exceptions.EventAppendException;
 import io.debezium.postgres2lake.service.exceptions.EventFlushException;
-import org.apache.avro.Schema;
 import org.jboss.logging.Logger;
 
 import java.util.ArrayList;
@@ -19,11 +17,11 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
-abstract public class AbstractEventSaver<T extends SchemaAware & PartitionAware> implements EventSaver {
+abstract public class AbstractEventSaver<T extends EventAppender> implements EventSaver {
     private static final Logger logger = Logger.getLogger(AbstractEventSaver.class);
 
     private final List<EventCommitter> committers;
-    private final Map<String, T> openedDescriptors;
+    private final Map<String, T> openedEventAppender;
     private final ScheduledExecutorService scheduledExecutor;
     private final int totalRecordsThreshold;
 
@@ -31,11 +29,10 @@ abstract public class AbstractEventSaver<T extends SchemaAware & PartitionAware>
 
     public AbstractEventSaver(OutputConfiguration.Threshold threshold) {
         this.committers = new ArrayList<>();
-        this.openedDescriptors = new HashMap<>();
+        this.openedEventAppender = new HashMap<>();
 
         var timeoutThreshold = threshold.time();
         this.totalRecordsThreshold = threshold.records();
-
         this.currentRecords = 0;
 
         this.scheduledExecutor = Executors.newScheduledThreadPool(1);
@@ -68,8 +65,8 @@ abstract public class AbstractEventSaver<T extends SchemaAware & PartitionAware>
                 var eventsIter = events.iterator();
                 while (eventsIter.hasNext()) {
                     var event = eventsIter.next();
-                    var openedDescriptor = getOrCreateWriter(event);
-                    appendEvent(event, openedDescriptor);
+                    var appender = getOrCreateEventAppender(event);
+                    appender.appendEvent(event);
                     currentRecords++;
                 }
             } catch (Exception e) {
@@ -96,16 +93,16 @@ abstract public class AbstractEventSaver<T extends SchemaAware & PartitionAware>
                 }
 
                 // save events
-                for (var entry : openedDescriptors.entrySet()) {
-                    var writer = entry.getValue();
-                    commitPendingEvents(writer);
+                for (var entry : openedEventAppender.entrySet()) {
+                    var appender = entry.getValue();
+                    appender.commitPendingEvents();
                 }
 
                 // commit every hold batch
                 committers.forEach(EventCommitter::commit);
                 logger.infof("Successfully saved %s total records", currentRecords);
 
-                openedDescriptors.clear();
+                openedEventAppender.clear();
                 committers.clear();
                 currentRecords = 0;
                 logger.infof("Successfully reset records backlog");
@@ -116,51 +113,51 @@ abstract public class AbstractEventSaver<T extends SchemaAware & PartitionAware>
         }
     }
 
-    private T getOrCreateWriter(EventRecord event) throws Exception {
+    private T getOrCreateEventAppender(EventRecord event) throws Exception {
         var destination = event.rawDestination();
-        var currentOpenedWriter = openedDescriptors.get(destination);
+        var currentAppender = openedEventAppender.get(destination);
 
-        if (currentOpenedWriter == null) {
-            currentOpenedWriter = createWriter(event);
-            openedDescriptors.put(destination, currentOpenedWriter);
+        if (currentAppender == null) {
+            currentAppender = createEventAppender(event);
+            openedEventAppender.put(destination, currentAppender);
         } else {
             // check paimonSchema changes & partition rollover
-            var currentSchema = currentOpenedWriter.schema();
+            var currentSchema = currentAppender.currentSchema();
             var eventSchema = event.valueSchema();
 
-            var currentPartition = currentOpenedWriter.partition();
+            var currentPartition = currentAppender.currentPartition();
             var eventPartition = resolvePartition(event);
 
             var anyChanges = false;
 
             if (!currentSchema.equals(eventSchema)) {
-                logger.infof("Detect paimonSchema change for source %s", destination);
-                handleSchemaChanges(event, currentSchema);
+                logger.infof("Detect schema change for source %s", destination);
+                currentAppender.commitPendingEvents();
+                handleSchemaChanges(currentAppender, event);
                 anyChanges = true;
             } else if (!currentPartition.equals(eventPartition)) {
                 logger.infof("Detect partition rollover for source %s", destination);
+                currentAppender.commitPendingEvents();
                 anyChanges = true;
             }
 
             if (anyChanges) {
-                commitPendingEvents(currentOpenedWriter);
-                currentOpenedWriter = createWriter(event);
-                openedDescriptors.put(destination, currentOpenedWriter);
+                currentAppender = createEventAppender(event);
+                openedEventAppender.put(destination, currentAppender);
             }
         }
 
-        return currentOpenedWriter;
+        return currentAppender;
     }
 
-    protected abstract void handleSchemaChanges(EventRecord event, Schema currentSchema);
+    protected void handleSchemaChanges(T appender, EventRecord event) {}
 
-    protected abstract String resolvePartition(EventRecord event);
+    protected String resolvePartition(EventRecord event) {
+        // if method is not overrided then it means that current eventSaver resolve partition by its own fileIO (e.g. iceberg, paimon)
+        return "";
+    }
 
-    protected abstract T createWriter(EventRecord event);
-
-    protected abstract void appendEvent(EventRecord event, T writer) throws Exception;
-
-    protected abstract void commitPendingEvents(T writer) throws Exception;
+    protected abstract T createEventAppender(EventRecord event);
 
     // for testing purposes only
     public int getCurrentRecords() {

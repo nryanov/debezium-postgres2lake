@@ -1,13 +1,17 @@
 package io.debezium.postgres2lake.infrastructure.s3;
 
+import io.debezium.postgres2lake.domain.SchemaConverter;
 import io.debezium.postgres2lake.domain.model.EventRecord;
-import io.debezium.postgres2lake.infrastructure.format.paimon.AvroToPaimonMapper;
+import io.debezium.postgres2lake.infrastructure.format.paimon.exceptions.PaimonTableAlterException;
+import io.debezium.postgres2lake.infrastructure.schema.CachedSchemaConverter;
+import io.debezium.postgres2lake.infrastructure.format.paimon.PaimonEventAppender;
+import io.debezium.postgres2lake.infrastructure.format.paimon.PaimonSchemaConverter;
 import io.debezium.postgres2lake.infrastructure.s3.exceptions.S3PaimonTableAccessException;
-import io.debezium.postgres2lake.infrastructure.format.paimon.PaimonWriter;
+import io.debezium.postgres2lake.infrastructure.format.paimon.PaimonTableWriter;
 import io.debezium.postgres2lake.infrastructure.format.paimon.ddl.PaimonTableDdl;
+import io.debezium.postgres2lake.infrastructure.schema.SchemaDiffResolver;
 import io.debezium.postgres2lake.service.AbstractEventSaver;
 import io.debezium.postgres2lake.service.OutputConfiguration;
-import org.apache.avro.Schema;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.paimon.catalog.Catalog;
 import org.apache.paimon.catalog.CatalogContext;
@@ -19,12 +23,13 @@ import java.util.ArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
-public class S3PaimonEventSaver extends AbstractEventSaver<PaimonWriter> {
+public class S3PaimonEventSaver extends AbstractEventSaver<PaimonEventAppender> {
     private static final Logger logger = Logger.getLogger(S3PaimonEventSaver.class);
 
     private final Catalog catalog;
     private final PaimonTableDdl tableDdl;
-    private final AvroToPaimonMapper mapper;
+    private final SchemaConverter<org.apache.paimon.schema.Schema> schemaConverter;
+    private final SchemaDiffResolver schemaDiffResolver;
 
     public S3PaimonEventSaver(
             OutputConfiguration.Threshold threshold,
@@ -40,21 +45,34 @@ public class S3PaimonEventSaver extends AbstractEventSaver<PaimonWriter> {
 
         var catalogContext = CatalogContext.create(options, config);
         this.catalog = CatalogFactory.createCatalog(catalogContext);
-        this.tableDdl = new PaimonTableDdl(catalog);
-        this.mapper = new AvroToPaimonMapper();
+
+        var innerSchemaConverter = new PaimonSchemaConverter();
+        this.schemaConverter = new CachedSchemaConverter<>(innerSchemaConverter);
+        this.tableDdl = new PaimonTableDdl(catalog, innerSchemaConverter);
+        this.schemaDiffResolver = new SchemaDiffResolver();
     }
 
     @Override
-    protected PaimonWriter createWriter(EventRecord event) {
+    protected PaimonEventAppender createEventAppender(EventRecord event) {
         var tableIdentifier = tableDdl.tableIdentifier(event);
-        var paimonSchema = mapper.avroToPaimonSchema(event.key().getSchema(), event.valueSchema());
+        var paimonSchema = schemaConverter.extractSchema(event);
         tableDdl.createTableIfNotExists(tableIdentifier, paimonSchema);
 
         try {
             var table = catalog.getTable(tableIdentifier);
             var writerBuilder = table.newStreamWriteBuilder();
+            var tableWriter = new PaimonTableWriter(
+                    tableIdentifier,
+                    table,
+                    paimonSchema,
+                    event.valueSchema(),
+                    writerBuilder,
+                    new AtomicReference<>(),
+                    new ArrayList<>(),
+                    new AtomicInteger(0)
+            );
 
-            return new PaimonWriter(table, paimonSchema, event.valueSchema(), writerBuilder, new AtomicReference<>(), new ArrayList<>(), new AtomicInteger(0));
+            return new PaimonEventAppender(tableWriter);
         } catch (Catalog.TableNotExistException e) {
             logger.errorf("\"Paimon table not found after createTableIfNotExists: %s", tableIdentifier);
             throw new S3PaimonTableAccessException("Paimon table not found after createTableIfNotExists: " + tableIdentifier, e);
@@ -62,38 +80,13 @@ public class S3PaimonEventSaver extends AbstractEventSaver<PaimonWriter> {
     }
 
     @Override
-    protected void handleSchemaChanges(EventRecord event, Schema currentSchema) {
-        // TODO: execute TABLE ALTER
-    }
-
-    @Override
-    protected String resolvePartition(EventRecord event) {
-        // paimon resolve partition in StreamWriteBuilder
-        return "";
-    }
-
-    @Override
-    protected void appendEvent(EventRecord event, PaimonWriter wrapper) throws Exception {
-        var write = wrapper.writer().get();
-        if (write == null) {
-            write = wrapper.writeBuilder().newWrite();
-            wrapper.writer().set(write);
+    protected void handleSchemaChanges(PaimonEventAppender appender, EventRecord event) {
+        try {
+            var diff = schemaDiffResolver.resolveDiff(appender.currentSchema(), event.valueSchema());
+            tableDdl.handleSchemaEvolution(appender.identifier(), diff);
+        } catch (Exception e) {
+            throw new PaimonTableAlterException(e);
         }
-
-        // todo: fix bucket id resolution
-        var bucket = 0;
-        write.write(mapper.createPaimonRecord(wrapper.paimonSchema(), event), bucket);
-    }
-
-    @Override
-    protected void commitPendingEvents(PaimonWriter wrapper) throws Exception {
-        var write = wrapper.writer().get();
-        var pendingCommit = write.prepareCommit(false, wrapper.commitId().incrementAndGet());
-        wrapper.pendingCommits().addAll(pendingCommit);
-
-        var commit = wrapper.writeBuilder().newCommit();
-        commit.commit(wrapper.commitId().get(), wrapper.pendingCommits());
-        wrapper.pendingCommits().clear();
     }
 }
 

@@ -1,12 +1,15 @@
 package io.debezium.postgres2lake.infrastructure.format.iceberg;
 
+import io.debezium.postgres2lake.domain.EventAppender;
+import io.debezium.postgres2lake.domain.model.EventRecord;
 import org.apache.avro.LogicalTypes;
 import org.apache.iceberg.Schema;
-import org.apache.iceberg.avro.AvroSchemaUtil;
+import org.apache.iceberg.Table;
 import org.apache.iceberg.data.GenericRecord;
 import org.apache.iceberg.data.Record;
 import org.apache.iceberg.types.Types;
 
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.math.MathContext;
@@ -18,19 +21,63 @@ import java.time.LocalTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static io.debezium.postgres2lake.infrastructure.format.avro.AvroUtils.*;
+import static io.debezium.postgres2lake.infrastructure.format.avro.AvroUtils.convertToBytes;
+import static io.debezium.postgres2lake.infrastructure.format.avro.AvroUtils.convertToString;
+import static io.debezium.postgres2lake.infrastructure.format.avro.AvroUtils.convertToUuid;
 
-public class AvroToIcebergMapper {
-    public Schema avroToIcebergSchema(org.apache.avro.Schema keySchema, org.apache.avro.Schema avroValueSchema) {
-        // todo: add information about PK
-        return AvroSchemaUtil.toIceberg(avroValueSchema);
+public class IcebergEventAppender implements EventAppender {
+    private final IcebergTableWriter writer;
+
+    public IcebergEventAppender(IcebergTableWriter writer) {
+        this.writer = writer;
     }
 
-    public Record createIcebergRecord(Schema icebergSchema, org.apache.avro.generic.GenericRecord avroRecord) {
+    @Override
+    public void appendEvent(EventRecord event) throws IOException {
+        var record = createIcebergRecord(writer.icebergSchema(), event.value());
+        writer.writer().write(record);
+    }
+
+    @Override
+    public void commitPendingEvents() throws Exception {
+        var rs = writer.writer().complete();
+
+        if (rs.deleteFiles().length > 0) {
+            var delta = writer.table().newRowDelta();
+            var dataFiles = rs.dataFiles();
+            var deleteFiles = rs.deleteFiles();
+            Arrays.stream(dataFiles).forEach(delta::addRows);
+            Arrays.stream(deleteFiles).forEach(delta::addDeletes);
+            delta.commit();
+        } else {
+            var dataFiles = rs.dataFiles();
+            var appendIo = writer.table().newAppend();
+            Arrays.stream(dataFiles).forEach(appendIo::appendFile);
+            appendIo.commit();
+        }
+    }
+
+    @Override
+    public String currentPartition() {
+        // partition is resolved via iceberg fileIO
+        return "";
+    }
+
+    @Override
+    public org.apache.avro.Schema currentSchema() {
+        return writer.schema();
+    }
+
+    public Table table() {
+        return writer.table();
+    }
+
+    private Record createIcebergRecord(Schema icebergSchema, org.apache.avro.generic.GenericRecord avroRecord) {
         var icebergRecord = GenericRecord.create(icebergSchema);
         var fields = avroRecord.getSchema().getFields();
 
