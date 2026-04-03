@@ -1,11 +1,10 @@
 package io.debezium.postgres2lake.test.resource;
 
+import io.debezium.postgres2lake.test.container.PostgresTestContainer;
 import io.debezium.postgres2lake.test.helper.PostgresQueries;
 import io.debezium.postgres2lake.test.annotation.InjectPostgresHelper;
 import io.debezium.postgres2lake.test.helper.PostgresHelper;
 import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
-import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.utility.DockerImageName;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -16,7 +15,6 @@ public class PostgresResource implements QuarkusTestResourceLifecycleManager {
     public static final String PREFIX_NAME_ARG = "prefix";
     public static final String CATALOG_TYPE_ARG = "catalog";
 
-    private static PostgreSQLContainer<?> postgres;
     private PostgresHelper postgresHelper;
 
     private String slotName;
@@ -38,19 +36,7 @@ public class PostgresResource implements QuarkusTestResourceLifecycleManager {
 
     @Override
     public Map<String, String> start() {
-        if (postgres == null) {
-            postgres = new PostgreSQLContainer<>(DockerImageName.parse("postgres:17"))
-                    .withDatabaseName("postgres")
-                    .withUsername("postgres")
-                    .withPassword("postgres")
-                    .withCommand(
-                            "postgres",
-                            "-c", "wal_level=logical",
-                            "-c", "max_wal_senders=5",
-                            "-c", "max_replication_slots=5"
-                    );
-            postgres.start();
-        }
+        var postgres = PostgresTestContainer.ensureSharedDebeziumStarted();
 
         postgresHelper = new PostgresHelper(postgres);
         setup();
@@ -101,7 +87,7 @@ public class PostgresResource implements QuarkusTestResourceLifecycleManager {
 
     @Override
     public void stop() {
-        postgres.stop();
+        PostgresTestContainer.stopSharedDebezium();
     }
 
     @Override

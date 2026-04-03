@@ -1,16 +1,16 @@
 package io.debezium.postgres2lake.infrastructure.format.iceberg.ddl;
 
 import io.debezium.postgres2lake.domain.model.AvroSchemaChanges;
-import io.debezium.postgres2lake.domain.model.EventRecord;
 import io.debezium.postgres2lake.service.OutputConfiguration;
 import io.debezium.postgres2lake.test.avro.AvroTestFixtures;
+import io.debezium.postgres2lake.test.container.MinioTestContainer;
+import io.debezium.postgres2lake.test.container.PostgresTestContainer;
 import io.debezium.postgres2lake.test.helper.MinioHelper;
 import io.debezium.postgres2lake.test.helper.PostgresHelper;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.iceberg.CatalogUtil;
 import org.apache.iceberg.RowLevelOperationMode;
 import org.apache.iceberg.Schema;
-import org.apache.iceberg.Table;
 import org.apache.iceberg.TableProperties;
 import org.apache.iceberg.catalog.Catalog;
 import org.apache.iceberg.catalog.Namespace;
@@ -21,7 +21,6 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.testcontainers.containers.MinIOContainer;
 import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.utility.DockerImageName;
 
 import java.util.List;
 import java.util.Map;
@@ -38,18 +37,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 public class IcebergTableDdlTest {
 
     private static final String BUCKET = "ddl-iceberg-bucket";
-    private static final String ACCESS_KEY = "admin";
-    private static final String SECRET_KEY = "password";
 
-    private static final PostgreSQLContainer<?> POSTGRES = new PostgreSQLContainer<>(DockerImageName.parse("postgres:17"))
-            .withDatabaseName("postgres")
-            .withUsername("postgres")
-            .withPassword("postgres");
-
-    private static final MinIOContainer MINIO = new MinIOContainer(
-            DockerImageName.parse("minio/minio:RELEASE.2025-02-28T09-55-16Z").asCompatibleSubstituteFor("minio"))
-            .withUserName(ACCESS_KEY)
-            .withPassword(SECRET_KEY);
+    private static final PostgreSQLContainer<?> POSTGRES = PostgresTestContainer.newDedicatedForJdbcCatalog();
+    private static final MinIOContainer MINIO = MinioTestContainer.newDedicated();
 
     private static PostgresHelper postgresHelper;
     private static MinioHelper minioHelper;
@@ -59,7 +49,8 @@ public class IcebergTableDdlTest {
         POSTGRES.start();
         MINIO.start();
         postgresHelper = new PostgresHelper(POSTGRES);
-        minioHelper = new MinioHelper(MINIO.getS3URL(), ACCESS_KEY, SECRET_KEY);
+        minioHelper = new MinioHelper(
+                MINIO.getS3URL(), MinioTestContainer.ACCESS_KEY, MinioTestContainer.SECRET_KEY);
         minioHelper.createBucket(BUCKET);
     }
 
