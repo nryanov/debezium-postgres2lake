@@ -94,22 +94,25 @@ public class SchemaDiffResolver {
             List<String> parentColumns,
             org.apache.avro.Schema.Field existingField,
             org.apache.avro.Schema.Field newField) {
-        if (existingField.schema().getType() == org.apache.avro.Schema.Type.INT
-                && newField.schema().getType() == org.apache.avro.Schema.Type.LONG) {
+        var existingType = extractType(existingField.schema());
+        var newType = extractType(newField.schema());
+
+        if (existingType.getType() == org.apache.avro.Schema.Type.INT
+                && newType.getType() == org.apache.avro.Schema.Type.LONG) {
             return new AvroSchemaChanges.WideColumnType(
                     parentColumns, existingField.name(), newField.schema());
         }
 
-        if (existingField.schema().getType() == org.apache.avro.Schema.Type.FLOAT
-                && newField.schema().getType() == org.apache.avro.Schema.Type.DOUBLE) {
+        if (existingType.getType() == org.apache.avro.Schema.Type.FLOAT
+                && newType.getType() == org.apache.avro.Schema.Type.DOUBLE) {
             return new AvroSchemaChanges.WideColumnType(
                     parentColumns, existingField.name(), newField.schema());
         }
 
-        if (existingField.schema().getType() == org.apache.avro.Schema.Type.BYTES
-                && newField.schema().getType() == org.apache.avro.Schema.Type.BYTES
-                && existingField.schema().getLogicalType() instanceof LogicalTypes.Decimal existingDecimal
-                && newField.schema().getLogicalType() instanceof LogicalTypes.Decimal newDecimal
+        if (existingType.getType() == org.apache.avro.Schema.Type.BYTES
+                && newType.getType() == org.apache.avro.Schema.Type.BYTES
+                && existingType.getLogicalType() instanceof LogicalTypes.Decimal existingDecimal
+                && newType.getLogicalType() instanceof LogicalTypes.Decimal newDecimal
                 && existingDecimal.getPrecision() < newDecimal.getPrecision()) {
             return new AvroSchemaChanges.WideColumnType(
                     parentColumns,
