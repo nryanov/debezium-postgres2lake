@@ -72,8 +72,12 @@ public class IcebergTableDdl {
                 var tableSpec = maybeTableSpec.get();
                 tableSpec.location().ifPresent(tableBuilder::withLocation);
                 // set default update.mode & delete.mode
-                tableSpec.properties().computeIfAbsent(TableProperties.UPDATE_MODE, key -> RowLevelOperationMode.MERGE_ON_READ.modeName());
-                tableSpec.properties().computeIfAbsent(TableProperties.DELETE_MODE, key -> RowLevelOperationMode.MERGE_ON_READ.modeName());
+                var updateMode = tableSpec.properties().getOrDefault(TableProperties.UPDATE_MODE, RowLevelOperationMode.MERGE_ON_READ.modeName());
+                var deleteMode = tableSpec.properties().getOrDefault(TableProperties.DELETE_MODE, RowLevelOperationMode.MERGE_ON_READ.modeName());
+
+                tableBuilder.withProperty(TableProperties.UPDATE_MODE, updateMode);
+                tableBuilder.withProperty(TableProperties.DELETE_MODE, deleteMode);
+
                 tableSpec.properties().forEach(tableBuilder::withProperty);
 
                 tableBuilder.withSortOrder(resolveSortOrder(schema, tableSpec.sortBy()));

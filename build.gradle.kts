@@ -116,7 +116,6 @@ dependencies {
     testImplementation("io.quarkus:quarkus-junit")
     testImplementation("org.testcontainers:postgresql")
     testImplementation("org.testcontainers:minio")
-    testImplementation("org.testcontainers:junit-jupiter")
     testImplementation("org.testcontainers:testcontainers")
 }
 
