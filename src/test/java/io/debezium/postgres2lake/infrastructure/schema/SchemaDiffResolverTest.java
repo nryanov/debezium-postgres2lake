@@ -20,11 +20,11 @@ public class SchemaDiffResolverTest {
 
     private final SchemaDiffResolver resolver = new SchemaDiffResolver();
 
-    private static Schema req(Schema.Type type) {
+    private static Schema required(Schema.Type type) {
         return Schema.create(type);
     }
 
-    private static Schema opt(Schema.Type type) {
+    private static Schema optional(Schema.Type type) {
         return Schema.createUnion(Schema.create(Schema.Type.NULL), Schema.create(type));
     }
 
@@ -44,11 +44,11 @@ public class SchemaDiffResolverTest {
 
     @Test
     void addPrimitiveColumn() {
-        var nextTag = opt(Schema.Type.STRING);
-        var current = record("Root", List.of(field("id", req(Schema.Type.LONG))));
+        var nextTag = optional(Schema.Type.STRING);
+        var current = record("Root", List.of(field("id", required(Schema.Type.LONG))));
         var next = record(
                 "Root",
-                List.of(field("id", req(Schema.Type.LONG)), field("tag", nextTag)));
+                List.of(field("id", required(Schema.Type.LONG)), field("tag", nextTag)));
 
         var changes = resolver.resolveDiff(current, next).changes();
         List<ColumnChange> expectedChanges =
@@ -59,11 +59,11 @@ public class SchemaDiffResolverTest {
 
     @Test
     void addComplexColumn() {
-        var inner = record("Inner", List.of(field("a", req(Schema.Type.STRING))));
-        var current = record("Root", List.of(field("id", req(Schema.Type.LONG))));
+        var inner = record("Inner", List.of(field("a", required(Schema.Type.STRING))));
+        var current = record("Root", List.of(field("id", required(Schema.Type.LONG))));
         var next = record(
                 "Root",
-                List.of(field("id", req(Schema.Type.LONG)), field("payload", inner)));
+                List.of(field("id", required(Schema.Type.LONG)), field("payload", inner)));
 
         var changes = resolver.resolveDiff(current, next).changes();
         List<ColumnChange> expectedChanges = List.of(new AvroSchemaChanges.AddColumn(List.of(), "payload", inner));
@@ -75,8 +75,8 @@ public class SchemaDiffResolverTest {
     void dropColumn() {
         var current = record(
                 "Root",
-                List.of(field("id", req(Schema.Type.LONG)), field("dropMe", req(Schema.Type.STRING))));
-        var next = record("Root", List.of(field("id", req(Schema.Type.LONG))));
+                List.of(field("id", required(Schema.Type.LONG)), field("dropMe", required(Schema.Type.STRING))));
+        var next = record("Root", List.of(field("id", required(Schema.Type.LONG))));
 
         var changes = resolver.resolveDiff(current, next).changes();
         List<ColumnChange> expectedChanges = List.of(new AvroSchemaChanges.DeleteColumn(List.of(), "dropMe"));
@@ -88,8 +88,8 @@ public class SchemaDiffResolverTest {
     void dropNestedColumn() {
         var nestedBefore = record(
                 "Nested",
-                List.of(field("keep", req(Schema.Type.INT)), field("gone", req(Schema.Type.STRING))));
-        var nestedAfter = record("Nested", List.of(field("keep", req(Schema.Type.INT))));
+                List.of(field("keep", required(Schema.Type.INT)), field("gone", required(Schema.Type.STRING))));
+        var nestedAfter = record("Nested", List.of(field("keep", required(Schema.Type.INT))));
         var current = record("Root", List.of(field("nested", nestedBefore)));
         var next = record("Root", List.of(field("nested", nestedAfter)));
 
@@ -101,20 +101,20 @@ public class SchemaDiffResolverTest {
 
     @Test
     void alterColumnSupportedIntToLong() {
-        var current = record("Root", List.of(field("n", req(Schema.Type.INT))));
-        var next = record("Root", List.of(field("n", req(Schema.Type.LONG))));
+        var current = record("Root", List.of(field("n", required(Schema.Type.INT))));
+        var next = record("Root", List.of(field("n", required(Schema.Type.LONG))));
 
         var changes = resolver.resolveDiff(current, next).changes();
         List<ColumnChange> expectedChanges =
-                List.of(new AvroSchemaChanges.WideColumnType(List.of(), "n", req(Schema.Type.LONG)));
+                List.of(new AvroSchemaChanges.WideColumnType(List.of(), "n", required(Schema.Type.LONG)));
 
         assertEquals(expectedChanges, changes);
     }
 
     @Test
     void makeColumnOptional() {
-        var current = record("Root", List.of(field("n", req(Schema.Type.INT))));
-        var next = record("Root", List.of(field("n", opt(Schema.Type.INT))));
+        var current = record("Root", List.of(field("n", required(Schema.Type.INT))));
+        var next = record("Root", List.of(field("n", optional(Schema.Type.INT))));
 
         var changes = resolver.resolveDiff(current, next).changes();
         List<ColumnChange> expectedChanges = List.of(new AvroSchemaChanges.MakeOptional(List.of(), "n"));
@@ -124,8 +124,8 @@ public class SchemaDiffResolverTest {
 
     @Test
     void incorrectAlterOptionalToRequired() {
-        var current = record("Root", List.of(field("n", opt(Schema.Type.INT))));
-        var next = record("Root", List.of(field("n", req(Schema.Type.INT))));
+        var current = record("Root", List.of(field("n", optional(Schema.Type.INT))));
+        var next = record("Root", List.of(field("n", required(Schema.Type.INT))));
 
         assertThrows(
                 IncompatibleChangeToRequiredException.class, () -> resolver.resolveDiff(current, next));
@@ -133,8 +133,8 @@ public class SchemaDiffResolverTest {
 
     @Test
     void incorrectAlterPrimitiveToComplex() {
-        var inner = record("Inner", List.of(field("a", req(Schema.Type.INT))));
-        var current = record("Root", List.of(field("x", req(Schema.Type.STRING))));
+        var inner = record("Inner", List.of(field("a", required(Schema.Type.INT))));
+        var current = record("Root", List.of(field("x", required(Schema.Type.STRING))));
         var next = record("Root", List.of(field("x", inner)));
 
         assertThrows(NonPrimitiveFieldPromotionException.class, () -> resolver.resolveDiff(current, next));
@@ -142,24 +142,24 @@ public class SchemaDiffResolverTest {
 
     @Test
     void incorrectAlterUnsupportedPromotion_longToInt() {
-        var current = record("Root", List.of(field("n", req(Schema.Type.LONG))));
-        var next = record("Root", List.of(field("n", req(Schema.Type.INT))));
+        var current = record("Root", List.of(field("n", required(Schema.Type.LONG))));
+        var next = record("Root", List.of(field("n", required(Schema.Type.INT))));
 
         assertThrows(IncompatibleTypePromotion.class, () -> resolver.resolveDiff(current, next));
     }
 
     @Test
     void incorrectAlterUnsupportedPromotion_stringToInt() {
-        var current = record("Root", List.of(field("n", req(Schema.Type.STRING))));
-        var next = record("Root", List.of(field("n", req(Schema.Type.INT))));
+        var current = record("Root", List.of(field("n", required(Schema.Type.STRING))));
+        var next = record("Root", List.of(field("n", required(Schema.Type.INT))));
 
         assertThrows(IncompatibleTypePromotion.class, () -> resolver.resolveDiff(current, next));
     }
 
     @Test
     void combinedMakeOptionalAndWidenRequiredIntToOptionalLong() {
-        var current = record("Root", List.of(field("n", req(Schema.Type.INT))));
-        var nextSchema = opt(Schema.Type.LONG);
+        var current = record("Root", List.of(field("n", required(Schema.Type.INT))));
+        var nextSchema = optional(Schema.Type.LONG);
         var next = record("Root", List.of(field("n", nextSchema)));
 
         var changes = resolver.resolveDiff(current, next).changes();
@@ -172,9 +172,9 @@ public class SchemaDiffResolverTest {
 
     @Test
     void incorrectAlterComplexToPrimitive() {
-        var inner = record("Inner", List.of(field("a", req(Schema.Type.INT))));
+        var inner = record("Inner", List.of(field("a", required(Schema.Type.INT))));
         var current = record("Root", List.of(field("x", inner)));
-        var next = record("Root", List.of(field("x", req(Schema.Type.STRING))));
+        var next = record("Root", List.of(field("x", required(Schema.Type.STRING))));
 
         assertThrows(NonPrimitiveFieldPromotionException.class, () -> resolver.resolveDiff(current, next));
     }
@@ -194,12 +194,12 @@ public class SchemaDiffResolverTest {
 
     @Test
     void alterColumnFloatToDouble() {
-        var current = record("Root", List.of(field("x", req(Schema.Type.FLOAT))));
-        var next = record("Root", List.of(field("x", req(Schema.Type.DOUBLE))));
+        var current = record("Root", List.of(field("x", required(Schema.Type.FLOAT))));
+        var next = record("Root", List.of(field("x", required(Schema.Type.DOUBLE))));
 
         var changes = resolver.resolveDiff(current, next).changes();
         List<ColumnChange> expectedChanges =
-                List.of(new AvroSchemaChanges.WideColumnType(List.of(), "x", req(Schema.Type.DOUBLE)));
+                List.of(new AvroSchemaChanges.WideColumnType(List.of(), "x", required(Schema.Type.DOUBLE)));
 
         assertEquals(expectedChanges, changes);
     }
@@ -208,10 +208,10 @@ public class SchemaDiffResolverTest {
     void identicalSchemasYieldsNoChanges() {
         var current = record(
                 "Root",
-                List.of(field("id", req(Schema.Type.LONG)), field("tag", opt(Schema.Type.STRING))));
+                List.of(field("id", required(Schema.Type.LONG)), field("tag", optional(Schema.Type.STRING))));
         var next = record(
                 "Root",
-                List.of(field("id", req(Schema.Type.LONG)), field("tag", opt(Schema.Type.STRING))));
+                List.of(field("id", required(Schema.Type.LONG)), field("tag", optional(Schema.Type.STRING))));
 
         var changes = resolver.resolveDiff(current, next).changes();
 
@@ -220,40 +220,40 @@ public class SchemaDiffResolverTest {
 
     @Test
     void nestedSupportedIntToLong() {
-        var nestedBefore = record("Nested", List.of(field("k", req(Schema.Type.INT))));
-        var nestedAfter = record("Nested", List.of(field("k", req(Schema.Type.LONG))));
+        var nestedBefore = record("Nested", List.of(field("k", required(Schema.Type.INT))));
+        var nestedAfter = record("Nested", List.of(field("k", required(Schema.Type.LONG))));
         var current = record("Root", List.of(field("nested", nestedBefore)));
         var next = record("Root", List.of(field("nested", nestedAfter)));
 
         var changes = resolver.resolveDiff(current, next).changes();
         List<ColumnChange> expectedChanges =
-                List.of(new AvroSchemaChanges.WideColumnType(List.of("nested"), "k", req(Schema.Type.LONG)));
+                List.of(new AvroSchemaChanges.WideColumnType(List.of("nested"), "k", required(Schema.Type.LONG)));
 
         assertEquals(expectedChanges, changes);
     }
 
     @Test
     void multiFieldDiffChangeTypeMultiset() {
-        var nestedBefore = record("Nested", List.of(field("k", req(Schema.Type.INT))));
-        var nestedAfter = record("Nested", List.of(field("k", req(Schema.Type.LONG))));
-        var addedSchema = opt(Schema.Type.BOOLEAN);
+        var nestedBefore = record("Nested", List.of(field("k", required(Schema.Type.INT))));
+        var nestedAfter = record("Nested", List.of(field("k", required(Schema.Type.LONG))));
+        var addedSchema = optional(Schema.Type.BOOLEAN);
         var current = record(
                 "Root",
                 List.of(
-                        field("id", req(Schema.Type.LONG)),
-                        field("remove", req(Schema.Type.STRING)),
+                        field("id", required(Schema.Type.LONG)),
+                        field("remove", required(Schema.Type.STRING)),
                         field("nested", nestedBefore)));
         var next = record(
                 "Root",
                 List.of(
-                        field("id", req(Schema.Type.LONG)),
+                        field("id", required(Schema.Type.LONG)),
                         field("nested", nestedAfter),
                         field("added", addedSchema)));
 
         var changes = resolver.resolveDiff(current, next).changes();
         List<ColumnChange> expectedChanges = List.of(
                 new AvroSchemaChanges.DeleteColumn(List.of(), "remove"),
-                new AvroSchemaChanges.WideColumnType(List.of("nested"), "k", req(Schema.Type.LONG)),
+                new AvroSchemaChanges.WideColumnType(List.of("nested"), "k", required(Schema.Type.LONG)),
                 new AvroSchemaChanges.AddColumn(List.of(), "added", addedSchema));
 
         assertEquals(expectedChanges, changes);
