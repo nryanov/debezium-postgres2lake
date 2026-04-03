@@ -2,14 +2,16 @@ package io.debezium.postgres2lake.infrastructure.s3;
 
 import io.debezium.postgres2lake.domain.SchemaConverter;
 import io.debezium.postgres2lake.domain.model.EventRecord;
+import io.debezium.postgres2lake.infrastructure.format.paimon.exceptions.PaimonTableAlterException;
+import io.debezium.postgres2lake.infrastructure.schema.CachedSchemaConverter;
 import io.debezium.postgres2lake.infrastructure.format.paimon.PaimonEventAppender;
 import io.debezium.postgres2lake.infrastructure.format.paimon.PaimonSchemaConverter;
 import io.debezium.postgres2lake.infrastructure.s3.exceptions.S3PaimonTableAccessException;
 import io.debezium.postgres2lake.infrastructure.format.paimon.PaimonTableWriter;
 import io.debezium.postgres2lake.infrastructure.format.paimon.ddl.PaimonTableDdl;
+import io.debezium.postgres2lake.infrastructure.schema.SchemaDiffResolver;
 import io.debezium.postgres2lake.service.AbstractEventSaver;
 import io.debezium.postgres2lake.service.OutputConfiguration;
-import org.apache.avro.Schema;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.paimon.catalog.Catalog;
 import org.apache.paimon.catalog.CatalogContext;
@@ -27,6 +29,7 @@ public class S3PaimonEventSaver extends AbstractEventSaver<PaimonEventAppender> 
     private final Catalog catalog;
     private final PaimonTableDdl tableDdl;
     private final SchemaConverter<org.apache.paimon.schema.Schema> schemaConverter;
+    private final SchemaDiffResolver schemaDiffResolver;
 
     public S3PaimonEventSaver(
             OutputConfiguration.Threshold threshold,
@@ -42,8 +45,11 @@ public class S3PaimonEventSaver extends AbstractEventSaver<PaimonEventAppender> 
 
         var catalogContext = CatalogContext.create(options, config);
         this.catalog = CatalogFactory.createCatalog(catalogContext);
-        this.tableDdl = new PaimonTableDdl(catalog);
-        this.schemaConverter = new PaimonSchemaConverter();
+
+        var innerSchemaConverter = new PaimonSchemaConverter();
+        this.schemaConverter = new CachedSchemaConverter<>(innerSchemaConverter);
+        this.tableDdl = new PaimonTableDdl(catalog, innerSchemaConverter);
+        this.schemaDiffResolver = new SchemaDiffResolver();
     }
 
     @Override
@@ -55,7 +61,16 @@ public class S3PaimonEventSaver extends AbstractEventSaver<PaimonEventAppender> 
         try {
             var table = catalog.getTable(tableIdentifier);
             var writerBuilder = table.newStreamWriteBuilder();
-            var tableWriter = new PaimonTableWriter(table, paimonSchema, event.valueSchema(), writerBuilder, new AtomicReference<>(), new ArrayList<>(), new AtomicInteger(0));
+            var tableWriter = new PaimonTableWriter(
+                    tableIdentifier,
+                    table,
+                    paimonSchema,
+                    event.valueSchema(),
+                    writerBuilder,
+                    new AtomicReference<>(),
+                    new ArrayList<>(),
+                    new AtomicInteger(0)
+            );
 
             return new PaimonEventAppender(tableWriter);
         } catch (Catalog.TableNotExistException e) {
@@ -65,14 +80,13 @@ public class S3PaimonEventSaver extends AbstractEventSaver<PaimonEventAppender> 
     }
 
     @Override
-    protected void handleSchemaChanges(EventRecord event, Schema currentSchema) {
-        // TODO: execute TABLE ALTER
-    }
-
-    @Override
-    protected String resolvePartition(EventRecord event) {
-        // paimon resolve partition in StreamWriteBuilder
-        return "";
+    protected void handleSchemaChanges(PaimonEventAppender appender, EventRecord event) {
+        try {
+            var diff = schemaDiffResolver.resolveDiff(appender.currentSchema(), event.valueSchema());
+            tableDdl.handleSchemaEvolution(appender.identifier(), diff);
+        } catch (Exception e) {
+            throw new PaimonTableAlterException(e);
+        }
     }
 }
 

@@ -1,7 +1,10 @@
 package io.debezium.postgres2lake.infrastructure.format.iceberg.ddl;
 
+import io.debezium.postgres2lake.domain.model.AvroSchemaChanges;
 import io.debezium.postgres2lake.domain.model.EventRecord;
 import io.debezium.postgres2lake.service.OutputConfiguration;
+import org.apache.avro.LogicalType;
+import org.apache.avro.LogicalTypes;
 import org.apache.iceberg.NullOrder;
 import org.apache.iceberg.PartitionSpec;
 import org.apache.iceberg.RowLevelOperationMode;
@@ -14,10 +17,13 @@ import org.apache.iceberg.catalog.Catalog;
 import org.apache.iceberg.catalog.Namespace;
 import org.apache.iceberg.catalog.SupportsNamespaces;
 import org.apache.iceberg.catalog.TableIdentifier;
+import org.apache.iceberg.types.Type;
+import org.apache.iceberg.types.Types;
 
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Pattern;
 
 public class IcebergTableDdl {
@@ -179,5 +185,129 @@ public class IcebergTableDdl {
         if (!RowLevelOperationMode.MERGE_ON_READ.modeName().equals(deleteMode)) {
             throw new IllegalStateException("Table delete mode is copy-on-write, but expected merge-on-read");
         }
+    }
+
+    public void handleSchemaEvolution(Table table, AvroSchemaChanges changes) {
+        var idx = new AtomicInteger(0);
+        var updates = table.updateSchema();
+
+        for (var change : changes.changes()) {
+            switch (change.changeType()) {
+                case ADD -> {
+                    var addColumn = (AvroSchemaChanges.AddColumn) change;
+                    updates.addColumn(addColumn.parentColumnName(), addColumn.name(), resolveAvroType(idx, addColumn.type()));
+                }
+                case DELETE -> {
+                    var deleteColumn = (AvroSchemaChanges.DeleteColumn) change;
+                    updates.deleteColumn(deleteColumn.fullColumnName());
+                }
+                case MAKE_OPTIONAL -> {
+                    var makeOptional = (AvroSchemaChanges.MakeOptional) change;
+                    updates.makeColumnOptional(makeOptional.fullColumnName());
+                }
+                case WIDE -> {
+                    var wideColumn = (AvroSchemaChanges.WideColumnType) change;
+                    updates.updateColumn(wideColumn.fullColumnName(), resolveAvroType(idx, wideColumn.type()).asPrimitiveType());
+                }
+            }
+        }
+
+        updates.commit();
+    }
+
+    private Types.NestedField resolveField(AtomicInteger idx, org.apache.avro.Schema.Field field) {
+        var schema = field.schema();
+        var isOptional = schema.isNullable();
+        var name = field.name();
+
+        return Types.NestedField.builder()
+                .isOptional(isOptional)
+                .withName(name)
+                .withId(idx.incrementAndGet())
+                .ofType(resolveAvroType(idx, schema))
+                .build();
+    }
+
+    private Type resolveAvroType(AtomicInteger idx, org.apache.avro.Schema schema) {
+        var logicalType = schema.getLogicalType();
+        if (logicalType != null) {
+            return resolveAvroLogicalType(logicalType, schema);
+        }
+
+        return switch (schema.getType()) {
+            case BOOLEAN -> Types.BooleanType.get();
+            case INT -> Types.IntegerType.get();
+            case LONG -> Types.LongType.get();
+            case BYTES -> Types.BinaryType.get();
+            case UNION -> resolveAvroType(idx, schema.getTypes().get(1));
+            case FLOAT -> Types.FloatType.get();
+            case DOUBLE -> Types.DoubleType.get();
+            case STRING, ENUM, FIXED -> Types.StringType.get();
+            case MAP -> {
+                var valueType = schema.getValueType();
+                var isOptional = valueType.isNullable();
+
+                if (isOptional) {
+                    yield Types.MapType.ofOptional(
+                            idx.getAndIncrement(),
+                            idx.getAndIncrement(),
+                            Types.StringType.get(),
+                            resolveAvroType(idx, valueType));
+                } else {
+                    yield Types.MapType.ofRequired(
+                            idx.getAndIncrement(),
+                            idx.getAndIncrement(),
+                            Types.StringType.get(),
+                            resolveAvroType(idx, valueType));
+                }
+            }
+            case ARRAY -> {
+                var elementType = schema.getElementType();
+                var isOptional = elementType.isNullable();
+
+                if (isOptional) {
+                    yield Types.ListType.ofOptional(idx.getAndIncrement(), resolveAvroType(idx, elementType));
+                } else {
+                    yield Types.ListType.ofRequired(idx.getAndIncrement(), resolveAvroType(idx, elementType));
+                }
+            }
+            case RECORD -> {
+                var fields =
+                        schema.getFields().stream().map(it -> resolveField(idx, it)).toList();
+                yield Types.StructType.of(fields);
+            }
+            default -> throw new IllegalArgumentException("Unsupported avro schema type");
+        };
+    }
+
+    private Type resolveAvroLogicalType(LogicalType logicalType, org.apache.avro.Schema avroValueSchema) {
+        return switch (logicalType) {
+            case LogicalTypes.Decimal type -> Types.DecimalType.of(type.getPrecision(), type.getScale());
+            case LogicalTypes.Uuid ignored -> Types.UUIDType.get();
+            case LogicalTypes.TimeMicros ignored -> Types.TimeType.get();
+            case LogicalTypes.TimeMillis ignored -> Types.TimeType.get();
+            case LogicalTypes.TimestampMicros ignored -> {
+                var adjustToUtc = (boolean) avroValueSchema.getObjectProp("adjust-to-utc");
+
+                if (adjustToUtc) {
+                    yield Types.TimestampType.withZone();
+                } else {
+                    yield Types.TimestampType.withoutZone();
+                }
+            }
+            case LogicalTypes.TimestampMillis ignored -> {
+                var adjustToUtc = (boolean) avroValueSchema.getObjectProp("adjust-to-utc");
+
+                if (adjustToUtc) {
+                    yield Types.TimestampType.withZone();
+                } else {
+                    yield Types.TimestampType.withoutZone();
+                }
+            }
+            case LogicalTypes.LocalTimestampMicros ignored -> Types.TimestampNanoType.withoutZone();
+            case LogicalTypes.LocalTimestampMillis ignored -> Types.TimestampNanoType.withoutZone();
+            case LogicalTypes.Date ignored -> Types.DateType.get();
+            default -> throw new IllegalArgumentException("Unsupported logical type: " + logicalType);
+        };
     }
 }

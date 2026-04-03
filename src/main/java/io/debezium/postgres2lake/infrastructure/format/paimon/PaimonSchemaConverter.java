@@ -40,7 +40,7 @@ public class PaimonSchemaConverter implements SchemaConverter<Schema> {
         return builder.build();
     }
 
-    private DataType convertAvroSchema(org.apache.avro.Schema avroValueSchema) {
+    public DataType convertAvroSchema(org.apache.avro.Schema avroValueSchema) {
         var logicalType = avroValueSchema.getLogicalType();
         if (logicalType != null) {
             return convertLogicalAvroType(logicalType, avroValueSchema);

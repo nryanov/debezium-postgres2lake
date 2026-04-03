@@ -4,6 +4,7 @@ import io.debezium.postgres2lake.domain.EventAppender;
 import io.debezium.postgres2lake.domain.model.EventRecord;
 import org.apache.avro.LogicalTypes;
 import org.apache.iceberg.Schema;
+import org.apache.iceberg.Table;
 import org.apache.iceberg.data.GenericRecord;
 import org.apache.iceberg.data.Record;
 import org.apache.iceberg.types.Types;
@@ -70,6 +71,10 @@ public class IcebergEventAppender implements EventAppender {
     @Override
     public org.apache.avro.Schema currentSchema() {
         return writer.schema();
+    }
+
+    public Table table() {
+        return writer.table();
     }
 
     private Record createIcebergRecord(Schema icebergSchema, org.apache.avro.generic.GenericRecord avroRecord) {

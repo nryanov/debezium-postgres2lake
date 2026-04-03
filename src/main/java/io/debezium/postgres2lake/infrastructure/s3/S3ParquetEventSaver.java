@@ -74,11 +74,6 @@ public class S3ParquetEventSaver extends AbstractEventSaver<ParquetEventAppender
     }
 
     @Override
-    protected void handleSchemaChanges(EventRecord event, Schema currentSchema) {
-        // nothing to do
-    }
-
-    @Override
     protected String resolvePartition(EventRecord event) {
         return outputLocationGenerator.getPartition("warehouse", event);
     }

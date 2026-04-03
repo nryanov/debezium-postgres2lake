@@ -1,4 +1,4 @@
-package io.debezium.postgres2lake.infrastructure;
+package io.debezium.postgres2lake.infrastructure.schema;
 
 import io.debezium.postgres2lake.domain.SchemaConverter;
 import io.debezium.postgres2lake.domain.model.EventRecord;

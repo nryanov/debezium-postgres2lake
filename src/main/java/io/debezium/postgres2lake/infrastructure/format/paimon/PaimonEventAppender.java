@@ -5,6 +5,7 @@ import io.debezium.postgres2lake.domain.model.EventRecord;
 import org.apache.avro.LogicalType;
 import org.apache.avro.LogicalTypes;
 import org.apache.avro.generic.GenericRecord;
+import org.apache.paimon.catalog.Identifier;
 import org.apache.paimon.data.BinaryString;
 import org.apache.paimon.data.Decimal;
 import org.apache.paimon.data.GenericArray;
@@ -62,6 +63,10 @@ public class PaimonEventAppender implements EventAppender {
     @Override
     public org.apache.avro.Schema currentSchema() {
         return writer.avroSchema();
+    }
+
+    public Identifier identifier() {
+        return writer.identifier();
     }
 
     private GenericRow createPaimonRecord(Schema paimonSchema, EventRecord event) {

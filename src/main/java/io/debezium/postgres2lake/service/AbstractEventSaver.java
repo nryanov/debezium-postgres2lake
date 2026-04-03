@@ -6,7 +6,6 @@ import io.debezium.postgres2lake.domain.model.EventCommitter;
 import io.debezium.postgres2lake.domain.model.EventRecord;
 import io.debezium.postgres2lake.service.exceptions.EventAppendException;
 import io.debezium.postgres2lake.service.exceptions.EventFlushException;
-import org.apache.avro.Schema;
 import org.jboss.logging.Logger;
 
 import java.util.ArrayList;
@@ -134,7 +133,7 @@ abstract public class AbstractEventSaver<T extends EventAppender> implements Eve
             if (!currentSchema.equals(eventSchema)) {
                 logger.infof("Detect schema change for source %s", destination);
                 currentAppender.commitPendingEvents();
-                handleSchemaChanges(event, currentSchema);
+                handleSchemaChanges(currentAppender, event);
                 anyChanges = true;
             } else if (!currentPartition.equals(eventPartition)) {
                 logger.infof("Detect partition rollover for source %s", destination);
@@ -151,9 +150,12 @@ abstract public class AbstractEventSaver<T extends EventAppender> implements Eve
         return currentAppender;
     }
 
-    protected abstract void handleSchemaChanges(EventRecord event, Schema currentSchema);
+    protected void handleSchemaChanges(T appender, EventRecord event) {}
 
-    protected abstract String resolvePartition(EventRecord event);
+    protected String resolvePartition(EventRecord event) {
+        // if method is not overrided then it means that current eventSaver resolve partition by its own fileIO (e.g. iceberg, paimon)
+        return "";
+    }
 
     protected abstract T createEventAppender(EventRecord event);
 

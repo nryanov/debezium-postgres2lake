@@ -1,13 +1,11 @@
 package io.debezium.postgres2lake.domain.model;
 
 
-import org.apache.avro.LogicalType;
 import org.apache.avro.Schema;
 
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 public record AvroSchemaChanges(List<ColumnChange> changes) {
     public sealed interface ColumnChange extends Serializable permits
@@ -19,7 +17,7 @@ public record AvroSchemaChanges(List<ColumnChange> changes) {
     }
 
     // parentColumn -- empty list, if no parent column (root table will be used)
-    public record AddColumn(List<String> parentColumn, String name, Type type) implements ColumnChange {
+    public record AddColumn(List<String> parentColumn, String name, Schema type) implements ColumnChange {
         @Override
         public ChangeType changeType() {
             return ChangeType.ADD;
@@ -31,6 +29,21 @@ public record AvroSchemaChanges(List<ColumnChange> changes) {
             }
 
             return String.join(".", parentColumn());
+        }
+
+        public String[] columnNameParts() {
+            if (parentColumn.isEmpty()) {
+                return new String[]{name};
+            }
+
+            var array = new String[parentColumn.size() + 1];
+
+            for (var i = 0; i < parentColumn.size(); i++) {
+                array[i] = parentColumn.get(i);
+            }
+            array[array.length - 1] = name;
+
+            return array;
         }
     }
 
@@ -46,6 +59,21 @@ public record AvroSchemaChanges(List<ColumnChange> changes) {
 
             return String.join(".", parentColumnNames);
         }
+
+        public String[] columnNameParts() {
+            if (parentColumn.isEmpty()) {
+                return new String[]{name};
+            }
+
+            var array = new String[parentColumn.size() + 1];
+
+            for (var i = 0; i < parentColumn.size(); i++) {
+                array[i] = parentColumn.get(i);
+            }
+            array[array.length - 1] = name;
+
+            return array;
+        }
     }
 
     public record MakeOptional(List<String> parentColumn, String name) implements ColumnChange {
@@ -60,9 +88,24 @@ public record AvroSchemaChanges(List<ColumnChange> changes) {
 
             return String.join(".", parentColumnNames);
         }
+
+        public String[] columnNameParts() {
+            if (parentColumn.isEmpty()) {
+                return new String[]{name};
+            }
+
+            var array = new String[parentColumn.size() + 1];
+
+            for (var i = 0; i < parentColumn.size(); i++) {
+                array[i] = parentColumn.get(i);
+            }
+            array[array.length - 1] = name;
+
+            return array;
+        }
     }
 
-    public record WideColumnType(List<String> parentColumn, String name, Type type) implements ColumnChange {
+    public record WideColumnType(List<String> parentColumn, String name, Schema type) implements ColumnChange {
         @Override
         public ChangeType changeType() {
             return ChangeType.WIDE;
@@ -74,9 +117,21 @@ public record AvroSchemaChanges(List<ColumnChange> changes) {
 
             return String.join(".", parentColumnNames);
         }
-    }
 
-    public record Type(Schema.Type type, Optional<LogicalType> logicalType) {
+        public String[] columnNameParts() {
+            if (parentColumn.isEmpty()) {
+                return new String[]{name};
+            }
+
+            var array = new String[parentColumn.size() + 1];
+
+            for (var i = 0; i < parentColumn.size(); i++) {
+                array[i] = parentColumn.get(i);
+            }
+            array[array.length - 1] = name;
+
+            return array;
+        }
     }
 
     public enum ChangeType {

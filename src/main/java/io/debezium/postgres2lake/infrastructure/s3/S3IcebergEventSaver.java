@@ -2,11 +2,14 @@ package io.debezium.postgres2lake.infrastructure.s3;
 
 import io.debezium.postgres2lake.domain.SchemaConverter;
 import io.debezium.postgres2lake.domain.model.EventRecord;
+import io.debezium.postgres2lake.infrastructure.format.iceberg.exceptions.IcebergTableAlterException;
+import io.debezium.postgres2lake.infrastructure.schema.CachedSchemaConverter;
 import io.debezium.postgres2lake.infrastructure.format.iceberg.IcebergEventAppender;
 import io.debezium.postgres2lake.infrastructure.format.iceberg.IcebergSchemaConverter;
 import io.debezium.postgres2lake.infrastructure.format.iceberg.IcebergTableWriter;
 import io.debezium.postgres2lake.infrastructure.format.iceberg.ddl.IcebergTableDdl;
 import io.debezium.postgres2lake.infrastructure.format.iceberg.writer.IcebergWriterFactory;
+import io.debezium.postgres2lake.infrastructure.schema.SchemaDiffResolver;
 import io.debezium.postgres2lake.service.AbstractEventSaver;
 import io.debezium.postgres2lake.service.OutputConfiguration;
 import org.apache.avro.Schema;
@@ -27,6 +30,7 @@ public class S3IcebergEventSaver extends AbstractEventSaver<IcebergEventAppender
     private final IcebergTableDdl tableDdl;
     private final Map<String, OutputConfiguration.IcebergTableSpec> tableSpecs;
     private final SchemaConverter<org.apache.iceberg.Schema> schemaConverter;
+    private final SchemaDiffResolver schemaDiffResolver;
 
     public S3IcebergEventSaver(
             OutputConfiguration.Threshold threshold,
@@ -44,7 +48,8 @@ public class S3IcebergEventSaver extends AbstractEventSaver<IcebergEventAppender
         this.tableDdl = new IcebergTableDdl(catalog);
         this.tableSpecs = new HashMap<>();
         this.tableSpecs.putAll(icebergCfg.tableSpecs());
-        this.schemaConverter = new IcebergSchemaConverter();
+        this.schemaConverter = new CachedSchemaConverter<>(new IcebergSchemaConverter());
+        this.schemaDiffResolver = new SchemaDiffResolver();
     }
 
     @Override
@@ -60,13 +65,12 @@ public class S3IcebergEventSaver extends AbstractEventSaver<IcebergEventAppender
     }
 
     @Override
-    protected void handleSchemaChanges(EventRecord event, Schema currentSchema) {
-        // TODO: execute TABLE ALTER
-    }
-
-    @Override
-    protected String resolvePartition(EventRecord event) {
-        // iceberg resolve partition in tableIo
-        return "";
+    protected void handleSchemaChanges(IcebergEventAppender appender, EventRecord event) {
+        try {
+            var diff = schemaDiffResolver.resolveDiff(appender.currentSchema(), event.valueSchema());
+            tableDdl.handleSchemaEvolution(appender.table(), diff);
+        } catch (Exception e) {
+            throw new IcebergTableAlterException(e);
+        }
     }
 }
