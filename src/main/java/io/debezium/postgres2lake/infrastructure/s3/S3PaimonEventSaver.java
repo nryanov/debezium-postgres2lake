@@ -37,7 +37,7 @@ public class S3PaimonEventSaver extends AbstractEventSaver<PaimonEventAppender> 
         super(threshold);
 
         var config = new Configuration();
-        paimon.fileIO().ifPresent(cfg -> cfg.properties().forEach(config::set));
+        paimon.fileIO().properties().forEach(config::set);
 
         var options = new Options();
         paimon.properties().forEach(options::set);
@@ -73,7 +73,7 @@ public class S3PaimonEventSaver extends AbstractEventSaver<PaimonEventAppender> 
 
             return new PaimonEventAppender(tableWriter);
         } catch (Catalog.TableNotExistException e) {
-            logger.errorf("\"Paimon table not found after createTableIfNotExists: %s", tableIdentifier);
+            logger.errorf("Paimon table not found after createTableIfNotExists: %s", tableIdentifier);
             throw new S3PaimonTableAccessException("Paimon table not found after createTableIfNotExists: " + tableIdentifier, e);
         }
     }

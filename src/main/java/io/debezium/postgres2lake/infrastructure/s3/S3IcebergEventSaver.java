@@ -12,7 +12,6 @@ import io.debezium.postgres2lake.infrastructure.format.iceberg.writer.IcebergWri
 import io.debezium.postgres2lake.infrastructure.schema.SchemaDiffResolver;
 import io.debezium.postgres2lake.service.AbstractEventSaver;
 import io.debezium.postgres2lake.service.OutputConfiguration;
-import org.apache.avro.Schema;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.iceberg.CatalogUtil;
 import org.apache.iceberg.catalog.Catalog;
@@ -41,7 +40,7 @@ public class S3IcebergEventSaver extends AbstractEventSaver<IcebergEventAppender
         var catalogProperties = new HashMap<>(icebergCfg.properties());
 
         var hadoopConfiguration = new Configuration();
-        icebergCfg.fileIO().ifPresent(cfg -> cfg.properties().forEach(hadoopConfiguration::set));
+        icebergCfg.fileIO().properties().forEach(hadoopConfiguration::set);
 
         this.catalog = CatalogUtil.buildIcebergCatalog(icebergCfg.name(), catalogProperties, hadoopConfiguration);
         this.writerFactory = new IcebergWriterFactory();

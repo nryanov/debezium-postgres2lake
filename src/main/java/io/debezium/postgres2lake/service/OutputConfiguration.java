@@ -58,7 +58,7 @@ public interface OutputConfiguration {
 
         Map<String, String> properties();
 
-        Optional<FileIO> fileIO();
+        FileIO fileIO();
 
         Map<String, IcebergTableSpec> tableSpecs();
     }
@@ -66,7 +66,7 @@ public interface OutputConfiguration {
     interface Paimon {
         Map<String, String> properties();
 
-        Optional<FileIO> fileIO();
+        FileIO fileIO();
     }
 
     interface FileIO {

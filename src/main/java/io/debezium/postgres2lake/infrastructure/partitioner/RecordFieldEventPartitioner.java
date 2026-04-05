@@ -15,7 +15,7 @@ public final class RecordFieldEventPartitioner implements EventPartitioner {
     @Override
     public String resolvePartition(String bucket, EventRecord record) {
         if (!record.value().hasField(fieldName)) {
-            throw new IllegalArgumentException(String.format("PArtition field `%s` not found in value", fieldName));
+            throw new IllegalArgumentException(String.format("Partition field `%s` not found in value", fieldName));
         }
 
         var raw = record.value().get(fieldName);
