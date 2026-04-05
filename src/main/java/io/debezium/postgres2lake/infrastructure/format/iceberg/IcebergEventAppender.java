@@ -26,9 +26,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static io.debezium.postgres2lake.infrastructure.format.avro.AvroUtils.convertToBytes;
-import static io.debezium.postgres2lake.infrastructure.format.avro.AvroUtils.convertToString;
-import static io.debezium.postgres2lake.infrastructure.format.avro.AvroUtils.convertToUuid;
+import static io.debezium.postgres2lake.domain.AvroUtils.convertToBytes;
+import static io.debezium.postgres2lake.domain.AvroUtils.convertToString;
+import static io.debezium.postgres2lake.domain.AvroUtils.convertToUuid;
 
 public class IcebergEventAppender implements EventAppender {
     private final IcebergTableWriter writer;

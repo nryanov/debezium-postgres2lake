@@ -3,6 +3,7 @@ package io.debezium.postgres2lake.infrastructure.format.paimon.ddl;
 import io.debezium.postgres2lake.domain.model.AvroSchemaChanges;
 import io.debezium.postgres2lake.domain.model.EventRecord;
 import io.debezium.postgres2lake.infrastructure.format.paimon.PaimonSchemaConverter;
+import io.debezium.postgres2lake.infrastructure.format.paimon.exceptions.PaimonTableAlterException;
 import org.apache.paimon.catalog.Catalog;
 import org.apache.paimon.catalog.Identifier;
 import org.apache.paimon.schema.Schema;
@@ -43,31 +44,34 @@ public class PaimonTableDdl {
         }
     }
 
-    public void handleSchemaEvolution(Identifier identifier, AvroSchemaChanges changes) throws Exception {
-        var paimonTableChanges = new ArrayList<SchemaChange>();
+    public void handleSchemaEvolution(Identifier identifier, AvroSchemaChanges changes) {
+        try {
+            var paimonTableChanges = new ArrayList<SchemaChange>();
 
-        for (var change : changes.changes()) {
-            switch (change.changeType()) {
-                case ADD -> {
-                    var addColumn = (AvroSchemaChanges.AddColumn) change;
-                    paimonTableChanges.add(SchemaChange.addColumn(addColumn.columnNameParts(), converter.convertAvroSchema(addColumn.type()), null, null));
-                }
-                case DELETE -> {
-                    var deleteColumn = (AvroSchemaChanges.DeleteColumn) change;
-                    paimonTableChanges.add(SchemaChange.dropColumn(deleteColumn.columnNameParts()));
-                }
-                case MAKE_OPTIONAL -> {
-                    var makeOptional = (AvroSchemaChanges.MakeOptional) change;
-                    paimonTableChanges.add(SchemaChange.updateColumnNullability(makeOptional.columnNameParts(), true));
-                }
-                case WIDE -> {
-                    var wideColumn = (AvroSchemaChanges.WideColumnType) change;
-                    paimonTableChanges.add(SchemaChange.updateColumnType(wideColumn.columnNameParts(), converter.convertAvroSchema(wideColumn.type()), true));
+            for (var change : changes.changes()) {
+                switch (change.changeType()) {
+                    case ADD -> {
+                        var addColumn = (AvroSchemaChanges.AddColumn) change;
+                        paimonTableChanges.add(SchemaChange.addColumn(addColumn.columnNameParts(), converter.convertAvroSchema(addColumn.type()), null, null));
+                    }
+                    case DELETE -> {
+                        var deleteColumn = (AvroSchemaChanges.DeleteColumn) change;
+                        paimonTableChanges.add(SchemaChange.dropColumn(deleteColumn.columnNameParts()));
+                    }
+                    case MAKE_OPTIONAL -> {
+                        var makeOptional = (AvroSchemaChanges.MakeOptional) change;
+                        paimonTableChanges.add(SchemaChange.updateColumnNullability(makeOptional.columnNameParts(), true));
+                    }
+                    case WIDE -> {
+                        var wideColumn = (AvroSchemaChanges.WideColumnType) change;
+                        paimonTableChanges.add(SchemaChange.updateColumnType(wideColumn.columnNameParts(), converter.convertAvroSchema(wideColumn.type()), true));
+                    }
                 }
             }
-        }
 
-        // todo: domain exception
-        catalog.alterTable(identifier, paimonTableChanges, false);
+            catalog.alterTable(identifier, paimonTableChanges, false);
+        } catch (Exception e) {
+            throw new PaimonTableAlterException(e);
+        }
     }
 }

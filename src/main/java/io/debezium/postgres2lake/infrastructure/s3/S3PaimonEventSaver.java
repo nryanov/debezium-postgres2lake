@@ -2,7 +2,6 @@ package io.debezium.postgres2lake.infrastructure.s3;
 
 import io.debezium.postgres2lake.domain.SchemaConverter;
 import io.debezium.postgres2lake.domain.model.EventRecord;
-import io.debezium.postgres2lake.infrastructure.format.paimon.exceptions.PaimonTableAlterException;
 import io.debezium.postgres2lake.infrastructure.schema.CachedSchemaConverter;
 import io.debezium.postgres2lake.infrastructure.format.paimon.PaimonEventAppender;
 import io.debezium.postgres2lake.infrastructure.format.paimon.PaimonSchemaConverter;
@@ -81,12 +80,8 @@ public class S3PaimonEventSaver extends AbstractEventSaver<PaimonEventAppender> 
 
     @Override
     protected void handleSchemaChanges(PaimonEventAppender appender, EventRecord event) {
-        try {
-            var diff = schemaDiffResolver.resolveDiff(appender.currentSchema(), event.valueSchema());
-            tableDdl.handleSchemaEvolution(appender.identifier(), diff);
-        } catch (Exception e) {
-            throw new PaimonTableAlterException(e);
-        }
+        var diff = schemaDiffResolver.resolveDiff(appender.currentSchema(), event.valueSchema());
+        tableDdl.handleSchemaEvolution(appender.identifier(), diff);
     }
 }
 

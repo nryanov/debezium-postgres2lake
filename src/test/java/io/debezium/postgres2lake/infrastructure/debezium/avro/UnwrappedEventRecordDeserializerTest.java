@@ -3,6 +3,7 @@ package io.debezium.postgres2lake.infrastructure.debezium.avro;
 import io.debezium.engine.ChangeEvent;
 import io.debezium.postgres2lake.domain.model.EventRecord;
 import io.debezium.postgres2lake.domain.model.Operation;
+import io.debezium.postgres2lake.infrastructure.debezium.exceptions.UnknownOperationException;
 import org.apache.avro.LogicalTypes;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData;
@@ -185,12 +186,11 @@ public class UnwrappedEventRecordDeserializerTest {
         assertEquals(200, result.value().get(FIELD_NAME));
     }
 
-    // TODO: make domain error
     @Test
     void unknownOpThrows() {
         var inner = innerRecord(FIELD_NAME, Schema.create(Schema.Type.INT), 1);
         var env = envelope("x", inner);
-        assertThrows(IllegalArgumentException.class, () -> deserialize(env));
+        assertThrows(UnknownOperationException.class, () -> deserialize(env));
     }
 
     @Test

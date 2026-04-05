@@ -1,4 +1,4 @@
-package io.debezium.postgres2lake.infrastructure.format.avro;
+package io.debezium.postgres2lake.domain;
 
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData;
@@ -12,7 +12,6 @@ import java.time.OffsetTime;
 import java.time.format.DateTimeFormatter;
 import java.util.UUID;
 
-// TODO: move to common / model ?
 public abstract class AvroUtils {
     private static final DateTimeFormatter ISO_OFFSET_DATE_FORMAT = DateTimeFormatter.ISO_OFFSET_DATE;
     private static final DateTimeFormatter ISO_OFFSET_TIME_FORMAT = DateTimeFormatter.ISO_OFFSET_TIME;

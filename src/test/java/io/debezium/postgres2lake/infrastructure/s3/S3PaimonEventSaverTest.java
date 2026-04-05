@@ -17,6 +17,7 @@ import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.TestProfile;
 import jakarta.inject.Inject;
 import org.jboss.logging.Logger;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
@@ -59,6 +60,18 @@ public class S3PaimonEventSaverTest {
 
     @InjectPostgresHelper
     PostgresHelper postgresHelper;
+
+    private PaimonHelper paimonHelper;
+
+    public S3PaimonEventSaverTest() {
+    }
+
+    @BeforeEach
+    public void setupPaimonHelper() {
+        if (paimonHelper == null) {
+            paimonHelper = new PaimonHelper(String.format("s3a://%s", BUCKET), postgresHelper, minioHelper);
+        }
+    }
 
     @Test
     void testSmallintType() {
@@ -325,8 +338,6 @@ public class S3PaimonEventSaverTest {
         await().atMost(Duration.ofSeconds(120)).pollInterval(Duration.ofSeconds(1)).until(() -> saver.getCurrentRecords() > 0);
         eventSaver.flush();
 
-        // todo: cache
-        var paimonHelper = new PaimonHelper(String.format("s3a://%s", BUCKET), postgresHelper, minioHelper);
         var data = paimonHelper.readTable(schema, table);
         assertTrue(data.iterator().hasNext(), "No paimon data found for table: " + schema + "." + table);
         return PaimonHelper.readRowAsMap(data.fields(), data.iterator().next());

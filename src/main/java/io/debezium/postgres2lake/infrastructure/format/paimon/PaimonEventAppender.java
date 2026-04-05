@@ -19,9 +19,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static io.debezium.postgres2lake.infrastructure.format.avro.AvroUtils.convertToBytes;
-import static io.debezium.postgres2lake.infrastructure.format.avro.AvroUtils.convertToString;
-import static io.debezium.postgres2lake.infrastructure.format.avro.AvroUtils.unwrapUnion;
+import static io.debezium.postgres2lake.domain.AvroUtils.convertToBytes;
+import static io.debezium.postgres2lake.domain.AvroUtils.convertToString;
+import static io.debezium.postgres2lake.domain.AvroUtils.unwrapUnion;
 
 public class PaimonEventAppender implements EventAppender {
     private final PaimonTableWriter writer;

@@ -10,7 +10,7 @@ import org.apache.paimon.types.DataType;
 import org.apache.paimon.types.DataTypes;
 import org.apache.paimon.types.RowType;
 
-import static io.debezium.postgres2lake.infrastructure.format.avro.AvroUtils.unwrapUnion;
+import static io.debezium.postgres2lake.domain.AvroUtils.unwrapUnion;
 
 public class PaimonSchemaConverter implements SchemaConverter<Schema> {
     @Override

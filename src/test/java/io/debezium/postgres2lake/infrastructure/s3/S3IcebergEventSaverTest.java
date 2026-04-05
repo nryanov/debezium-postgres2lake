@@ -18,6 +18,7 @@ import io.quarkus.test.junit.TestProfile;
 import jakarta.inject.Inject;
 import org.apache.iceberg.data.Record;
 import org.jboss.logging.Logger;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
@@ -59,6 +60,15 @@ public class S3IcebergEventSaverTest {
 
     @InjectPostgresHelper
     PostgresHelper postgresHelper;
+
+    private IcebergHelper icebergHelper;
+
+    @BeforeEach
+    public void setupIcebergHelper() {
+        if (icebergHelper == null) {
+            icebergHelper = new IcebergHelper(String.format("s3a://%s", BUCKET), postgresHelper, minioHelper);
+        }
+    }
 
     @Test
     void testSmallintType() {
@@ -325,8 +335,6 @@ public class S3IcebergEventSaverTest {
         await().atMost(Duration.ofSeconds(120)).pollInterval(Duration.ofSeconds(1)).until(() -> saver.getCurrentRecords() > 0);
         eventSaver.flush();
 
-        // todo: cache
-        var icebergHelper = new IcebergHelper(String.format("s3a://%s", BUCKET), postgresHelper, minioHelper);
         var data = icebergHelper.readTable(schema, table).iterator();
         assertTrue(data.hasNext(), "No iceberg data found for table: " + schema + "." + table);
         return data.next();

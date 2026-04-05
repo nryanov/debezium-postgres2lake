@@ -3,6 +3,7 @@ package io.debezium.postgres2lake.infrastructure.debezium.avro;
 import io.debezium.engine.ChangeEvent;
 import io.debezium.postgres2lake.domain.model.EventRecord;
 import io.debezium.postgres2lake.domain.model.Operation;
+import io.debezium.postgres2lake.infrastructure.debezium.exceptions.UnknownOperationException;
 import org.apache.avro.JsonProperties;
 import org.apache.avro.LogicalType;
 import org.apache.avro.LogicalTypes;
@@ -25,7 +26,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import static io.debezium.postgres2lake.infrastructure.format.avro.AvroUtils.*;
+import static io.debezium.postgres2lake.domain.AvroUtils.*;
 
 public class UnwrappedEventRecordDeserializer {
     private static final String CONNECT_TYPE_NAME = "connect.name";
@@ -76,7 +77,7 @@ public class UnwrappedEventRecordDeserializer {
             case "c", "r" -> Operation.INSERT;
             case "u" -> Operation.UPDATE;
             case "d" -> Operation.DELETE;
-            case null, default -> throw new IllegalArgumentException("unknown operation: " + op);
+            case null, default -> throw new UnknownOperationException(op);
         };
     }
 
