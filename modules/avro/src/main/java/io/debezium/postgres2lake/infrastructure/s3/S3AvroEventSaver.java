@@ -9,7 +9,7 @@ import io.debezium.postgres2lake.infrastructure.format.avro.AvroTableWriter;
 import io.debezium.postgres2lake.infrastructure.s3.exceptions.S3InvalidOutputUriException;
 import io.debezium.postgres2lake.infrastructure.s3.exceptions.S3WriterOpenException;
 import io.debezium.postgres2lake.service.AbstractEventSaver;
-import io.debezium.postgres2lake.service.OutputConfiguration;
+import io.debezium.postgres2lake.config.CommonConfiguration;
 import io.debezium.postgres2lake.service.OutputLocationGenerator;
 import org.apache.avro.Schema;
 import org.apache.avro.file.DataFileWriter;
@@ -28,15 +28,15 @@ public class S3AvroEventSaver extends AbstractEventSaver<AvroEventAppender> {
     private static final Logger logger = Logger.getLogger(S3AvroEventSaver.class);
 
     private final OutputLocationGenerator outputLocationGenerator;
-    private final OutputConfiguration.FileIO fileIO;
+    private final CommonConfiguration.FileIO fileIO;
     private final AvroCompressionCodec codec;
 
     private final SchemaConverter<Schema> schemaConverter;
 
     public S3AvroEventSaver(
-            OutputConfiguration.Threshold threshold,
+            CommonConfiguration.Threshold threshold,
             OutputLocationGenerator outputLocationGenerator,
-            OutputConfiguration.FileIO fileIO,
+            CommonConfiguration.FileIO fileIO,
             AvroCompressionCodec codec
     ) {
         super(threshold);

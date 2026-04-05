@@ -11,7 +11,7 @@ import io.debezium.postgres2lake.infrastructure.format.iceberg.ddl.IcebergTableD
 import io.debezium.postgres2lake.infrastructure.format.iceberg.writer.IcebergWriterFactory;
 import io.debezium.postgres2lake.infrastructure.schema.SchemaDiffResolver;
 import io.debezium.postgres2lake.service.AbstractEventSaver;
-import io.debezium.postgres2lake.service.OutputConfiguration;
+import io.debezium.postgres2lake.config.CommonConfiguration;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.iceberg.CatalogUtil;
 import org.apache.iceberg.catalog.Catalog;
@@ -27,13 +27,13 @@ public class S3IcebergEventSaver extends AbstractEventSaver<IcebergEventAppender
     private final Catalog catalog;
     private final IcebergWriterFactory writerFactory;
     private final IcebergTableDdl tableDdl;
-    private final Map<String, OutputConfiguration.IcebergTableSpec> tableSpecs;
+    private final Map<String, CommonConfiguration.IcebergTableSpec> tableSpecs;
     private final SchemaConverter<org.apache.iceberg.Schema> schemaConverter;
     private final SchemaDiffResolver schemaDiffResolver;
 
     public S3IcebergEventSaver(
-            OutputConfiguration.Threshold threshold,
-            OutputConfiguration.Iceberg icebergCfg
+            CommonConfiguration.Threshold threshold,
+            CommonConfiguration.Iceberg icebergCfg
     ) {
         super(threshold);
 

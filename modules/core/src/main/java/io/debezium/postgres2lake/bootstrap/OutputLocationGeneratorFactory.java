@@ -7,7 +7,7 @@ import io.debezium.postgres2lake.infrastructure.partitioner.EventTimeEventPartit
 import io.debezium.postgres2lake.infrastructure.partitioner.ProcessedTimeEventPartitioner;
 import io.debezium.postgres2lake.infrastructure.partitioner.RecordFieldEventPartitioner;
 import io.debezium.postgres2lake.infrastructure.partitioner.UnpartitionedEventPartitioner;
-import io.debezium.postgres2lake.service.OutputConfiguration;
+import io.debezium.postgres2lake.config.CommonConfiguration;
 import io.debezium.postgres2lake.service.OutputLocationGenerator;
 
 public final class OutputLocationGeneratorFactory {
@@ -15,7 +15,7 @@ public final class OutputLocationGeneratorFactory {
     private OutputLocationGeneratorFactory() {
     }
 
-    public static OutputLocationGenerator resolve(OutputConfiguration.OutputNamingStrategy strategy, OutputFileFormat format) {
+    public static OutputLocationGenerator resolve(CommonConfiguration.OutputNamingStrategy strategy, OutputFileFormat format) {
         var namingStrategy = switch (strategy.fileName()) {
             case UUID -> new UuidEventFileNameGenerator();
             case PROCESSING_TIME -> new ProcessingTimeEventFileNameGenerator();

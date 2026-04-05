@@ -10,7 +10,7 @@ import io.debezium.postgres2lake.infrastructure.format.paimon.PaimonTableWriter;
 import io.debezium.postgres2lake.infrastructure.format.paimon.ddl.PaimonTableDdl;
 import io.debezium.postgres2lake.infrastructure.schema.SchemaDiffResolver;
 import io.debezium.postgres2lake.service.AbstractEventSaver;
-import io.debezium.postgres2lake.service.OutputConfiguration;
+import io.debezium.postgres2lake.config.CommonConfiguration;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.paimon.catalog.Catalog;
 import org.apache.paimon.catalog.CatalogContext;
@@ -31,8 +31,8 @@ public class S3PaimonEventSaver extends AbstractEventSaver<PaimonEventAppender> 
     private final SchemaDiffResolver schemaDiffResolver;
 
     public S3PaimonEventSaver(
-            OutputConfiguration.Threshold threshold,
-            OutputConfiguration.Paimon paimon
+            CommonConfiguration.Threshold threshold,
+            CommonConfiguration.Paimon paimon
     ) {
         super(threshold);
 

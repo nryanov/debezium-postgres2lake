@@ -9,7 +9,7 @@ import io.debezium.postgres2lake.infrastructure.format.parquet.ParquetTableWrite
 import io.debezium.postgres2lake.infrastructure.s3.exceptions.S3InvalidOutputUriException;
 import io.debezium.postgres2lake.infrastructure.s3.exceptions.S3WriterOpenException;
 import io.debezium.postgres2lake.service.AbstractEventSaver;
-import io.debezium.postgres2lake.service.OutputConfiguration;
+import io.debezium.postgres2lake.config.CommonConfiguration;
 import io.debezium.postgres2lake.service.OutputLocationGenerator;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericRecord;
@@ -27,14 +27,14 @@ public class S3ParquetEventSaver extends AbstractEventSaver<ParquetEventAppender
     private static final Logger logger = Logger.getLogger(S3ParquetEventSaver.class);
 
     private final OutputLocationGenerator outputLocationGenerator;
-    private final OutputConfiguration.FileIO fileIO;
+    private final CommonConfiguration.FileIO fileIO;
     private final ParquetCompressionCodec compressionCodec;
     private final SchemaConverter<Schema> schemaConverter;
 
     public S3ParquetEventSaver(
-            OutputConfiguration.Threshold threshold,
+            CommonConfiguration.Threshold threshold,
             OutputLocationGenerator outputLocationGenerator,
-            OutputConfiguration.FileIO fileIO,
+            CommonConfiguration.FileIO fileIO,
             ParquetCompressionCodec compressionCodec
     ) {
         super(threshold);

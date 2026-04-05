@@ -2,7 +2,7 @@ package io.debezium.postgres2lake.infrastructure.format.iceberg.ddl;
 
 import io.debezium.postgres2lake.domain.model.AvroSchemaChanges;
 import io.debezium.postgres2lake.domain.model.EventRecord;
-import io.debezium.postgres2lake.service.OutputConfiguration;
+import io.debezium.postgres2lake.config.CommonConfiguration;
 import org.apache.avro.LogicalType;
 import org.apache.avro.LogicalTypes;
 import org.apache.iceberg.NullOrder;
@@ -55,7 +55,7 @@ public class IcebergTableDdl {
     public Table createTableIfNotExists(
             TableIdentifier tableIdentifier,
             Schema schema,
-            Optional<OutputConfiguration.IcebergTableSpec> maybeTableSpec
+            Optional<CommonConfiguration.IcebergTableSpec> maybeTableSpec
     ) {
         Table table;
         createNamespaceIfNotExists(tableIdentifier);

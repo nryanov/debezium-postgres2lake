@@ -1,4 +1,4 @@
-package io.debezium.postgres2lake.infrastructure.debezium;
+package io.debezium.postgres2lake.config;
 
 import io.smallrye.config.ConfigMapping;
 

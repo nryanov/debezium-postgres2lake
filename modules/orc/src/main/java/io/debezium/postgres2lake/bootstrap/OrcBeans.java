@@ -5,7 +5,7 @@ import io.debezium.postgres2lake.domain.model.OutputFileFormat;
 import io.debezium.postgres2lake.domain.model.OutputFormat;
 import io.debezium.postgres2lake.infrastructure.format.orc.OrcCompressionCodec;
 import io.debezium.postgres2lake.infrastructure.s3.S3OrcEventSaver;
-import io.debezium.postgres2lake.service.OutputConfiguration;
+import io.debezium.postgres2lake.config.CommonConfiguration;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Produces;
 import jakarta.inject.Inject;
@@ -14,7 +14,7 @@ import jakarta.inject.Singleton;
 @ApplicationScoped
 public class OrcBeans {
     @Inject
-    OutputConfiguration outputConfiguration;
+    CommonConfiguration outputConfiguration;
 
     @Singleton
     @Produces
