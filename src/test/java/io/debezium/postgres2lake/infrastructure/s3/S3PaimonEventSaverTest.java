@@ -9,7 +9,6 @@ import io.debezium.postgres2lake.test.helper.MinioHelper;
 import io.debezium.postgres2lake.test.helper.PaimonHelper;
 import io.debezium.postgres2lake.test.helper.PostgresHelper;
 import io.debezium.postgres2lake.test.helper.PostgresQueries;
-import io.debezium.postgres2lake.test.helper.TypeUtils;
 import io.debezium.postgres2lake.test.resource.MinioResource;
 import io.debezium.postgres2lake.test.resource.PostgresResource;
 import io.quarkus.test.common.ResourceArg;
@@ -17,10 +16,6 @@ import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.TestProfile;
 import jakarta.inject.Inject;
-import org.apache.paimon.data.DataGetters;
-import org.apache.paimon.data.InternalRow;
-import org.apache.paimon.types.DataField;
-import org.apache.paimon.types.DataType;
 import org.jboss.logging.Logger;
 import org.junit.jupiter.api.Test;
 
@@ -30,9 +25,6 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -337,62 +329,6 @@ public class S3PaimonEventSaverTest {
         var paimonHelper = new PaimonHelper(String.format("s3a://%s", BUCKET), postgresHelper, minioHelper);
         var data = paimonHelper.readTable(schema, table);
         assertTrue(data.iterator().hasNext(), "No paimon data found for table: " + schema + "." + table);
-        return readRow(data.fields(), data.iterator().next());
-    }
-
-    private Map<String, Object> readRow(List<DataField> fields, InternalRow row) {
-        var values = new HashMap<String, Object>();
-
-        for (var field : fields) {
-            values.put(field.name(), readValue(field.type(), field.id(), row));
-        }
-
-        return values;
-    }
-
-    // currently without null-checking
-    private Object readValue(DataType type, int fieldId, DataGetters row) {
-        return switch (type) {
-            case org.apache.paimon.types.BooleanType v -> row.getBoolean(fieldId);
-            case org.apache.paimon.types.SmallIntType v -> row.getInt(fieldId);
-            case org.apache.paimon.types.TinyIntType v -> row.getInt(fieldId);
-            case org.apache.paimon.types.IntType v -> row.getInt(fieldId);
-            case org.apache.paimon.types.BigIntType v -> row.getLong(fieldId);
-            case org.apache.paimon.types.FloatType v -> row.getFloat(fieldId);
-            case org.apache.paimon.types.DoubleType v -> row.getDouble(fieldId);
-            case org.apache.paimon.types.TimestampType v -> row.getTimestamp(fieldId, 6).toLocalDateTime().atOffset(ZoneOffset.UTC);
-            case org.apache.paimon.types.LocalZonedTimestampType v -> row.getTimestamp(fieldId, 6).toLocalDateTime();
-            case org.apache.paimon.types.TimeType v -> LocalTime.ofNanoOfDay(row.getInt(fieldId) * 1_000_000L);
-            case org.apache.paimon.types.DecimalType v -> row.getDecimal(fieldId, v.getPrecision(), v.getScale()).toBigDecimal();
-            case org.apache.paimon.types.DateType v -> LocalDate.ofEpochDay(row.getInt(fieldId));
-            case org.apache.paimon.types.VarCharType v -> TypeUtils.readUuidOrString(row.getString(fieldId).toBytes());
-            case org.apache.paimon.types.BinaryType v -> TypeUtils.readUuidOrBytes(row.getBinary(fieldId));
-            case org.apache.paimon.types.CharType v -> row.getString(fieldId);
-            case org.apache.paimon.types.ArrayType v -> {
-                var array = row.getArray(fieldId);
-                var mappedArray = new ArrayList<>();
-
-                for (var i = 0; i < array.size(); i++){
-                    mappedArray.add(readValue(v.getElementType(), i, array));
-                }
-
-                yield mappedArray;
-            }
-            case org.apache.paimon.types.MapType v -> {
-                var map = row.getMap(fieldId);
-                var mappedValues = new HashMap<>();
-
-                var keys = map.keyArray();
-                var values = map.valueArray();
-
-                for (var i = 0; i < map.size(); i++) {
-                    mappedValues.put(readValue(v.getKeyType(), i, keys), readValue(v.getValueType(), i, values));
-                }
-
-                yield mappedValues;
-            }
-            case org.apache.paimon.types.RowType v -> readRow(v.getFields(), row.getRow(fieldId, v.getFieldCount()));
-            default -> throw new IllegalArgumentException("Unsupported paimon type: " + type);
-        };
+        return PaimonHelper.readRowAsMap(data.fields(), data.iterator().next());
     }
 }
