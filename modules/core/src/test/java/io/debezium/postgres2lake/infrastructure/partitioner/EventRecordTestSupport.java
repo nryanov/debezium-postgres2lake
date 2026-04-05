@@ -8,7 +8,7 @@ import org.apache.avro.generic.GenericRecord;
 
 import java.util.List;
 
-final class EventRecordTestSupport {
+public final class EventRecordTestSupport {
 
     static final String RAW_DESTINATION = "db.schema.table";
 

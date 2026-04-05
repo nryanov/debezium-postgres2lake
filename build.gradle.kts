@@ -1,6 +1,10 @@
 import org.gradle.api.plugins.JavaPlugin
 import org.gradle.api.plugins.JavaPluginExtension
 
+plugins {
+    java
+}
+
 group = "debezium-postgres2lake"
 version = "0.1.0"
 

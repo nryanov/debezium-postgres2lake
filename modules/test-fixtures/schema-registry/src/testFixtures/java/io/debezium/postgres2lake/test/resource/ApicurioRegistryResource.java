@@ -34,6 +34,8 @@ public class ApicurioRegistryResource implements QuarkusTestResourceLifecycleMan
 
     @Override
     public void stop() {
-        apicurio.stop();
+        if (apicurio != null) {
+            apicurio.stop();
+        }
     }
 }
