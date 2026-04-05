@@ -2,12 +2,17 @@ package io.debezium.postgres2lake.infrastructure.format.iceberg.writer;
 
 import org.apache.iceberg.FileFormat;
 import org.apache.iceberg.Table;
+import org.apache.iceberg.TableProperties;
 import org.apache.iceberg.data.GenericAppenderFactory;
 import org.apache.iceberg.data.Record;
 import org.apache.iceberg.io.BaseTaskWriter;
 import org.apache.iceberg.io.OutputFileFactory;
 import org.apache.iceberg.types.TypeUtil;
+import org.apache.iceberg.util.PropertyUtil;
 
+import java.time.Instant;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
 import java.util.HashSet;
 import java.util.Locale;
 import java.util.Set;
@@ -17,12 +22,21 @@ import static org.apache.iceberg.TableProperties.DEFAULT_FILE_FORMAT;
 import static org.apache.iceberg.TableProperties.DEFAULT_FILE_FORMAT_DEFAULT;
 
 public class IcebergWriterFactory {
+    private final static DateTimeFormatter PARTITION_ID_FORMATTER = DateTimeFormatter.ofPattern("yyyyMMdd").withZone(ZoneOffset.UTC);
+
     public BaseTaskWriter<Record> create(Table table) {
         var fileFormat = resolveTableFormat(table);
         var appender = createTableAppender(table);
         var fileFactory = createTableOutputFileFactory(table, fileFormat);
 
-        var fileSize = 10 * 1024 * 1024; // todo: get from config
+        var tableProperties = table.properties();
+
+        var fileSize = PropertyUtil.propertyAsLong(
+                tableProperties,
+                TableProperties.WRITE_TARGET_FILE_SIZE_BYTES,
+                TableProperties.WRITE_TARGET_FILE_SIZE_BYTES_DEFAULT
+        );
+
         // todo: allow to choose between (forced) APPEND_ONLY / EQUALITY_DELETE modes
 
         var schema = table.schema();
@@ -125,8 +139,8 @@ public class IcebergWriterFactory {
     }
 
     private OutputFileFactory createTableOutputFileFactory(Table table, FileFormat format) {
-        var partitionId = 1; // todo: generate partition id
-        var taskId = 1L; // todo: generate task id
+        var partitionId = Integer.parseInt(PARTITION_ID_FORMATTER.format(Instant.now()));
+        var taskId = 1L;
 
         return OutputFileFactory.builderFor(table, partitionId, taskId)
                 .defaultSpec(table.spec())
