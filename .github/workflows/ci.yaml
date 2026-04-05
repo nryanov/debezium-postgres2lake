@@ -7,10 +7,14 @@ on:
     branches: [ "master" ]
 
 jobs:
-  build:
+  test-format:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        format: [avro, parquet, iceberg, paimon, orc]
 
     steps:
       - uses: actions/checkout@v4
@@ -25,10 +29,10 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@af1da67850ed9a4cedd57bfd976089dd991e2582 # v4.0.0
 
-      - name: Build with Gradle Wrapper
-        run: ./gradlew compileJava
+      - name: Build and test (${{ matrix.format }})
+        run: ./gradlew :modules:${{ matrix.format }}:build
 
-  test:
+  test-core:
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -44,5 +48,5 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@af1da67850ed9a4cedd57bfd976089dd991e2582 # v4.0.0
 
-      - name: Build with Gradle Wrapper
-        run: ./gradlew test
+      - name: Test core module
+        run: ./gradlew :modules:core:test
