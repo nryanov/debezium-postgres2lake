@@ -40,7 +40,7 @@ public class IcebergEventAppender implements EventAppender {
     @Override
     public void appendEvent(EventRecord event) throws IOException {
         var record = createIcebergRecord(writer.icebergSchema(), event.value());
-        writer.writer().write(record);
+        writer.writer().write(new EnrichedRecordWrapper(record, event.operation()));
     }
 
     @Override

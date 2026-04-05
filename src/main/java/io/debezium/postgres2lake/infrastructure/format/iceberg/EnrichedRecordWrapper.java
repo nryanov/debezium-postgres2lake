@@ -41,12 +41,12 @@ public class EnrichedRecordWrapper implements Record {
 
     @Override
     public Record copy() {
-        return delegate.copy();
+        return new EnrichedRecordWrapper(delegate.copy(), operation);
     }
 
     @Override
     public Record copy(Map<String, Object> overwriteValues) {
-        return delegate.copy(overwriteValues);
+        return new EnrichedRecordWrapper(delegate.copy(overwriteValues), operation);
     }
 
     @Override
