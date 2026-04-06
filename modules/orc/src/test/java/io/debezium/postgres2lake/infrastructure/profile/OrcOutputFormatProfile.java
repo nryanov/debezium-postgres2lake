@@ -8,11 +8,11 @@ public class OrcOutputFormatProfile implements QuarkusTestProfile {
     @Override
     public Map<String, String> getConfigOverrides() {
         return Map.of(
-                "output.format", "ORC",
-                "output.threshold.records", "1",
-                "output.threshold.time", "30s",
-                "output.orc.naming-strategy.partitioner", "UNPARTITIONED",
-                "output.orc.naming-strategy.file-name", "PROCESSING_TIME"
+                "debezium.avro.format", "BINARY",
+                "debezium.output.orc.threshold.records", "1",
+                "debezium.output.orc.threshold.time", "30s",
+                "debezium.output.orc.naming-strategy.partitioner", "UNPARTITIONED",
+                "debezium.output.orc.naming-strategy.file-name", "PROCESSING_TIME"
         );
     }
 }

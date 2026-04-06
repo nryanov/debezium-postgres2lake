@@ -60,19 +60,19 @@ public class PostgresResource implements QuarkusTestResourceLifecycleManager {
 
         switch (catalog) {
             case "iceberg" -> {
-                properties.put("output.iceberg.properties.type", "jdbc");
-                properties.put("output.iceberg.properties.uri", postgres.getJdbcUrl());
-                properties.put("output.iceberg.properties.jdbc.user", postgres.getUsername());
-                properties.put("output.iceberg.properties.jdbc.password", postgres.getPassword());
-                properties.put("output.iceberg.properties.jdbc.schema-version", "V1");
+                properties.put("debezium.output.iceberg.properties.type", "jdbc");
+                properties.put("debezium.output.iceberg.properties.uri", postgres.getJdbcUrl());
+                properties.put("debezium.output.iceberg.properties.jdbc.user", postgres.getUsername());
+                properties.put("debezium.output.iceberg.properties.jdbc.password", postgres.getPassword());
+                properties.put("debezium.output.iceberg.properties.jdbc.schema-version", "V1");
             }
             case "paimon" -> {
-                properties.put("output.paimon.properties.type", "jdbc");
-                properties.put("output.paimon.properties.jdbc-url", postgres.getJdbcUrl());
-                properties.put("output.paimon.properties.jdbc-user", postgres.getUsername());
-                properties.put("output.paimon.properties.jdbc-password", postgres.getPassword());
-                properties.put("output.paimon.properties.jdbc-driver", "org.postgresql.Driver");
-                properties.put("output.paimon.properties.jdbc-table-prefix", "paimon_");
+                properties.put("debezium.output.paimon.properties.type", "jdbc");
+                properties.put("debezium.output.paimon.properties.jdbc-url", postgres.getJdbcUrl());
+                properties.put("debezium.output.paimon.properties.jdbc-user", postgres.getUsername());
+                properties.put("debezium.output.paimon.properties.jdbc-password", postgres.getPassword());
+                properties.put("debezium.output.paimon.properties.jdbc-driver", "org.postgresql.Driver");
+                properties.put("debezium.output.paimon.properties.jdbc-table-prefix", "paimon_");
             }
             case null, default -> {}
         }

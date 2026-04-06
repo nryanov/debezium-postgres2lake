@@ -37,42 +37,42 @@ public class MinioResource implements QuarkusTestResourceLifecycleManager {
         var properties = new HashMap<String, String>();
         switch (format) {
             case "avro" -> {
-                properties.put("output.avro.file-io.properties.fs.s3a.access.key", MinioTestContainer.ACCESS_KEY);
-                properties.put("output.avro.file-io.properties.fs.s3a.secret.key", MinioTestContainer.SECRET_KEY);
-                properties.put("output.avro.file-io.properties.fs.s3a.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem");
-                properties.put("output.avro.file-io.properties.fs.s3a.path.style.access", "true");
-                properties.put("output.avro.file-io.properties.fs.s3a.endpoint", endpoint);
+                properties.put("debezium.output.avro.file-io.properties.fs.s3a.access.key", MinioTestContainer.ACCESS_KEY);
+                properties.put("debezium.output.avro.file-io.properties.fs.s3a.secret.key", MinioTestContainer.SECRET_KEY);
+                properties.put("debezium.output.avro.file-io.properties.fs.s3a.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem");
+                properties.put("debezium.output.avro.file-io.properties.fs.s3a.path.style.access", "true");
+                properties.put("debezium.output.avro.file-io.properties.fs.s3a.endpoint", endpoint);
             }
             case "parquet" -> {
-                properties.put("output.parquet.file-io.properties.fs.s3a.access.key", MinioTestContainer.ACCESS_KEY);
-                properties.put("output.parquet.file-io.properties.fs.s3a.secret.key", MinioTestContainer.SECRET_KEY);
-                properties.put("output.parquet.file-io.properties.fs.s3a.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem");
-                properties.put("output.parquet.file-io.properties.fs.s3a.path.style.access", "true");
-                properties.put("output.parquet.file-io.properties.fs.s3a.endpoint", endpoint);
+                properties.put("debezium.output.parquet.file-io.properties.fs.s3a.access.key", MinioTestContainer.ACCESS_KEY);
+                properties.put("debezium.output.parquet.file-io.properties.fs.s3a.secret.key", MinioTestContainer.SECRET_KEY);
+                properties.put("debezium.output.parquet.file-io.properties.fs.s3a.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem");
+                properties.put("debezium.output.parquet.file-io.properties.fs.s3a.path.style.access", "true");
+                properties.put("debezium.output.parquet.file-io.properties.fs.s3a.endpoint", endpoint);
             }
             case "orc" -> {
-                properties.put("output.orc.file-io.properties.fs.s3a.access.key", MinioTestContainer.ACCESS_KEY);
-                properties.put("output.orc.file-io.properties.fs.s3a.secret.key", MinioTestContainer.SECRET_KEY);
-                properties.put("output.orc.file-io.properties.fs.s3a.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem");
-                properties.put("output.orc.file-io.properties.fs.s3a.path.style.access", "true");
-                properties.put("output.orc.file-io.properties.fs.s3a.endpoint", endpoint);
+                properties.put("debezium.output.orc.file-io.properties.fs.s3a.access.key", MinioTestContainer.ACCESS_KEY);
+                properties.put("debezium.output.orc.file-io.properties.fs.s3a.secret.key", MinioTestContainer.SECRET_KEY);
+                properties.put("debezium.output.orc.file-io.properties.fs.s3a.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem");
+                properties.put("debezium.output.orc.file-io.properties.fs.s3a.path.style.access", "true");
+                properties.put("debezium.output.orc.file-io.properties.fs.s3a.endpoint", endpoint);
             }
             case "iceberg" -> {
-                properties.put("output.iceberg.properties.io-impl", "org.apache.iceberg.aws.s3.S3FileIO");
-                properties.put("output.iceberg.properties.warehouse", String.format("s3a://%s", bucket));
-                properties.put("output.iceberg.properties.s3.endpoint", endpoint);
-                properties.put("output.iceberg.properties.s3.access-key-id", MinioTestContainer.ACCESS_KEY);
-                properties.put("output.iceberg.properties.s3.secret-access-key", MinioTestContainer.SECRET_KEY);
-                properties.put("output.iceberg.properties.s3.path-style-access", "true");
-                properties.put("output.iceberg.properties.s3.client-factory-impl", "io.debezium.postgres2lake.infrastructure.format.iceberg.InstrumentedS3FileIOAwsClientFactory");
+                properties.put("debezium.output.iceberg.properties.io-impl", "org.apache.iceberg.aws.s3.S3FileIO");
+                properties.put("debezium.output.iceberg.properties.warehouse", String.format("s3a://%s", bucket));
+                properties.put("debezium.output.iceberg.properties.s3.endpoint", endpoint);
+                properties.put("debezium.output.iceberg.properties.s3.access-key-id", MinioTestContainer.ACCESS_KEY);
+                properties.put("debezium.output.iceberg.properties.s3.secret-access-key", MinioTestContainer.SECRET_KEY);
+                properties.put("debezium.output.iceberg.properties.s3.path-style-access", "true");
+                properties.put("debezium.output.iceberg.properties.s3.client-factory-impl", "io.debezium.postgres2lake.infrastructure.format.iceberg.InstrumentedS3FileIOAwsClientFactory");
             }
             case "paimon" -> {
-                properties.put("output.paimon.properties.warehouse", String.format("s3a://%s", bucket));
-                properties.put("output.paimon.file-io.properties.fs.s3a.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem");
-                properties.put("output.paimon.file-io.properties.fs.s3a.access.key", MinioTestContainer.ACCESS_KEY);
-                properties.put("output.paimon.file-io.properties.fs.s3a.secret.key", MinioTestContainer.SECRET_KEY);
-                properties.put("output.paimon.file-io.properties.fs.s3a.path.style.access", "true");
-                properties.put("output.paimon.file-io.properties.fs.s3a.endpoint", endpoint);
+                properties.put("debezium.output.paimon.properties.warehouse", String.format("s3a://%s", bucket));
+                properties.put("debezium.output.paimon.file-io.properties.fs.s3a.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem");
+                properties.put("debezium.output.paimon.file-io.properties.fs.s3a.access.key", MinioTestContainer.ACCESS_KEY);
+                properties.put("debezium.output.paimon.file-io.properties.fs.s3a.secret.key", MinioTestContainer.SECRET_KEY);
+                properties.put("debezium.output.paimon.file-io.properties.fs.s3a.path.style.access", "true");
+                properties.put("debezium.output.paimon.file-io.properties.fs.s3a.endpoint", endpoint);
             }
             default -> {}
         }
