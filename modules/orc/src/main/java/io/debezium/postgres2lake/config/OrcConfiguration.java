@@ -1,9 +1,11 @@
 package io.debezium.postgres2lake.config;
 
 import io.debezium.postgres2lake.infrastructure.format.orc.OrcCompressionCodec;
+import io.smallrye.config.ConfigMapping;
 
 import java.util.Optional;
 
+@ConfigMapping(prefix = "debezium.output.orc")
 public interface OrcConfiguration {
     CommonConfiguration.Threshold threshold();
 
