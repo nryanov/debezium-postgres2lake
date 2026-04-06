@@ -1,5 +1,6 @@
 package io.debezium.postgres2lake.service;
 
+import io.debezium.postgres2lake.config.CommonConfiguration;
 import io.debezium.postgres2lake.domain.EventAppender;
 import io.debezium.postgres2lake.domain.EventSaver;
 import io.debezium.postgres2lake.domain.model.EventCommitter;
@@ -27,7 +28,7 @@ abstract public class AbstractEventSaver<T extends EventAppender> implements Eve
 
     private int currentRecords;
 
-    public AbstractEventSaver(OutputConfiguration.Threshold threshold) {
+    public AbstractEventSaver(CommonConfiguration.Threshold threshold) {
         this.committers = new ArrayList<>();
         this.openedEventAppender = new HashMap<>();
 

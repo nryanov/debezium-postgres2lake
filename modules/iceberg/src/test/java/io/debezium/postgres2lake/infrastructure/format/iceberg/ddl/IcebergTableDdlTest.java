@@ -1,7 +1,7 @@
 package io.debezium.postgres2lake.infrastructure.format.iceberg.ddl;
 
+import io.debezium.postgres2lake.config.IcebergConfiguration;
 import io.debezium.postgres2lake.domain.model.AvroSchemaChanges;
-import io.debezium.postgres2lake.service.OutputConfiguration;
 import io.debezium.postgres2lake.test.avro.AvroTestFixtures;
 import io.debezium.postgres2lake.test.container.MinioTestContainer;
 import io.debezium.postgres2lake.test.container.PostgresTestContainer;
@@ -69,7 +69,7 @@ public class IcebergTableDdlTest {
             Map<String, String> properties,
             List<String> partitionBy,
             List<String> sortBy
-    ) implements OutputConfiguration.IcebergTableSpec {}
+    ) implements IcebergConfiguration.IcebergTableSpec {}
 
     private Catalog newCatalog(String warehouseSubdir) {
         var props = new java.util.HashMap<String, String>();

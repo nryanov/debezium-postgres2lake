@@ -8,10 +8,10 @@ public class IcebergOutputFormatProfile implements QuarkusTestProfile {
     @Override
     public Map<String, String> getConfigOverrides() {
         return Map.of(
-                "output.format", "ICEBERG",
-                "output.threshold.records", "1",
-                "output.threshold.time", "30s",
-                "output.iceberg.name", "development"
+                "debezium.avro.format", "BINARY",
+                "debezium.output.iceberg.threshold.records", "1",
+                "debezium.output.iceberg.threshold.time", "30s",
+                "debezium.output.iceberg.name", "development"
         );
     }
 }

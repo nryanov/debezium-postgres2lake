@@ -1,6 +1,6 @@
 package io.debezium.postgres2lake.bootstrap;
 
-import io.debezium.postgres2lake.infrastructure.debezium.DebeziumConfiguration;
+import io.debezium.postgres2lake.config.DebeziumConfiguration;
 import io.debezium.postgres2lake.infrastructure.debezium.avro.GenericRecordBinaryDeserializer;
 import io.debezium.postgres2lake.infrastructure.debezium.avro.GenericRecordConfluentDeserializer;
 import io.debezium.postgres2lake.infrastructure.debezium.avro.UnwrappedEventRecordDeserializer;

@@ -1,5 +1,6 @@
 package io.debezium.postgres2lake.infrastructure.s3;
 
+import io.debezium.postgres2lake.config.PaimonConfiguration;
 import io.debezium.postgres2lake.domain.SchemaConverter;
 import io.debezium.postgres2lake.domain.model.EventRecord;
 import io.debezium.postgres2lake.infrastructure.schema.CachedSchemaConverter;
@@ -10,7 +11,6 @@ import io.debezium.postgres2lake.infrastructure.format.paimon.PaimonTableWriter;
 import io.debezium.postgres2lake.infrastructure.format.paimon.ddl.PaimonTableDdl;
 import io.debezium.postgres2lake.infrastructure.schema.SchemaDiffResolver;
 import io.debezium.postgres2lake.service.AbstractEventSaver;
-import io.debezium.postgres2lake.service.OutputConfiguration;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.paimon.catalog.Catalog;
 import org.apache.paimon.catalog.CatalogContext;
@@ -30,17 +30,14 @@ public class S3PaimonEventSaver extends AbstractEventSaver<PaimonEventAppender> 
     private final SchemaConverter<org.apache.paimon.schema.Schema> schemaConverter;
     private final SchemaDiffResolver schemaDiffResolver;
 
-    public S3PaimonEventSaver(
-            OutputConfiguration.Threshold threshold,
-            OutputConfiguration.Paimon paimon
-    ) {
-        super(threshold);
+    public S3PaimonEventSaver(PaimonConfiguration configuration) {
+        super(configuration.threshold());
 
         var config = new Configuration();
-        paimon.fileIO().properties().forEach(config::set);
+        configuration.fileIO().properties().forEach(config::set);
 
         var options = new Options();
-        paimon.properties().forEach(options::set);
+        configuration.properties().forEach(options::set);
 
         var catalogContext = CatalogContext.create(options, config);
         this.catalog = CatalogFactory.createCatalog(catalogContext);

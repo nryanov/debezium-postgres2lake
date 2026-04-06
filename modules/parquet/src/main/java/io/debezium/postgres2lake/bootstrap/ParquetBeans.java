@@ -1,36 +1,30 @@
 package io.debezium.postgres2lake.bootstrap;
 
+import io.debezium.postgres2lake.config.ParquetConfiguration;
 import io.debezium.postgres2lake.domain.EventSaver;
-import io.debezium.postgres2lake.domain.model.OutputFileFormat;
-import io.debezium.postgres2lake.domain.model.OutputFormat;
 import io.debezium.postgres2lake.infrastructure.format.parquet.ParquetCompressionCodec;
 import io.debezium.postgres2lake.infrastructure.s3.S3ParquetEventSaver;
-import io.debezium.postgres2lake.service.OutputConfiguration;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Produces;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
+import static io.debezium.postgres2lake.domain.model.OutputFileFormat.parquet;
+
 @ApplicationScoped
 public class ParquetBeans {
     @Inject
-    OutputConfiguration outputConfiguration;
+    ParquetConfiguration configuration;
 
     @Singleton
     @Produces
-    EventSaver eventSaver() {
-        if (outputConfiguration.format() != OutputFormat.PARQUET) {
-            throw new IllegalStateException(
-                    "This application is built for output.format=PARQUET, but configuration has: " + outputConfiguration.format());
-        }
-        var parquet = outputConfiguration.parquet()
-                .orElseThrow(() -> new IllegalArgumentException("Empty parquet format output configuration"));
-        var locationGenerator = OutputLocationGeneratorFactory.resolve(parquet.namingStrategy(), OutputFileFormat.parquet);
+    public EventSaver eventSaver() {
+        var locationGenerator = OutputLocationGeneratorFactory.resolve(configuration.namingStrategy(), parquet);
         return new S3ParquetEventSaver(
-                outputConfiguration.threshold(),
+                configuration.threshold(),
                 locationGenerator,
-                parquet.fileIO(),
-                ParquetCompressionCodec.fromConfig(parquet.codec())
+                configuration.fileIO(),
+                configuration.codec().orElse(ParquetCompressionCodec.NONE)
         );
     }
 }

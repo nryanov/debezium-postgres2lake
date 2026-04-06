@@ -9,11 +9,10 @@ public class ConfluentAvroOutputFormatProfile implements QuarkusTestProfile {
     public Map<String, String> getConfigOverrides() {
         return Map.of(
                 "debezium.avro.format", "CONFLUENT",
-                "output.format", "AVRO",
-                "output.threshold.records", "1",
-                "output.threshold.time", "30s",
-                "output.avro.naming-strategy.partitioner", "UNPARTITIONED",
-                "output.avro.naming-strategy.file-name", "PROCESSING_TIME"
+                "debezium.output.avro.threshold.records", "1",
+                "debezium.output.avro.threshold.time", "30s",
+                "debezium.output.avro.naming-strategy.partitioner", "UNPARTITIONED",
+                "debezium.output.avro.naming-strategy.file-name", "PROCESSING_TIME"
         );
     }
 }

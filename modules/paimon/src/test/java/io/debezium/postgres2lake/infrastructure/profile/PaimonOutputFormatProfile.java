@@ -8,9 +8,9 @@ public class PaimonOutputFormatProfile implements QuarkusTestProfile {
     @Override
     public Map<String, String> getConfigOverrides() {
         return Map.of(
-                "output.format", "PAIMON",
-                "output.threshold.records", "1",
-                "output.threshold.time", "30s"
+                "debezium.avro.format", "BINARY",
+                "debezium.output.paimon.threshold.records", "1",
+                "debezium.output.paimon.threshold.time", "30s"
         );
     }
 }

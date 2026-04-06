@@ -9,7 +9,7 @@ import io.debezium.postgres2lake.infrastructure.s3.exceptions.S3WriterOpenExcept
 import io.debezium.postgres2lake.infrastructure.format.orc.OrcCompressionCodec;
 import io.debezium.postgres2lake.infrastructure.format.orc.OrcTableWriter;
 import io.debezium.postgres2lake.service.AbstractEventSaver;
-import io.debezium.postgres2lake.service.OutputConfiguration;
+import io.debezium.postgres2lake.config.CommonConfiguration;
 import io.debezium.postgres2lake.service.OutputLocationGenerator;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
@@ -25,14 +25,14 @@ public class S3OrcEventSaver extends AbstractEventSaver<OrcEventAppender> {
     private static final Logger logger = Logger.getLogger(S3OrcEventSaver.class);
 
     private final OutputLocationGenerator outputLocationGenerator;
-    private final OutputConfiguration.FileIO fileIO;
+    private final CommonConfiguration.FileIO fileIO;
     private final OrcCompressionCodec codec;
     private final SchemaConverter<TypeDescription> schemaConverter;
 
     public S3OrcEventSaver(
-            OutputConfiguration.Threshold threshold,
+            CommonConfiguration.Threshold threshold,
             OutputLocationGenerator outputLocationGenerator,
-            OutputConfiguration.FileIO fileIO,
+            CommonConfiguration.FileIO fileIO,
             OrcCompressionCodec codec
     ) {
         super(threshold);
