@@ -1,5 +1,6 @@
 package io.debezium.postgres2lake.infrastructure.s3;
 
+import io.debezium.postgres2lake.config.IcebergConfiguration;
 import io.debezium.postgres2lake.domain.SchemaConverter;
 import io.debezium.postgres2lake.domain.model.EventRecord;
 import io.debezium.postgres2lake.infrastructure.format.iceberg.exceptions.IcebergTableAlterException;
@@ -11,7 +12,6 @@ import io.debezium.postgres2lake.infrastructure.format.iceberg.ddl.IcebergTableD
 import io.debezium.postgres2lake.infrastructure.format.iceberg.writer.IcebergWriterFactory;
 import io.debezium.postgres2lake.infrastructure.schema.SchemaDiffResolver;
 import io.debezium.postgres2lake.service.AbstractEventSaver;
-import io.debezium.postgres2lake.config.CommonConfiguration;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.iceberg.CatalogUtil;
 import org.apache.iceberg.catalog.Catalog;
@@ -27,26 +27,25 @@ public class S3IcebergEventSaver extends AbstractEventSaver<IcebergEventAppender
     private final Catalog catalog;
     private final IcebergWriterFactory writerFactory;
     private final IcebergTableDdl tableDdl;
-    private final Map<String, CommonConfiguration.IcebergTableSpec> tableSpecs;
+    private final Map<String, IcebergConfiguration.IcebergTableSpec> tableSpecs;
     private final SchemaConverter<org.apache.iceberg.Schema> schemaConverter;
     private final SchemaDiffResolver schemaDiffResolver;
 
     public S3IcebergEventSaver(
-            CommonConfiguration.Threshold threshold,
-            CommonConfiguration.Iceberg icebergCfg
+            IcebergConfiguration configuration
     ) {
-        super(threshold);
+        super(configuration.threshold());
 
-        var catalogProperties = new HashMap<>(icebergCfg.properties());
+        var catalogProperties = new HashMap<>(configuration.properties());
 
         var hadoopConfiguration = new Configuration();
-        icebergCfg.fileIO().properties().forEach(hadoopConfiguration::set);
+        configuration.fileIO().properties().forEach(hadoopConfiguration::set);
 
-        this.catalog = CatalogUtil.buildIcebergCatalog(icebergCfg.name(), catalogProperties, hadoopConfiguration);
+        this.catalog = CatalogUtil.buildIcebergCatalog(configuration.name(), catalogProperties, hadoopConfiguration);
         this.writerFactory = new IcebergWriterFactory();
         this.tableDdl = new IcebergTableDdl(catalog);
         this.tableSpecs = new HashMap<>();
-        this.tableSpecs.putAll(icebergCfg.tableSpecs());
+        this.tableSpecs.putAll(configuration.tableSpecs());
         this.schemaConverter = new CachedSchemaConverter<>(new IcebergSchemaConverter());
         this.schemaDiffResolver = new SchemaDiffResolver();
     }
