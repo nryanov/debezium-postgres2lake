@@ -11,6 +11,7 @@ hadoop = "3.4.1"
 # test dependencies
 junit = "5.12.2"
 testcontsiners = "1.21.4"
+testcontainers-nessie = "0.104.1"
 awaitility = "4.2.2"
 
 [libraries]
@@ -29,6 +30,7 @@ paimon-core = { group = "org.apache.paimon", name = "paimon-core", version.ref =
 paimon-common = { group = "org.apache.paimon", name = "paimon-common", version.ref = "paimon" }
 paimon-s3 = { group = "org.apache.paimon", name = "paimon-s3", version.ref = "paimon" }
 paimon-format = { group = "org.apache.paimon", name = "paimon-format", version.ref = "paimon" }
+paimon-hive-catalog = { group = "org.apache.paimon", name = "paimon-hive-catalog", version.ref = "paimon" }
 
 hadoop-common = { group = "org.apache.hadoop", name = "hadoop-common", version.ref = "hadoop" }
 hadoop-client = { group = "org.apache.hadoop", name = "hadoop-client", version.ref = "hadoop" }
@@ -38,5 +40,7 @@ hadoop-aws = { group = "org.apache.hadoop", name = "hadoop-aws", version.ref = "
 junit-bom = { group = "org.junit", name = "junit-bom", version.ref = "junit" }
 testcontainers-bom = { group = "org.testcontainers", name = "testcontainers-bom", version.ref = "testcontsiners" }
 awaitility = { group = "org.awaitility", name = "awaitility", version.ref = "awaitility" }
+
+testcontainers-nessie = { group = "org.projectnessie.nessie", name = "nessie-nessie-testcontainer", version.ref = "testcontainers-nessie" }
 
 [plugins]

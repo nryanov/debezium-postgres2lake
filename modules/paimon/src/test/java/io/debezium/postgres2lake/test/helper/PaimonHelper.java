@@ -26,14 +26,12 @@ public class PaimonHelper {
 
     private final Catalog catalog;
 
-    public PaimonHelper(String warehouse, PostgresHelper postgresHelper, MinioHelper minioHelper) {
-        var config = new Configuration();
-        config.set("fs.s3a.access.key", minioHelper.getAccessKey());
-        config.set("fs.s3a.secret.key", minioHelper.getSecretAccessKey());
-        config.set("fs.s3a.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem");
-        config.set("fs.s3a.path.style.access", "true");
-        config.set("fs.s3a.endpoint", minioHelper.endpoint());
+    private PaimonHelper(Catalog catalog) {
+        this.catalog = catalog;
+    }
 
+    public static PaimonHelper forJdbc(String warehouse, PostgresHelper postgresHelper, MinioHelper minioHelper) {
+        var config = s3aHadoopConfiguration(minioHelper);
         var options = new Options();
         options.set("type", "jdbc");
         options.set("warehouse", warehouse);
@@ -42,9 +40,27 @@ public class PaimonHelper {
         options.set("jdbc-password", postgresHelper.getPassword());
         options.set("jdbc-driver", "org.postgresql.Driver");
         options.set("jdbc-table-prefix", "paimon_");
+        return new PaimonHelper(CatalogFactory.createCatalog(CatalogContext.create(options, config)));
+    }
 
-        var catalogContext = CatalogContext.create(options, config);
-        catalog = CatalogFactory.createCatalog(catalogContext);
+    public static PaimonHelper forHive(String warehouse, String thriftUri, MinioHelper minioHelper) {
+        var config = s3aHadoopConfiguration(minioHelper);
+        var options = new Options();
+        options.set("type", "hive");
+        options.set("warehouse", warehouse);
+        options.set("uri", thriftUri);
+        options.set("location-in-properties", "true");
+        return new PaimonHelper(CatalogFactory.createCatalog(CatalogContext.create(options, config)));
+    }
+
+    private static Configuration s3aHadoopConfiguration(MinioHelper minioHelper) {
+        var config = new Configuration();
+        config.set("fs.s3a.access.key", minioHelper.getAccessKey());
+        config.set("fs.s3a.secret.key", minioHelper.getSecretAccessKey());
+        config.set("fs.s3a.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem");
+        config.set("fs.s3a.path.style.access", "true");
+        config.set("fs.s3a.endpoint", minioHelper.endpoint());
+        return config;
     }
 
     public TableRowReader readTable(String namespace, String table) {
