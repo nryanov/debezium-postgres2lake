@@ -26,5 +26,4 @@ dependencies {
     testImplementation(testFixtures(project(":modules:test-fixtures:postgres")))
     testImplementation(testFixtures(project(":modules:test-fixtures:schema-registry")))
     testImplementation(testFixtures(project(":modules:test-fixtures:nessie")))
-    testImplementation(testFixtures(project(":modules:test-fixtures:hive-metastore")))
 }

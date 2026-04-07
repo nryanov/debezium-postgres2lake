@@ -42,7 +42,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
         @ResourceArg(name = MinioResource.BUCKET_NAME_ARG, value = "warehouse"),
         @ResourceArg(name = MinioResource.FORMAT_TYPE_ARG, value = "iceberg"),
 })
-@QuarkusTestResource(NessieResource.class)
+@QuarkusTestResource(value = NessieResource.class, restrictToAnnotatedClass = true)
 public class S3IcebergNessieCatalogTest {
 
     private static final String BUCKET = "warehouse";

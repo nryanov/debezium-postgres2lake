@@ -28,5 +28,4 @@ dependencies {
     testImplementation(testFixtures(project(":modules:test-fixtures:s3")))
     testImplementation(testFixtures(project(":modules:test-fixtures:postgres")))
     testImplementation(testFixtures(project(":modules:test-fixtures:schema-registry")))
-    testImplementation(testFixtures(project(":modules:test-fixtures:hive-metastore")))
 }
