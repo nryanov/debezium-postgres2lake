@@ -87,7 +87,7 @@ public class S3PaimonSchemaRolloverTest {
         var saver = (AbstractEventSaver<?>) eventSaver;
         WriterRolloverAssertions.awaitAndFlush(eventSaver, saver);
 
-        var paimonHelper = new PaimonHelper(String.format("s3a://%s", BUCKET), postgresHelper, minioHelper);
+        var paimonHelper = PaimonHelper.forJdbc(String.format("s3a://%s", BUCKET), postgresHelper, minioHelper);
         var data = paimonHelper.readTable(PAIMON_NAMESPACE, logicalTable);
 
         var byPk = new HashMap<Long, Map<String, Object>>();

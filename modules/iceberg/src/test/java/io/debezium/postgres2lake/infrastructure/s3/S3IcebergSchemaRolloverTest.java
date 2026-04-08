@@ -72,7 +72,7 @@ public class S3IcebergSchemaRolloverTest {
         var saver = (AbstractEventSaver<?>) eventSaver;
         WriterRolloverAssertions.awaitAndFlush(eventSaver, saver);
 
-        var icebergHelper = new IcebergHelper(String.format("s3a://%s", BUCKET), postgresHelper, minioHelper);
+        var icebergHelper = IcebergHelper.jdbc(String.format("s3a://%s", BUCKET), postgresHelper, minioHelper);
         var icebergTable = icebergHelper.load(ICEBERG_NAMESPACE, "test_schema_rollover_iceberg_files");
         var dataFileCount = countDataFileTasks(icebergTable);
         assertTrue(dataFileCount >= 2,
@@ -89,7 +89,7 @@ public class S3IcebergSchemaRolloverTest {
         var saver = (AbstractEventSaver<?>) eventSaver;
         WriterRolloverAssertions.awaitAndFlush(eventSaver, saver);
 
-        var icebergHelper = new IcebergHelper(String.format("s3a://%s", BUCKET), postgresHelper, minioHelper);
+        var icebergHelper = IcebergHelper.jdbc(String.format("s3a://%s", BUCKET), postgresHelper, minioHelper);
         var byPk = new HashMap<Long, Record>();
 
         try (var rows = icebergHelper.readTable(ICEBERG_NAMESPACE, "test_schema_rollover_iceberg_rows")) {

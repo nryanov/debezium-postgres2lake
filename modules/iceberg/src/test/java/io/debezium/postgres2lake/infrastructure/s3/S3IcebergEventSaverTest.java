@@ -66,7 +66,7 @@ public class S3IcebergEventSaverTest {
     @BeforeEach
     public void setupIcebergHelper() {
         if (icebergHelper == null) {
-            icebergHelper = new IcebergHelper(String.format("s3a://%s", BUCKET), postgresHelper, minioHelper);
+            icebergHelper = IcebergHelper.jdbc(String.format("s3a://%s", BUCKET), postgresHelper, minioHelper);
         }
     }
 

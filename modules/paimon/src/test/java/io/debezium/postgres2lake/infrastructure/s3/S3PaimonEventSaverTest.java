@@ -69,7 +69,7 @@ public class S3PaimonEventSaverTest {
     @BeforeEach
     public void setupPaimonHelper() {
         if (paimonHelper == null) {
-            paimonHelper = new PaimonHelper(String.format("s3a://%s", BUCKET), postgresHelper, minioHelper);
+            paimonHelper = PaimonHelper.forJdbc(String.format("s3a://%s", BUCKET), postgresHelper, minioHelper);
         }
     }
 

@@ -26,6 +26,7 @@ include(
     "modules:test-fixtures:s3",
     "modules:test-fixtures:postgres",
     "modules:test-fixtures:schema-registry",
+    "modules:test-fixtures:nessie",
 )
 
 project(":modules").projectDir = file("modules")
@@ -44,3 +45,4 @@ project(":modules:test-fixtures:common").projectDir = file("modules/test-fixture
 project(":modules:test-fixtures:s3").projectDir = file("modules/test-fixtures/s3")
 project(":modules:test-fixtures:postgres").projectDir = file("modules/test-fixtures/postgres")
 project(":modules:test-fixtures:schema-registry").projectDir = file("modules/test-fixtures/schema-registry")
+project(":modules:test-fixtures:nessie").projectDir = file("modules/test-fixtures/nessie")
