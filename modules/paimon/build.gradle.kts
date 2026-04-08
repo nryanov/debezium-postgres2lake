@@ -5,6 +5,7 @@ plugins {
 
 dependencies {
     implementation(project(":modules:platform"))
+    implementation(project(":modules:jib"))
     implementation(project(":modules:domain"))
     implementation(project(":modules:core"))
 
@@ -22,6 +23,9 @@ dependencies {
     }
     implementation(libs.paimon.hive.catalog) {
         exclude(group = "org.slf4j", module = "slf4j-api")
+        exclude(group = "asm")
+        exclude(group = "org.ow2.asm", module = "asm-all")
+        exclude(group = "org.apache.logging.log4j")
     }
 
     testImplementation(testFixtures(project(":modules:test-fixtures:common")))

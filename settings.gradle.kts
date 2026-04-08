@@ -13,6 +13,7 @@ pluginManagement {
 rootProject.name = "debezium-postgres2lake"
 
 include(
+    "modules:jib",
     "modules:platform",
     "modules:domain",
     "modules:core",
@@ -32,6 +33,7 @@ include(
 project(":modules").projectDir = file("modules")
 project(":modules:test-fixtures").projectDir = file("modules/test-fixtures")
 
+project(":modules:jib").projectDir = file("modules/jib")
 project(":modules:platform").projectDir = file("modules/platform")
 project(":modules:domain").projectDir = file("modules/domain")
 project(":modules:core").projectDir = file("modules/core")
