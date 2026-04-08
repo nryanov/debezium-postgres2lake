@@ -60,6 +60,15 @@ subprojects {
         )
     }
 
+    // copy JIB scripts in each application module
+    plugins.withId("io.quarkus") {
+        val syncJibExtras = tasks.register<Sync>("syncJibExtras") {
+            from(rootProject.layout.projectDirectory.dir("modules/jib/src/main/jib"))
+            into(layout.projectDirectory.dir("src/main/jib"))
+        }
+        tasks.named("processResources").configure { dependsOn(syncJibExtras) }
+    }
+
     // Keep aligned with [versions].confluent in gradle/libs.versions.toml
     val confluentAlignVersion = "8.1.1"
     configurations.configureEach {

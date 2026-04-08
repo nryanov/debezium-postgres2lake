@@ -5,3 +5,9 @@ target/
 *.iml
 .DS_Store
 stash/
+# ignore during build
+modules/avro/src/main/jib/
+modules/orc/src/main/jib/
+modules/parquet/src/main/jib/
+modules/iceberg/src/main/jib/
+modules/paimon/src/main/jib/

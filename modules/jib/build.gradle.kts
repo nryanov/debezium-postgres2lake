@@ -5,5 +5,5 @@ plugins {
 
 dependencies {
     implementation(project(":modules:platform"))
-    implementation("io.quarkus.arc:quarkus-container-image-jib")
+    implementation("io.quarkus:quarkus-container-image-jib")
 }
