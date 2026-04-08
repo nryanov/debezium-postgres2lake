@@ -5,6 +5,7 @@ plugins {
 
 dependencies {
     implementation(project(":modules:platform"))
+    implementation(project(":modules:jib"))
     implementation(project(":modules:domain"))
     implementation(project(":modules:core"))
 
