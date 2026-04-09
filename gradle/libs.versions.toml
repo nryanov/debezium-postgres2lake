@@ -13,6 +13,9 @@ junit = "5.12.2"
 testcontsiners = "1.21.4"
 testcontainers-nessie = "0.104.1"
 awaitility = "4.2.2"
+# extensions
+datahub-client = "1.5.0.3"
+openmetadata-java-client = "1.12.4"
 
 [libraries]
 quarkus-platform = { group = "io.quarkus.platform", name = "quarkus-bom", version.ref = "quarkus" }
@@ -42,5 +45,9 @@ testcontainers-bom = { group = "org.testcontainers", name = "testcontainers-bom"
 awaitility = { group = "org.awaitility", name = "awaitility", version.ref = "awaitility" }
 
 testcontainers-nessie = { group = "org.projectnessie.nessie", name = "nessie-nessie-testcontainer", version.ref = "testcontainers-nessie" }
+
+# extensions
+datahub-client = { group = "io.acryl", name = "datahub-client", version.ref = "datahub-client" }
+openmetadata-java-client = { group = "org.open-metadata", name = "openmetadata-java-client", version.ref = "openmetadata-java-client" }
 
 [plugins]
