@@ -3,15 +3,24 @@ package io.debezium.postgres2lake.extensions.data.catalog.datahub;
 import com.linkedin.common.FabricType;
 import com.linkedin.common.urn.DataPlatformUrn;
 import com.linkedin.common.urn.DatasetUrn;
+import com.linkedin.data.template.RecordTemplate;
 import com.linkedin.dataset.DatasetProperties;
+import com.linkedin.schema.ArrayType;
 import com.linkedin.schema.BooleanType;
+import com.linkedin.schema.BytesType;
+import com.linkedin.schema.DateType;
+import com.linkedin.schema.EnumType;
+import com.linkedin.schema.FixedType;
+import com.linkedin.schema.MapType;
 import com.linkedin.schema.MySqlDDL;
 import com.linkedin.schema.NumberType;
+import com.linkedin.schema.RecordType;
 import com.linkedin.schema.SchemaField;
 import com.linkedin.schema.SchemaFieldArray;
 import com.linkedin.schema.SchemaFieldDataType;
 import com.linkedin.schema.SchemaMetadata;
 import com.linkedin.schema.StringType;
+import com.linkedin.schema.TimeType;
 import datahub.client.Callback;
 import datahub.client.MetadataWriteResponse;
 import datahub.client.rest.RestEmitter;
@@ -19,9 +28,9 @@ import datahub.event.MetadataChangeProposalWrapper;
 import io.debezium.postgres2lake.extensions.data.catalog.api.DataCatalogHandler;
 import io.debezium.postgres2lake.extensions.data.catalog.api.model.TableColumnType;
 import io.debezium.postgres2lake.extensions.data.catalog.api.model.TableDestination;
+import io.debezium.postgres2lake.extensions.data.catalog.api.model.TableField;
 import io.debezium.postgres2lake.extensions.data.catalog.api.model.TableSchema;
 
-import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -30,6 +39,9 @@ import java.util.Objects;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+
+import static io.debezium.postgres2lake.extensions.data.catalog.api.DataCatalogPropertyReader.required;
+import static io.debezium.postgres2lake.extensions.data.catalog.api.DataCatalogPropertyReader.optional;
 
 /**
  * Publishes dataset properties and schema to DataHub using the REST emitter (datahub-client 1.x).
@@ -41,14 +53,13 @@ import java.util.concurrent.atomic.AtomicReference;
  * Optional:
  * <ul>
  *   <li>{@code datahub.token} — bearer token for authenticated GMS</li>
- *   <li>{@code datahub.platform} — data platform name (default {@code postgres})</li>
  *   <li>{@code datahub.fabric} — {@link FabricType} name (default {@code PROD})</li>
  * </ul>
  */
 public final class DataHubDataCatalogHandler implements DataCatalogHandler {
 
     private volatile RestEmitter emitter;
-    private volatile String platformName;
+    private volatile DataPlatformUrn platform;
     private volatile FabricType fabric;
 
     public DataHubDataCatalogHandler() {
@@ -59,21 +70,16 @@ public final class DataHubDataCatalogHandler implements DataCatalogHandler {
         Objects.requireNonNull(properties, "properties");
 
         var server = required(properties, "datahub.server");
-        var token = properties.getOrDefault("datahub.token", "").trim();
-        var fabricKey = properties.getOrDefault("datahub.fabric", "PROD").trim().toUpperCase(Locale.ROOT);
+        var token = optional(properties, "datahub.token", "");
+        var fabricKey = optional(properties, "datahub.fabric", "PROD").toUpperCase(Locale.ROOT);
 
-        this.platformName = properties.getOrDefault("datahub.platform", "postgres").trim();
-
-        if (this.platformName.isEmpty()) {
-            throw new IllegalArgumentException("datahub.platform must be non-blank when set");
-        }
-
+        this.platform = new DataPlatformUrn("postgres");
         this.fabric = FabricType.valueOf(fabricKey);
 
-        this.emitter = RestEmitter.create(b -> {
-            b.server(server);
+        this.emitter = RestEmitter.create(builder -> {
+            builder.server(server);
             if (!token.isEmpty()) {
-                b.token(token);
+                builder.token(token);
             }
         });
     }
@@ -81,32 +87,31 @@ public final class DataHubDataCatalogHandler implements DataCatalogHandler {
     @Override
     public void createOrUpdateTable(TableDestination destination, TableSchema schema) {
         var datasetName = destination.database() + "." + destination.schema() + "." + destination.table();
-        var urn = new DatasetUrn(new DataPlatformUrn(platformName), datasetName, fabric);
+        var urn = new DatasetUrn(platform, datasetName, fabric);
 
-        DatasetProperties props = new DatasetProperties();
+        var props = new DatasetProperties();
         props.setName(destination.table());
         props.setQualifiedName(datasetName);
 
-        emit(emitter, mcpForDataset(urn, props));
+        emit(mcpForDataset(urn, props));
 
         List<SchemaField> fields = new ArrayList<>();
         for (var field : schema.fields()) {
-            fields.add(toSchemaField(field));
+            fields.add(mapToSchemaField(field));
         }
 
         var meta = new SchemaMetadata();
         meta.setFields(new SchemaFieldArray(fields));
-        meta.setPlatform(new DataPlatformUrn(platformName));
+        meta.setPlatform(platform);
         meta.setSchemaName(datasetName);
         meta.setVersion(0L);
         meta.setHash("");
-        meta.setPlatformSchema(
-                SchemaMetadata.PlatformSchema.create(new MySqlDDL().setTableSchema("")));
+        meta.setPlatformSchema(SchemaMetadata.PlatformSchema.create(new MySqlDDL().setTableSchema("")));
 
-        emit(emitter, mcpForDataset(urn, meta));
+        emit(mcpForDataset(urn, meta));
     }
 
-    private static MetadataChangeProposalWrapper mcpForDataset(DatasetUrn urn, com.linkedin.data.template.RecordTemplate aspect) {
+    private static MetadataChangeProposalWrapper<?> mcpForDataset(DatasetUrn urn, RecordTemplate aspect) {
         return MetadataChangeProposalWrapper.builder()
                 .entityType("dataset")
                 .entityUrn(urn)
@@ -115,7 +120,53 @@ public final class DataHubDataCatalogHandler implements DataCatalogHandler {
                 .build();
     }
 
-    private static void emit(RestEmitter emitter, MetadataChangeProposalWrapper mcp) {
+    private SchemaField mapToSchemaField(TableField field) {
+        var schemaField = new SchemaField();
+        schemaField.setFieldPath(field.name());
+        schemaField.setNullable(isNullable(field.type().constraint()));
+        schemaField.setNativeDataType(field.type().getClass().getName());
+        schemaField.setType(mapToSchemaFieldType(field.type()));
+        field.description().ifPresent(schemaField::setDescription);
+
+        return schemaField;
+    }
+
+    private boolean isNullable(TableColumnType.TableColumnConstraint constraint) {
+        return switch (constraint) {
+            case OPTIONAL -> true;
+            default -> false;
+        };
+    }
+
+    private SchemaFieldDataType mapToSchemaFieldType(TableColumnType type) {
+        return switch (type) {
+            case TableColumnType.PrimitiveColumnType p -> switch (p) {
+                    case TableColumnType.Boolean v -> new SchemaFieldDataType().setType(SchemaFieldDataType.Type.create(new BooleanType()));
+                    case TableColumnType.Bytes v -> new SchemaFieldDataType().setType(SchemaFieldDataType.Type.create(new BytesType()));
+                    case TableColumnType.Date v -> new SchemaFieldDataType().setType(SchemaFieldDataType.Type.create(new DateType()));
+                    case TableColumnType.Decimal v -> new SchemaFieldDataType().setType(SchemaFieldDataType.Type.create(new NumberType()));
+                    case TableColumnType.Double v -> new SchemaFieldDataType().setType(SchemaFieldDataType.Type.create(new NumberType()));
+                    case TableColumnType.Enum v -> new SchemaFieldDataType().setType(SchemaFieldDataType.Type.create(new EnumType()));
+                    case TableColumnType.Fixed v -> new SchemaFieldDataType().setType(SchemaFieldDataType.Type.create(new FixedType()));
+                    case TableColumnType.Float v -> new SchemaFieldDataType().setType(SchemaFieldDataType.Type.create(new NumberType()));
+                    case TableColumnType.Int v -> new SchemaFieldDataType().setType(SchemaFieldDataType.Type.create(new NumberType()));
+                    case TableColumnType.Long v -> new SchemaFieldDataType().setType(SchemaFieldDataType.Type.create(new NumberType()));
+                    case TableColumnType.Text v -> new SchemaFieldDataType().setType(SchemaFieldDataType.Type.create(new StringType()));
+                    case TableColumnType.Time v -> new SchemaFieldDataType().setType(SchemaFieldDataType.Type.create(new TimeType()));
+                    case TableColumnType.Timestamp v -> new SchemaFieldDataType().setType(SchemaFieldDataType.Type.create(new TimeType()));
+                    case TableColumnType.TimestampTz v -> new SchemaFieldDataType().setType(SchemaFieldDataType.Type.create(new TimeType()));
+                    case TableColumnType.Uuid v -> new SchemaFieldDataType().setType(SchemaFieldDataType.Type.create(new StringType()));
+            };
+            case TableColumnType.ComplexColumnType c -> switch (c) {
+                case TableColumnType.Array array -> new SchemaFieldDataType().setType(SchemaFieldDataType.Type.create(new ArrayType()));
+                case TableColumnType.Map map -> new SchemaFieldDataType().setType(SchemaFieldDataType.Type.create(new MapType()));
+                case TableColumnType.Record record -> new SchemaFieldDataType().setType(SchemaFieldDataType.Type.create(new RecordType()));
+            };
+        };
+    }
+
+    // TODO: move to another thread
+    private void emit(MetadataChangeProposalWrapper<?> mcp) {
         AtomicReference<Throwable> failure = new AtomicReference<>();
         CountDownLatch done = new CountDownLatch(1);
         try {
@@ -148,33 +199,5 @@ public final class DataHubDataCatalogHandler implements DataCatalogHandler {
         if (t != null) {
             throw new RuntimeException("DataHub rejected metadata change", t);
         }
-    }
-
-    private static SchemaField toSchemaField(TableColumnType col) {
-        SchemaField sf = new SchemaField();
-        sf.setFieldPath(col.name());
-        sf.setType(mapDataHubType(col.type()));
-        sf.setNativeDataType(col.type());
-        sf.setNullable(col.nullable());
-        col.description().ifPresent(sf::setDescription);
-        return sf;
-    }
-
-    private static SchemaFieldDataType mapDataHubType(String raw) {
-        String t = raw == null ? "" : raw.trim().toLowerCase(Locale.ROOT);
-        return switch (t) {
-            case "boolean", "bool" -> new SchemaFieldDataType().setType(SchemaFieldDataType.Type.create(new BooleanType()));
-            case "int", "integer", "long", "bigint", "short", "byte", "float", "double", "decimal", "number" ->
-                    new SchemaFieldDataType().setType(SchemaFieldDataType.Type.create(new NumberType()));
-            default -> new SchemaFieldDataType().setType(SchemaFieldDataType.Type.create(new StringType()));
-        };
-    }
-
-    private static String required(Map<String, String> properties, String key) {
-        String v = properties.get(key);
-        if (v == null || v.isBlank()) {
-            throw new IllegalArgumentException("Missing required property: " + key);
-        }
-        return v.trim();
     }
 }

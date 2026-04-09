@@ -18,6 +18,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
+import static io.debezium.postgres2lake.extensions.data.catalog.api.DataCatalogPropertyReader.required;
+
 /**
  * Creates or updates a table in OpenMetadata via {@link TablesApi#createOrUpdateTable}.
  *
@@ -44,13 +46,13 @@ public final class OpenMetadataDataCatalogHandler implements DataCatalogHandler 
     @Override
     public void initialize(Map<String, String> properties) {
         Objects.requireNonNull(properties, "properties");
-        String host = required(properties, "openmetadata.host");
-        String jwt = required(properties, "openmetadata.jwt");
+        var host = required(properties, "openmetadata.host");
+        var jwt = required(properties, "openmetadata.jwt");
         this.databaseSchemaFqn = required(properties, "openmetadata.databaseSchema.fqn");
 
-        boolean validateVersion = Boolean.parseBoolean(properties.getOrDefault("openmetadata.validate.version", "false"));
+        var validateVersion = Boolean.parseBoolean(properties.getOrDefault("openmetadata.validate.version", "false"));
 
-        OpenMetadataConnection conn = new OpenMetadataConnection();
+        var conn = new OpenMetadataConnection();
         conn.setHostPort(host);
         conn.setApiVersion("v1");
         conn.setAuthProvider(AuthProvider.OPENMETADATA);
@@ -62,12 +64,6 @@ public final class OpenMetadataDataCatalogHandler implements DataCatalogHandler 
 
     @Override
     public void createOrUpdateTable(TableDestination destination, TableSchema schema) {
-        TablesApi api = this.tablesApi;
-        String schemaFqn = this.databaseSchemaFqn;
-        if (api == null || schemaFqn == null) {
-            throw new IllegalStateException("DataCatalogHandler not initialized; call initialize() first");
-        }
-
         var columns = new ArrayList<Column>();
         for (var field : schema.fields()) {
             columns.add(mapToColumn(field));
@@ -75,11 +71,11 @@ public final class OpenMetadataDataCatalogHandler implements DataCatalogHandler 
 
         var body = new CreateTable()
                 .name(destination.table())
-                .databaseSchema(schemaFqn)
+                .databaseSchema(databaseSchemaFqn)
                 .columns(columns)
                 .tableType(CreateTable.TableTypeEnum.REGULAR);
 
-        api.createOrUpdateTable(body);
+        tablesApi.createOrUpdateTable(body);
     }
 
     private Column mapToColumn(TableField field) {
@@ -176,13 +172,5 @@ public final class OpenMetadataDataCatalogHandler implements DataCatalogHandler 
             case REQUIRED -> Column.ConstraintEnum.NOT_NULL;
             case PRIMARY_KEY -> Column.ConstraintEnum.PRIMARY_KEY;
         };
-    }
-
-    private static String required(Map<String, String> properties, String key) {
-        var v = properties.get(key);
-        if (v == null || v.isBlank()) {
-            throw new IllegalArgumentException("Missing required property: " + key);
-        }
-        return v.trim();
     }
 }
