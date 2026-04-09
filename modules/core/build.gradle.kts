@@ -6,7 +6,7 @@ plugins {
 dependencies {
     implementation(project(":modules:platform"))
     implementation(project(":modules:domain"))
-    implementation(project(":extensions:data-catalog-api"))
+    api(project(":extensions:data-catalog-api"))
 
     api("software.amazon.awssdk:aws-core")
     api("software.amazon.awssdk:regions")

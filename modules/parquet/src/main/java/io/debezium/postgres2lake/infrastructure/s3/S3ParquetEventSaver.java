@@ -4,7 +4,7 @@ import io.debezium.postgres2lake.domain.SchemaConverter;
 import io.debezium.postgres2lake.domain.model.EventRecord;
 import io.debezium.postgres2lake.infrastructure.format.parquet.ParquetCompressionCodec;
 import io.debezium.postgres2lake.infrastructure.format.parquet.ParquetEventAppender;
-import io.debezium.postgres2lake.infrastructure.format.parquet.ParquetSchemaConverter;
+
 import io.debezium.postgres2lake.infrastructure.format.parquet.ParquetTableWriter;
 import io.debezium.postgres2lake.infrastructure.s3.exceptions.S3InvalidOutputUriException;
 import io.debezium.postgres2lake.infrastructure.s3.exceptions.S3WriterOpenException;
@@ -35,13 +35,14 @@ public class S3ParquetEventSaver extends AbstractEventSaver<ParquetEventAppender
             CommonConfiguration.Threshold threshold,
             OutputLocationGenerator outputLocationGenerator,
             CommonConfiguration.FileIO fileIO,
-            ParquetCompressionCodec compressionCodec
+            ParquetCompressionCodec compressionCodec,
+            SchemaConverter<Schema> schemaConverter
     ) {
         super(threshold);
         this.outputLocationGenerator = outputLocationGenerator;
         this.fileIO = fileIO;
         this.compressionCodec = compressionCodec;
-        this.schemaConverter = new ParquetSchemaConverter();
+        this.schemaConverter = schemaConverter;
     }
 
     @Override

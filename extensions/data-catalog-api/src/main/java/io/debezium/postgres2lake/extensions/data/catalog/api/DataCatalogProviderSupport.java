@@ -20,7 +20,7 @@ public final class DataCatalogProviderSupport {
      */
     public DataCatalogHandler loadAndInitialize(Optional<String> providerClassName, ClassLoader classLoader, Map<String, String> properties) {
         var handler = loadHandler(providerClassName, classLoader);
-        handler.initialize(Map.copyOf(properties));
+        handler.initialize(properties);
 
         return handler;
     }

@@ -4,9 +4,7 @@ import io.debezium.postgres2lake.config.IcebergConfiguration;
 import io.debezium.postgres2lake.domain.SchemaConverter;
 import io.debezium.postgres2lake.domain.model.EventRecord;
 import io.debezium.postgres2lake.infrastructure.format.iceberg.exceptions.IcebergTableAlterException;
-import io.debezium.postgres2lake.infrastructure.schema.CachedSchemaConverter;
 import io.debezium.postgres2lake.infrastructure.format.iceberg.IcebergEventAppender;
-import io.debezium.postgres2lake.infrastructure.format.iceberg.IcebergSchemaConverter;
 import io.debezium.postgres2lake.infrastructure.format.iceberg.IcebergTableWriter;
 import io.debezium.postgres2lake.infrastructure.format.iceberg.ddl.IcebergTableDdl;
 import io.debezium.postgres2lake.infrastructure.format.iceberg.writer.IcebergWriterFactory;
@@ -14,6 +12,7 @@ import io.debezium.postgres2lake.infrastructure.schema.SchemaDiffResolver;
 import io.debezium.postgres2lake.service.AbstractEventSaver;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.iceberg.CatalogUtil;
+import org.apache.iceberg.Schema;
 import org.apache.iceberg.catalog.Catalog;
 import org.jboss.logging.Logger;
 
@@ -32,7 +31,8 @@ public class S3IcebergEventSaver extends AbstractEventSaver<IcebergEventAppender
     private final SchemaDiffResolver schemaDiffResolver;
 
     public S3IcebergEventSaver(
-            IcebergConfiguration configuration
+            IcebergConfiguration configuration,
+            SchemaConverter<Schema> schemaConverter
     ) {
         super(configuration.threshold());
 
@@ -46,7 +46,7 @@ public class S3IcebergEventSaver extends AbstractEventSaver<IcebergEventAppender
         this.tableDdl = new IcebergTableDdl(catalog);
         this.tableSpecs = new HashMap<>();
         this.tableSpecs.putAll(configuration.tableSpecs());
-        this.schemaConverter = new CachedSchemaConverter<>(new IcebergSchemaConverter());
+        this.schemaConverter = schemaConverter;
         this.schemaDiffResolver = new SchemaDiffResolver();
     }
 

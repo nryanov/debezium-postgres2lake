@@ -4,7 +4,6 @@ import io.debezium.postgres2lake.domain.SchemaConverter;
 import io.debezium.postgres2lake.domain.model.EventRecord;
 import io.debezium.postgres2lake.infrastructure.format.avro.AvroCompressionCodec;
 import io.debezium.postgres2lake.infrastructure.format.avro.AvroEventAppender;
-import io.debezium.postgres2lake.infrastructure.format.avro.AvroSchemaConverter;
 import io.debezium.postgres2lake.infrastructure.format.avro.AvroTableWriter;
 import io.debezium.postgres2lake.infrastructure.s3.exceptions.S3InvalidOutputUriException;
 import io.debezium.postgres2lake.infrastructure.s3.exceptions.S3WriterOpenException;
@@ -30,21 +29,21 @@ public class S3AvroEventSaver extends AbstractEventSaver<AvroEventAppender> {
     private final OutputLocationGenerator outputLocationGenerator;
     private final CommonConfiguration.FileIO fileIO;
     private final AvroCompressionCodec codec;
-
     private final SchemaConverter<Schema> schemaConverter;
 
     public S3AvroEventSaver(
             CommonConfiguration.Threshold threshold,
             OutputLocationGenerator outputLocationGenerator,
             CommonConfiguration.FileIO fileIO,
-            AvroCompressionCodec codec
+            AvroCompressionCodec codec,
+            SchemaConverter<Schema> schemaConverter
     ) {
         super(threshold);
         this.outputLocationGenerator = outputLocationGenerator;
         this.fileIO = fileIO;
         this.codec = codec;
 
-        this.schemaConverter = new AvroSchemaConverter();
+        this.schemaConverter = schemaConverter;
     }
 
     @Override

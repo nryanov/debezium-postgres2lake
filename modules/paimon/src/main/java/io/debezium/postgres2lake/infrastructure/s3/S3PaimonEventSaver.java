@@ -3,7 +3,6 @@ package io.debezium.postgres2lake.infrastructure.s3;
 import io.debezium.postgres2lake.config.PaimonConfiguration;
 import io.debezium.postgres2lake.domain.SchemaConverter;
 import io.debezium.postgres2lake.domain.model.EventRecord;
-import io.debezium.postgres2lake.infrastructure.schema.CachedSchemaConverter;
 import io.debezium.postgres2lake.infrastructure.format.paimon.PaimonEventAppender;
 import io.debezium.postgres2lake.infrastructure.format.paimon.PaimonSchemaConverter;
 import io.debezium.postgres2lake.infrastructure.s3.exceptions.S3PaimonTableAccessException;
@@ -16,6 +15,7 @@ import org.apache.paimon.catalog.Catalog;
 import org.apache.paimon.catalog.CatalogContext;
 import org.apache.paimon.catalog.CatalogFactory;
 import org.apache.paimon.options.Options;
+import org.apache.paimon.schema.Schema;
 import org.jboss.logging.Logger;
 
 import java.util.ArrayList;
@@ -30,7 +30,10 @@ public class S3PaimonEventSaver extends AbstractEventSaver<PaimonEventAppender> 
     private final SchemaConverter<org.apache.paimon.schema.Schema> schemaConverter;
     private final SchemaDiffResolver schemaDiffResolver;
 
-    public S3PaimonEventSaver(PaimonConfiguration configuration) {
+    public S3PaimonEventSaver(
+            PaimonConfiguration configuration,
+            SchemaConverter<Schema> schemaConverter
+            ) {
         super(configuration.threshold());
 
         var config = new Configuration();
@@ -43,7 +46,7 @@ public class S3PaimonEventSaver extends AbstractEventSaver<PaimonEventAppender> 
         this.catalog = CatalogFactory.createCatalog(catalogContext);
 
         var innerSchemaConverter = new PaimonSchemaConverter();
-        this.schemaConverter = new CachedSchemaConverter<>(innerSchemaConverter);
+        this.schemaConverter = schemaConverter;
         this.tableDdl = new PaimonTableDdl(catalog, innerSchemaConverter);
         this.schemaDiffResolver = new SchemaDiffResolver();
     }
