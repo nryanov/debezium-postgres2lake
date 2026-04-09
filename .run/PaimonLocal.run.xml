@@ -1,10 +1,10 @@
 <component name="ProjectRunConfigurationManager">
   <configuration default="false" name="PaimonLocal" type="Application" factoryName="Application">
-    <option name="MAIN_CLASS_NAME" value="io.debezium.postgres2lake.bootstrap.Application" />
+    <option name="MAIN_CLASS_NAME" value="io.debezium.postgres2lake.paimon.bootstrap.Application" />
     <module name="debezium-postgres2lake.modules.paimon.main" />
     <extension name="coverage">
       <pattern>
-        <option name="PATTERN" value="io.debezium.postgres2lake.bootstrap.*" />
+        <option name="PATTERN" value="io.debezium.postgres2lake.paimon.bootstrap.*" />
         <option name="ENABLED" value="true" />
       </pattern>
     </extension>

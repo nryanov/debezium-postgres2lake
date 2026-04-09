@@ -64,7 +64,7 @@ public class MinioResource implements QuarkusTestResourceLifecycleManager {
                 properties.put("debezium.output.iceberg.properties.s3.access-key-id", MinioTestContainer.ACCESS_KEY);
                 properties.put("debezium.output.iceberg.properties.s3.secret-access-key", MinioTestContainer.SECRET_KEY);
                 properties.put("debezium.output.iceberg.properties.s3.path-style-access", "true");
-                properties.put("debezium.output.iceberg.properties.s3.client-factory-impl", "io.debezium.postgres2lake.infrastructure.format.iceberg.InstrumentedS3FileIOAwsClientFactory");
+                properties.put("debezium.output.iceberg.properties.s3.client-factory-impl", "io.debezium.postgres2lake.iceberg.infrastructure.format.iceberg.InstrumentedS3FileIOAwsClientFactory");
             }
             case "iceberg-hadoop" -> {
                 properties.put("debezium.output.iceberg.properties.type", "hadoop");
@@ -74,7 +74,7 @@ public class MinioResource implements QuarkusTestResourceLifecycleManager {
                 properties.put("debezium.output.iceberg.properties.s3.access-key-id", MinioTestContainer.ACCESS_KEY);
                 properties.put("debezium.output.iceberg.properties.s3.secret-access-key", MinioTestContainer.SECRET_KEY);
                 properties.put("debezium.output.iceberg.properties.s3.path-style-access", "true");
-                properties.put("debezium.output.iceberg.properties.s3.client-factory-impl", "io.debezium.postgres2lake.infrastructure.format.iceberg.InstrumentedS3FileIOAwsClientFactory");
+                properties.put("debezium.output.iceberg.properties.s3.client-factory-impl", "io.debezium.postgres2lake.iceberg.infrastructure.format.iceberg.InstrumentedS3FileIOAwsClientFactory");
             }
             case "paimon" -> {
                 properties.put("debezium.output.paimon.properties.warehouse", String.format("s3a://%s", bucket));
