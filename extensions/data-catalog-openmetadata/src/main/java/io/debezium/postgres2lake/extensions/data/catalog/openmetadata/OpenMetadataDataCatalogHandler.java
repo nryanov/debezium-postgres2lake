@@ -19,6 +19,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import static io.debezium.postgres2lake.extensions.data.catalog.api.DataCatalogPropertyReader.required;
 
@@ -39,11 +41,14 @@ import static io.debezium.postgres2lake.extensions.data.catalog.api.DataCatalogP
 public final class OpenMetadataDataCatalogHandler implements DataCatalogHandler {
     private final static Logger logger = LoggerFactory.getLogger(OpenMetadataDataCatalogHandler.class);
 
-    private volatile OpenMetadata gateway;
-    private volatile TablesApi tablesApi;
-    private volatile String databaseSchemaFqn;
+    private OpenMetadata gateway;
+    private TablesApi tablesApi;
+    private String databaseSchemaFqn;
+
+    private final ExecutorService executorService;
 
     public OpenMetadataDataCatalogHandler() {
+        executorService = Executors.newSingleThreadExecutor();
     }
 
     @Override
@@ -78,7 +83,12 @@ public final class OpenMetadataDataCatalogHandler implements DataCatalogHandler 
                 .columns(columns)
                 .tableType(CreateTable.TableTypeEnum.REGULAR);
 
-        tablesApi.createOrUpdateTable(body);
+        executorService.execute(() -> tablesApi.createOrUpdateTable(body));
+    }
+
+    @Override
+    public void close() {
+        executorService.close();
     }
 
     private Column mapToColumn(TableField field) {

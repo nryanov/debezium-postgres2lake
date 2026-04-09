@@ -22,4 +22,9 @@ public final class NoOpDataCatalogHandler implements DataCatalogHandler {
     public void createOrUpdateTable(TableDestination destination, TableSchema schema) {
         // no-op
     }
+
+    @Override
+    public void close() {
+        // no-op
+    }
 }

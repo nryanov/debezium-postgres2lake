@@ -18,4 +18,9 @@ public interface DataCatalogHandler {
      * idempotent (safe to call repeatedly with the same or evolved schema).
      */
     void createOrUpdateTable(TableDestination destination, TableSchema schema);
+
+    /**
+     * Close opened resources if any
+     */
+    void close();
 }

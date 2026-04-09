@@ -33,14 +33,12 @@ import io.debezium.postgres2lake.extensions.data.catalog.api.model.TableSchema;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
 
 import static io.debezium.postgres2lake.extensions.data.catalog.api.DataCatalogPropertyReader.required;
 import static io.debezium.postgres2lake.extensions.data.catalog.api.DataCatalogPropertyReader.optional;
@@ -62,9 +60,9 @@ import static io.debezium.postgres2lake.extensions.data.catalog.api.DataCatalogP
 public final class DataHubDataCatalogHandler implements DataCatalogHandler {
     private final static Logger logger = LoggerFactory.getLogger(DataHubDataCatalogHandler.class);
 
-    private volatile RestEmitter emitter;
-    private volatile DataPlatformUrn platform;
-    private volatile FabricType fabric;
+    private RestEmitter emitter;
+    private DataPlatformUrn platform;
+    private FabricType fabric;
 
     public DataHubDataCatalogHandler() {
     }
@@ -98,7 +96,7 @@ public final class DataHubDataCatalogHandler implements DataCatalogHandler {
         props.setName(destination.table());
         props.setQualifiedName(datasetName);
 
-        emit(mcpForDataset(urn, props));
+        emit(dataSetChangeProposal(urn, props));
 
         List<SchemaField> fields = new ArrayList<>();
         for (var field : schema.fields()) {
@@ -113,10 +111,19 @@ public final class DataHubDataCatalogHandler implements DataCatalogHandler {
         meta.setHash("");
         meta.setPlatformSchema(SchemaMetadata.PlatformSchema.create(new MySqlDDL().setTableSchema("")));
 
-        emit(mcpForDataset(urn, meta));
+        emit(dataSetChangeProposal(urn, meta));
     }
 
-    private static MetadataChangeProposalWrapper<?> mcpForDataset(DatasetUrn urn, RecordTemplate aspect) {
+    @Override
+    public void close() {
+        try {
+            emitter.close();
+        } catch (IOException e) {
+            logger.error("Error happened while closing emitter", e);
+        }
+    }
+
+    private MetadataChangeProposalWrapper<?> dataSetChangeProposal(DatasetUrn urn, RecordTemplate aspect) {
         return MetadataChangeProposalWrapper.builder()
                 .entityType("dataset")
                 .entityUrn(urn)
@@ -170,39 +177,21 @@ public final class DataHubDataCatalogHandler implements DataCatalogHandler {
         };
     }
 
-    // TODO: move to another thread
     private void emit(MetadataChangeProposalWrapper<?> mcp) {
-        AtomicReference<Throwable> failure = new AtomicReference<>();
-        CountDownLatch done = new CountDownLatch(1);
         try {
             emitter.emit(
                     mcp,
                     new Callback() {
                         @Override
-                        public void onCompletion(MetadataWriteResponse metadataWriteResponse) {
-                            done.countDown();
-                        }
+                        public void onCompletion(MetadataWriteResponse metadataWriteResponse) {}
 
                         @Override
-                        public void onFailure(Throwable throwable) {
-                            failure.set(throwable);
-                            done.countDown();
+                        public void onFailure(Throwable e) {
+                            logger.error("Error happened while emitting proposal change", e);
                         }
                     });
-        } catch (Exception e) {
-            throw new RuntimeException("DataHub emit failed", e);
-        }
-        try {
-            if (!done.await(60, TimeUnit.SECONDS)) {
-                throw new RuntimeException("DataHub emit timed out");
-            }
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new RuntimeException("DataHub emit interrupted", e);
-        }
-        Throwable t = failure.get();
-        if (t != null) {
-            throw new RuntimeException("DataHub rejected metadata change", t);
+        } catch (IOException e) {
+            logger.error("Error happened while emitting proposal change", e);
         }
     }
 }
