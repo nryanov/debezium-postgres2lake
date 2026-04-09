@@ -14,6 +14,7 @@ import org.openmetadata.schema.services.connections.metadata.AuthProvider;
 import org.openmetadata.schema.services.connections.metadata.OpenMetadataConnection;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
@@ -86,9 +87,13 @@ public final class OpenMetadataDataCatalogHandler implements DataCatalogHandler 
         column.name(field.name());
         column.constraint(mapToConstraint(field.type().constraint()));
         field.description().ifPresent(column::description);
+
+        mapToDataType(column, field.type());
+
+        return column;
     }
 
-    private Column.DataTypeEnum mapToDataType(Column column, TableColumnType type) {
+    private void mapToDataType(Column column, TableColumnType type) {
         switch (type) {
             case TableColumnType.PrimitiveColumnType p -> {
                 switch (p) {
@@ -112,58 +117,57 @@ public final class OpenMetadataDataCatalogHandler implements DataCatalogHandler 
                     case TableColumnType.TimestampTz v -> column.dataType(Column.DataTypeEnum.TIMESTAMPZ);
                     case TableColumnType.Uuid v -> column.dataType(Column.DataTypeEnum.UUID);
                 }
-
-                yield column;
             }
             case TableColumnType.ComplexColumnType c -> {
-                yield switch (c) {
+                switch (c) {
                     case TableColumnType.Array array -> {
-                        column.arrayDataType()
+                        column.setDataType(Column.DataTypeEnum.ARRAY);
+                        var elementColumn = new Column();
+                        mapToDataType(elementColumn, array.element());
+                        var arrayElementType = Column.ArrayDataTypeEnum.fromValue(elementColumn.getDataType().getValue());
+                        column.arrayDataType(arrayElementType);
                     }
-                    case TableColumnType.Map map -> {}
-                    case TableColumnType.Record record -> {}
-                };
+                    case TableColumnType.Map map -> {
+                        column.dataType(Column.DataTypeEnum.MAP);
+
+                        var key = new Column();
+                        key.name("key");
+                        key.ordinalPosition(1);
+                        key.constraint(Column.ConstraintEnum.NOT_NULL); // always not null
+                        mapToDataType(key, map.key());
+
+                        var value = new Column();
+                        value.name("value");
+                        value.ordinalPosition(2);
+                        value.constraint(mapToConstraint(map.value().constraint()));
+                        mapToDataType(value, map.value());
+
+                        column.children(List.of(key, value));
+                    }
+                    case TableColumnType.Record record -> {
+                        column.dataType(Column.DataTypeEnum.RECORD);
+
+                        var nestedColumns = new ArrayList<Column>();
+                        var ordinalPosition = 1;
+
+                        for (var nestedField : record.nestedFields()) {
+                            var nestedColumn = new Column();
+                            nestedColumn.name(nestedField.name());
+                            nestedColumn.constraint(mapToConstraint(nestedField.type().constraint()));
+                            nestedField.description().ifPresent(column::description);
+                            nestedColumn.ordinalPosition(ordinalPosition);
+
+                            mapToDataType(nestedColumn, nestedField.type());
+
+                            nestedColumns.add(nestedColumn);
+                            ordinalPosition++;
+                        }
+
+                        column.children(nestedColumns);
+                    }
+                }
             }
         }
-    }
-
-    private Column.ArrayDataTypeEnum mapToArrayDataType(Column column, TableColumnType type) {
-        switch (type) {
-            case TableColumnType.PrimitiveColumnType p -> {
-                switch (p) {
-                    case TableColumnType.Boolean v -> column.dataType(Column.DataTypeEnum.BOOLEAN);
-                    case TableColumnType.Bytes v -> column.dataType(Column.DataTypeEnum.BYTES);
-                    case TableColumnType.Date v -> column.dataType(Column.DataTypeEnum.DATE);
-                    case TableColumnType.Decimal v -> {
-                        column.dataType(Column.DataTypeEnum.DECIMAL);
-                        column.setScale(v.scale());
-                        column.setPrecision(v.precision());
-                    }
-                    case TableColumnType.Double v -> column.dataType(Column.DataTypeEnum.DOUBLE);
-                    case TableColumnType.Enum v -> column.dataType(Column.DataTypeEnum.ENUM);
-                    case TableColumnType.Fixed v -> column.dataType(Column.DataTypeEnum.FIXED);
-                    case TableColumnType.Float v -> column.dataType(Column.DataTypeEnum.FLOAT);
-                    case TableColumnType.Int v -> column.dataType(Column.DataTypeEnum.INT);
-                    case TableColumnType.Long v -> column.dataType(Column.DataTypeEnum.LONG);
-                    case TableColumnType.Text v -> column.dataType(Column.DataTypeEnum.TEXT);
-                    case TableColumnType.Time v -> column.dataType(Column.DataTypeEnum.TIME);
-                    case TableColumnType.Timestamp v -> column.dataType(Column.DataTypeEnum.TIMESTAMP);
-                    case TableColumnType.TimestampTz v -> column.dataType(Column.DataTypeEnum.TIMESTAMPZ);
-                    case TableColumnType.Uuid v -> column.dataType(Column.DataTypeEnum.UUID);
-                }
-
-                yield column;
-            }
-            case TableColumnType.ComplexColumnType c -> {
-                yield switch (c) {
-                    case TableColumnType.Array array -> {
-                        column.arrayDataType()
-                    }
-                    case TableColumnType.Map map -> {}
-                    case TableColumnType.Record record -> {}
-                };
-            }
-        };
     }
 
     private Column.ConstraintEnum mapToConstraint(TableColumnType.TableColumnConstraint constraint) {

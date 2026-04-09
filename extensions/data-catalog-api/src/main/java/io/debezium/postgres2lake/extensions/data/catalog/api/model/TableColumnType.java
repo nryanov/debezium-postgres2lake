@@ -44,7 +44,7 @@ public sealed interface TableColumnType permits TableColumnType.PrimitiveColumnT
 
     record Array(TableColumnConstraint constraint, TableColumnType element) implements ComplexColumnType {}
 
-    record Record(TableColumnConstraint constraint, PrimitiveColumnType key, List<TableField> nestedColumns) implements ComplexColumnType {}
+    record Record(TableColumnConstraint constraint, List<TableField> nestedFields) implements ComplexColumnType {}
 
     enum TableColumnConstraint {
         OPTIONAL, REQUIRED, PRIMARY_KEY
