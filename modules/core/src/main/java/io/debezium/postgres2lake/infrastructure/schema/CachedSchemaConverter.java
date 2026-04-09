@@ -26,4 +26,9 @@ public class CachedSchemaConverter<T> implements SchemaConverter<T> {
 
         return cachedSchema;
     }
+
+    @Override
+    public boolean isNewSchema(EventRecord event) {
+        return cache.containsKey(event.valueSchema());
+    }
 }

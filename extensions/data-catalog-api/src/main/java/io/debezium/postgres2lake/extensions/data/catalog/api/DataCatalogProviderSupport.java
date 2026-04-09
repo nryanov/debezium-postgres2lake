@@ -12,7 +12,7 @@ import java.util.ServiceLoader;
  */
 public final class DataCatalogProviderSupport {
 
-    private DataCatalogProviderSupport() {
+    public DataCatalogProviderSupport() {
     }
 
     /**
