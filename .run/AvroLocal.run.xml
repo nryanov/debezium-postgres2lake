@@ -1,10 +1,10 @@
 <component name="ProjectRunConfigurationManager">
   <configuration default="false" name="AvroLocal" type="Application" factoryName="Application">
-    <option name="MAIN_CLASS_NAME" value="io.debezium.postgres2lake.bootstrap.Application" />
+    <option name="MAIN_CLASS_NAME" value="io.debezium.postgres2lake.avro.bootstrap.Application" />
     <module name="debezium-postgres2lake.modules.avro.main" />
     <extension name="coverage">
       <pattern>
-        <option name="PATTERN" value="io.debezium.postgres2lake.bootstrap.*" />
+        <option name="PATTERN" value="io.debezium.postgres2lake.avro.bootstrap.*" />
         <option name="ENABLED" value="true" />
       </pattern>
     </extension>
