@@ -28,6 +28,10 @@ include(
     "modules:test-fixtures:postgres",
     "modules:test-fixtures:schema-registry",
     "modules:test-fixtures:nessie",
+    // extensions
+    "extensions:data-catalog-api",
+    "extensions:data-catalog-openmetadata",
+    "extensions:data-catalog-datahub",
 )
 
 project(":modules").projectDir = file("modules")
@@ -48,3 +52,8 @@ project(":modules:test-fixtures:s3").projectDir = file("modules/test-fixtures/s3
 project(":modules:test-fixtures:postgres").projectDir = file("modules/test-fixtures/postgres")
 project(":modules:test-fixtures:schema-registry").projectDir = file("modules/test-fixtures/schema-registry")
 project(":modules:test-fixtures:nessie").projectDir = file("modules/test-fixtures/nessie")
+
+project(":extensions").projectDir = file("extensions")
+project(":extensions:data-catalog-api").projectDir = file("extensions/data-catalog-api")
+project(":extensions:data-catalog-openmetadata").projectDir = file("extensions/data-catalog-openmetadata")
+project(":extensions:data-catalog-datahub").projectDir = file("extensions/data-catalog-datahub")

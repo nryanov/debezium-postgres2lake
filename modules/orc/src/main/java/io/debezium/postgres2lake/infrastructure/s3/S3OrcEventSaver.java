@@ -2,9 +2,7 @@ package io.debezium.postgres2lake.infrastructure.s3;
 
 import io.debezium.postgres2lake.domain.SchemaConverter;
 import io.debezium.postgres2lake.domain.model.EventRecord;
-import io.debezium.postgres2lake.infrastructure.schema.CachedSchemaConverter;
 import io.debezium.postgres2lake.infrastructure.format.orc.OrcEventAppender;
-import io.debezium.postgres2lake.infrastructure.format.orc.OrcSchemaConverter;
 import io.debezium.postgres2lake.infrastructure.s3.exceptions.S3WriterOpenException;
 import io.debezium.postgres2lake.infrastructure.format.orc.OrcCompressionCodec;
 import io.debezium.postgres2lake.infrastructure.format.orc.OrcTableWriter;
@@ -33,14 +31,15 @@ public class S3OrcEventSaver extends AbstractEventSaver<OrcEventAppender> {
             CommonConfiguration.Threshold threshold,
             OutputLocationGenerator outputLocationGenerator,
             CommonConfiguration.FileIO fileIO,
-            OrcCompressionCodec codec
+            OrcCompressionCodec codec,
+            SchemaConverter<TypeDescription> schemaConverter
     ) {
         super(threshold);
 
         this.outputLocationGenerator = outputLocationGenerator;
         this.fileIO = fileIO;
         this.codec = codec;
-        this.schemaConverter = new CachedSchemaConverter<>(new OrcSchemaConverter());
+        this.schemaConverter = schemaConverter;
     }
 
     @Override
