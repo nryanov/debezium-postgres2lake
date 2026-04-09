@@ -8,6 +8,7 @@ orc = "2.2.2" # todo: return to 1.9.8?
 confluent = "8.1.1"
 awssdk = "2.41.24"
 hadoop = "3.4.1"
+slf4j = "2.0.17"
 # test dependencies
 junit = "5.12.2"
 testcontsiners = "1.21.4"
@@ -27,6 +28,8 @@ parquet-avro = { group = "org.apache.parquet", name = "parquet-avro", version.re
 confluent-avro = { group = "io.confluent", name = "kafka-connect-avro-converter", version.ref = "confluent" }
 confluent-avro-serializer = { group = "io.confluent", name = "kafka-avro-serializer", version.ref = "confluent" }
 orc-core = { group = "org.apache.orc", name = "orc-core", version.ref = "orc" }
+
+slf4j = { group = "org.slf4j", name = "slf4j-api", version.ref = "slf4j" }
 
 # paimon
 paimon-core = { group = "org.apache.paimon", name = "paimon-core", version.ref = "paimon" }

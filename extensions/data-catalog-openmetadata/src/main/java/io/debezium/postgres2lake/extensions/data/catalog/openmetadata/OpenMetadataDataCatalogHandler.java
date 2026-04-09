@@ -12,6 +12,8 @@ import org.openmetadata.client.model.CreateTable;
 import org.openmetadata.schema.security.client.OpenMetadataJWTClientConfig;
 import org.openmetadata.schema.services.connections.metadata.AuthProvider;
 import org.openmetadata.schema.services.connections.metadata.OpenMetadataConnection;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -35,6 +37,7 @@ import static io.debezium.postgres2lake.extensions.data.catalog.api.DataCatalogP
  * </ul>
  */
 public final class OpenMetadataDataCatalogHandler implements DataCatalogHandler {
+    private final static Logger logger = LoggerFactory.getLogger(OpenMetadataDataCatalogHandler.class);
 
     private volatile OpenMetadata gateway;
     private volatile TablesApi tablesApi;
@@ -93,25 +96,25 @@ public final class OpenMetadataDataCatalogHandler implements DataCatalogHandler 
         switch (type) {
             case TableColumnType.PrimitiveColumnType p -> {
                 switch (p) {
-                    case TableColumnType.Boolean v -> column.dataType(Column.DataTypeEnum.BOOLEAN);
-                    case TableColumnType.Bytes v -> column.dataType(Column.DataTypeEnum.BYTES);
-                    case TableColumnType.Date v -> column.dataType(Column.DataTypeEnum.DATE);
+                    case TableColumnType.Boolean ignored -> column.dataType(Column.DataTypeEnum.BOOLEAN);
+                    case TableColumnType.Bytes ignored -> column.dataType(Column.DataTypeEnum.BYTES);
+                    case TableColumnType.Date ignored -> column.dataType(Column.DataTypeEnum.DATE);
                     case TableColumnType.Decimal v -> {
                         column.dataType(Column.DataTypeEnum.DECIMAL);
                         column.setScale(v.scale());
                         column.setPrecision(v.precision());
                     }
-                    case TableColumnType.Double v -> column.dataType(Column.DataTypeEnum.DOUBLE);
-                    case TableColumnType.Enum v -> column.dataType(Column.DataTypeEnum.ENUM);
-                    case TableColumnType.Fixed v -> column.dataType(Column.DataTypeEnum.FIXED);
-                    case TableColumnType.Float v -> column.dataType(Column.DataTypeEnum.FLOAT);
-                    case TableColumnType.Int v -> column.dataType(Column.DataTypeEnum.INT);
-                    case TableColumnType.Long v -> column.dataType(Column.DataTypeEnum.LONG);
-                    case TableColumnType.Text v -> column.dataType(Column.DataTypeEnum.TEXT);
-                    case TableColumnType.Time v -> column.dataType(Column.DataTypeEnum.TIME);
-                    case TableColumnType.Timestamp v -> column.dataType(Column.DataTypeEnum.TIMESTAMP);
-                    case TableColumnType.TimestampTz v -> column.dataType(Column.DataTypeEnum.TIMESTAMPZ);
-                    case TableColumnType.Uuid v -> column.dataType(Column.DataTypeEnum.UUID);
+                    case TableColumnType.Double ignored -> column.dataType(Column.DataTypeEnum.DOUBLE);
+                    case TableColumnType.Enum ignored -> column.dataType(Column.DataTypeEnum.ENUM);
+                    case TableColumnType.Fixed ignored -> column.dataType(Column.DataTypeEnum.FIXED);
+                    case TableColumnType.Float ignored -> column.dataType(Column.DataTypeEnum.FLOAT);
+                    case TableColumnType.Int ignored -> column.dataType(Column.DataTypeEnum.INT);
+                    case TableColumnType.Long ignored -> column.dataType(Column.DataTypeEnum.LONG);
+                    case TableColumnType.Text ignored -> column.dataType(Column.DataTypeEnum.TEXT);
+                    case TableColumnType.Time ignored -> column.dataType(Column.DataTypeEnum.TIME);
+                    case TableColumnType.Timestamp ignored -> column.dataType(Column.DataTypeEnum.TIMESTAMP);
+                    case TableColumnType.TimestampTz ignored -> column.dataType(Column.DataTypeEnum.TIMESTAMPZ);
+                    case TableColumnType.Uuid ignored -> column.dataType(Column.DataTypeEnum.UUID);
                 }
             }
             case TableColumnType.ComplexColumnType c -> {

@@ -30,6 +30,8 @@ import io.debezium.postgres2lake.extensions.data.catalog.api.model.TableColumnTy
 import io.debezium.postgres2lake.extensions.data.catalog.api.model.TableDestination;
 import io.debezium.postgres2lake.extensions.data.catalog.api.model.TableField;
 import io.debezium.postgres2lake.extensions.data.catalog.api.model.TableSchema;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -54,9 +56,11 @@ import static io.debezium.postgres2lake.extensions.data.catalog.api.DataCatalogP
  * <ul>
  *   <li>{@code datahub.token} — bearer token for authenticated GMS</li>
  *   <li>{@code datahub.fabric} — {@link FabricType} name (default {@code PROD})</li>
+ *   <li>{@code datahub.platform} — platform name (default {@code postgres})</li>
  * </ul>
  */
 public final class DataHubDataCatalogHandler implements DataCatalogHandler {
+    private final static Logger logger = LoggerFactory.getLogger(DataHubDataCatalogHandler.class);
 
     private volatile RestEmitter emitter;
     private volatile DataPlatformUrn platform;
@@ -71,9 +75,10 @@ public final class DataHubDataCatalogHandler implements DataCatalogHandler {
 
         var server = required(properties, "datahub.server");
         var token = optional(properties, "datahub.token", "");
+        var platformName = optional(properties, "datahub.platform", "postgres");
         var fabricKey = optional(properties, "datahub.fabric", "PROD").toUpperCase(Locale.ROOT);
 
-        this.platform = new DataPlatformUrn("postgres");
+        this.platform = new DataPlatformUrn(platformName);
         this.fabric = FabricType.valueOf(fabricKey);
 
         this.emitter = RestEmitter.create(builder -> {
