@@ -1,5 +1,6 @@
 package io.debezium.postgres2lake.paimon.config;
 
+import io.debezium.postgres2lake.core.config.CommonConfiguration;
 import io.smallrye.config.ConfigMapping;
 
 import java.util.Map;

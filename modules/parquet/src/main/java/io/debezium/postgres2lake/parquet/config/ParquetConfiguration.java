@@ -1,5 +1,6 @@
 package io.debezium.postgres2lake.parquet.config;
 
+import io.debezium.postgres2lake.core.config.CommonConfiguration;
 import io.debezium.postgres2lake.parquet.infrastructure.format.parquet.ParquetCompressionCodec;
 import io.smallrye.config.ConfigMapping;
 

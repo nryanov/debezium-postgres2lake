@@ -1,6 +1,7 @@
 package io.debezium.postgres2lake.avro.config;
 
 import io.debezium.postgres2lake.avro.infrastructure.format.avro.AvroCompressionCodec;
+import io.debezium.postgres2lake.core.config.CommonConfiguration;
 import io.smallrye.config.ConfigMapping;
 
 import java.util.Optional;

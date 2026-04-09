@@ -1,5 +1,6 @@
 package io.debezium.postgres2lake.orc.config;
 
+import io.debezium.postgres2lake.core.config.CommonConfiguration;
 import io.debezium.postgres2lake.orc.infrastructure.format.orc.OrcCompressionCodec;
 import io.smallrye.config.ConfigMapping;
 
