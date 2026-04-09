@@ -141,26 +141,26 @@ public final class DataHubDataCatalogHandler implements DataCatalogHandler {
     private SchemaFieldDataType mapToSchemaFieldType(TableColumnType type) {
         return switch (type) {
             case TableColumnType.PrimitiveColumnType p -> switch (p) {
-                    case TableColumnType.Boolean v -> new SchemaFieldDataType().setType(SchemaFieldDataType.Type.create(new BooleanType()));
-                    case TableColumnType.Bytes v -> new SchemaFieldDataType().setType(SchemaFieldDataType.Type.create(new BytesType()));
-                    case TableColumnType.Date v -> new SchemaFieldDataType().setType(SchemaFieldDataType.Type.create(new DateType()));
-                    case TableColumnType.Decimal v -> new SchemaFieldDataType().setType(SchemaFieldDataType.Type.create(new NumberType()));
-                    case TableColumnType.Double v -> new SchemaFieldDataType().setType(SchemaFieldDataType.Type.create(new NumberType()));
-                    case TableColumnType.Enum v -> new SchemaFieldDataType().setType(SchemaFieldDataType.Type.create(new EnumType()));
-                    case TableColumnType.Fixed v -> new SchemaFieldDataType().setType(SchemaFieldDataType.Type.create(new FixedType()));
-                    case TableColumnType.Float v -> new SchemaFieldDataType().setType(SchemaFieldDataType.Type.create(new NumberType()));
-                    case TableColumnType.Int v -> new SchemaFieldDataType().setType(SchemaFieldDataType.Type.create(new NumberType()));
-                    case TableColumnType.Long v -> new SchemaFieldDataType().setType(SchemaFieldDataType.Type.create(new NumberType()));
-                    case TableColumnType.Text v -> new SchemaFieldDataType().setType(SchemaFieldDataType.Type.create(new StringType()));
-                    case TableColumnType.Time v -> new SchemaFieldDataType().setType(SchemaFieldDataType.Type.create(new TimeType()));
-                    case TableColumnType.Timestamp v -> new SchemaFieldDataType().setType(SchemaFieldDataType.Type.create(new TimeType()));
-                    case TableColumnType.TimestampTz v -> new SchemaFieldDataType().setType(SchemaFieldDataType.Type.create(new TimeType()));
-                    case TableColumnType.Uuid v -> new SchemaFieldDataType().setType(SchemaFieldDataType.Type.create(new StringType()));
+                    case TableColumnType.Boolean ignored -> new SchemaFieldDataType().setType(SchemaFieldDataType.Type.create(new BooleanType()));
+                    case TableColumnType.Bytes ignored -> new SchemaFieldDataType().setType(SchemaFieldDataType.Type.create(new BytesType()));
+                    case TableColumnType.Date ignored -> new SchemaFieldDataType().setType(SchemaFieldDataType.Type.create(new DateType()));
+                    case TableColumnType.Decimal ignored -> new SchemaFieldDataType().setType(SchemaFieldDataType.Type.create(new NumberType()));
+                    case TableColumnType.Double ignored -> new SchemaFieldDataType().setType(SchemaFieldDataType.Type.create(new NumberType()));
+                    case TableColumnType.Enum ignored -> new SchemaFieldDataType().setType(SchemaFieldDataType.Type.create(new EnumType()));
+                    case TableColumnType.Fixed ignored -> new SchemaFieldDataType().setType(SchemaFieldDataType.Type.create(new FixedType()));
+                    case TableColumnType.Float ignored -> new SchemaFieldDataType().setType(SchemaFieldDataType.Type.create(new NumberType()));
+                    case TableColumnType.Int ignored -> new SchemaFieldDataType().setType(SchemaFieldDataType.Type.create(new NumberType()));
+                    case TableColumnType.Long ignored -> new SchemaFieldDataType().setType(SchemaFieldDataType.Type.create(new NumberType()));
+                    case TableColumnType.Text ignored -> new SchemaFieldDataType().setType(SchemaFieldDataType.Type.create(new StringType()));
+                    case TableColumnType.Time ignored -> new SchemaFieldDataType().setType(SchemaFieldDataType.Type.create(new TimeType()));
+                    case TableColumnType.Timestamp ignored -> new SchemaFieldDataType().setType(SchemaFieldDataType.Type.create(new TimeType()));
+                    case TableColumnType.TimestampTz ignored -> new SchemaFieldDataType().setType(SchemaFieldDataType.Type.create(new TimeType()));
+                    case TableColumnType.Uuid ignored -> new SchemaFieldDataType().setType(SchemaFieldDataType.Type.create(new StringType()));
             };
             case TableColumnType.ComplexColumnType c -> switch (c) {
-                case TableColumnType.Array array -> new SchemaFieldDataType().setType(SchemaFieldDataType.Type.create(new ArrayType()));
-                case TableColumnType.Map map -> new SchemaFieldDataType().setType(SchemaFieldDataType.Type.create(new MapType()));
-                case TableColumnType.Record record -> new SchemaFieldDataType().setType(SchemaFieldDataType.Type.create(new RecordType()));
+                case TableColumnType.Array ignored -> new SchemaFieldDataType().setType(SchemaFieldDataType.Type.create(new ArrayType()));
+                case TableColumnType.Map ignored -> new SchemaFieldDataType().setType(SchemaFieldDataType.Type.create(new MapType()));
+                case TableColumnType.Record ignored -> new SchemaFieldDataType().setType(SchemaFieldDataType.Type.create(new RecordType()));
             };
         };
     }
