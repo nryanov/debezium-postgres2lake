@@ -1,5 +1,8 @@
 package io.debezium.postgres2lake.paimon.test.helper;
 
+import io.debezium.postgres2lake.test.helper.MinioHelper;
+import io.debezium.postgres2lake.test.helper.PostgresHelper;
+import io.debezium.postgres2lake.test.helper.TypeUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.paimon.catalog.Catalog;
 import org.apache.paimon.catalog.CatalogContext;

@@ -1,5 +1,8 @@
 package io.debezium.postgres2lake.iceberg.test.helper;
 
+import io.debezium.postgres2lake.test.helper.MinioHelper;
+import io.debezium.postgres2lake.test.helper.NessieHelper;
+import io.debezium.postgres2lake.test.helper.PostgresHelper;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.iceberg.CatalogUtil;
 import org.apache.iceberg.Table;
@@ -22,7 +25,7 @@ public class IcebergHelper {
         this.catalog = CatalogUtil.buildIcebergCatalog(CATALOG_NAME, new HashMap<>(catalogProperties), hadoopConfiguration);
     }
 
-    public static IcebergHelper jdbc(String warehouse,PostgresHelper postgresHelper, MinioHelper minioHelper) {
+    public static IcebergHelper jdbc(String warehouse, PostgresHelper postgresHelper, MinioHelper minioHelper) {
         var props = new HashMap<String, String>();
         props.put("type", "jdbc");
         props.put("uri", postgresHelper.jdbcUrl());
