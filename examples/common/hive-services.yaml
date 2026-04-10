@@ -17,7 +17,7 @@ services:
       - postgres_hms_data:/var/lib/postgresql/data
 
   hive-metastore:
-    image: apache/hive:4.0.1
+    image: apache/hive:4.0.0
     hostname: hive-metastore
     depends_on:
       postgres-hms:
@@ -46,6 +46,7 @@ services:
       - ./ext-jars/postgresql-42.7.4.jar:/opt/hive/lib/postgresql-42.7.4.jar:ro
       - ./ext-jars/hadoop-aws-3.3.6.jar:/opt/hive/lib/hadoop-aws-3.3.6.jar:ro
       - ./ext-jars/aws-java-sdk-bundle-1.12.367.jar:/opt/hive/lib/aws-java-sdk-bundle-1.12.367.jar:ro
+      - ./hms/hive-site.xml:/opt/hive/conf/hive-site.xml
     healthcheck:
       test: ["CMD-SHELL", "bash -c 'exec 3<>/dev/tcp/127.0.0.1/9083'"]
       interval: 15s
