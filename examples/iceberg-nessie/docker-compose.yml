@@ -1,0 +1,28 @@
+name: debezium-examples-iceberg-nessie
+
+include:
+  - path: ../common/base-compose.yaml
+
+services:
+  nessie:
+    image: ghcr.io/projectnessie/nessie:0.104.3
+    ports:
+      - "19120:19120"
+
+  app:
+    image: local/debezium-postgres2lake-iceberg:${IMAGE_TAG:-0.1.0}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      liquibase:
+        condition: service_completed_successfully
+      schema-registry:
+        condition: service_started
+      mc:
+        condition: service_started
+      nessie:
+        condition: service_started
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./config/application.properties:/work/config/application.properties:ro

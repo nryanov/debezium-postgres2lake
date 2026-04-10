@@ -22,6 +22,13 @@ dependencies {
     implementation("org.apache.iceberg:iceberg-nessie")
     implementation("org.apache.iceberg:iceberg-hive-metastore")
 
+    implementation("org.apache.hive:hive-metastore:2.3.10") {
+        exclude(group = "org.slf4j", module = "slf4j-api")
+        exclude(group = "asm")
+        exclude(group = "org.ow2.asm", module = "asm-all")
+        exclude(group = "org.apache.logging.log4j")
+    }
+
     testImplementation(testFixtures(project(":modules:test-fixtures:common")))
     testImplementation(testFixtures(project(":modules:test-fixtures:s3")))
     testImplementation(testFixtures(project(":modules:test-fixtures:postgres")))

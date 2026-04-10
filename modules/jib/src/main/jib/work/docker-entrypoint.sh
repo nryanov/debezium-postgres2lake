@@ -13,5 +13,5 @@ exec java \
   --add-opens java.base/sun.security.action=ALL-UNNAMED \
   -Djava.util.logging.manager=org.jboss.logmanager.LogManager \
   ${JVM_OPTS-} \
-  -jar quarkus-run.jar \
+  -jar /home/jboss/quarkus-run.jar \
   "$@"
