@@ -23,6 +23,13 @@ Docker Compose stacks that run **debezium-postgres2lake** against **PostgreSQL**
    ```bash
    pip install -r examples/common/requirements-python.txt
    ```
+   
+3.1. **Python** venv
+```shell
+python3 -m venv stash/venv
+source stash/venv/bin/activate
+python3 -m pip install -r examples/common/requirements-python.txt
+```
 
 ## Layout
 
