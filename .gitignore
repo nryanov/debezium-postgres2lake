@@ -11,3 +11,6 @@ modules/orc/src/main/jib/
 modules/parquet/src/main/jib/
 modules/iceberg/src/main/jib/
 modules/paimon/src/main/jib/
+
+# Fetched for Hive Metastore in examples (run examples/common/fetch-jars.sh)
+examples/common/ext-jars/*.jar

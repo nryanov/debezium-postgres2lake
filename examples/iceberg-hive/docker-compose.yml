@@ -1,0 +1,24 @@
+name: debezium-examples-iceberg-hive
+
+include:
+  - path: ../common/base-compose.yaml
+  - path: ../common/hive-services.yaml
+
+services:
+  app:
+    image: local/debezium-postgres2lake-iceberg:${IMAGE_TAG:-0.1.0}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      liquibase:
+        condition: service_completed_successfully
+      schema-registry:
+        condition: service_started
+      mc:
+        condition: service_started
+      hive-metastore:
+        condition: service_healthy
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./config/application.properties:/work/config/application.properties:ro

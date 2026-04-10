@@ -1,0 +1,2 @@
+-- Paimon + Hive catalog: database `postgres_public`, table `demo_orders`.
+-- Query via Flink or Trino + Paimon connector (see development/setup.md).

@@ -1,0 +1,78 @@
+# Shared stack: MinIO, Postgres (source + catalog DBs), Liquibase, Apicurio.
+# Paths in this file are resolved relative to this file (examples/common/).
+
+services:
+  minio:
+    image: minio/minio:RELEASE.2025-02-28T09-55-16Z
+    environment:
+      MINIO_ROOT_USER: admin
+      MINIO_ROOT_PASSWORD: password
+      MINIO_DOMAIN: minio
+    ports:
+      - "9001:9001"
+      - "9000:9000"
+    command: ["server", "/data", "--console-address", ":9001"]
+
+  mc:
+    depends_on:
+      - minio
+    image: minio/minio:RELEASE.2025-02-28T09-55-16Z
+    entrypoint: >
+      /bin/sh -c "
+      until (/usr/bin/mc config host add minio http://minio:9000 admin password) do echo '...waiting...' && sleep 1; done;
+      /usr/bin/mc mb -p minio/warehouse;
+      /usr/bin/mc policy set public minio/warehouse;
+      tail -f /dev/null
+      "
+
+  postgres:
+    image: postgres:17
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 15
+      start_period: 15s
+    environment:
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_USER: postgres
+      POSTGRES_DB: postgres
+    command:
+      - "postgres"
+      - "-c"
+      - "wal_level=logical"
+      - "-c"
+      - "max_wal_senders=5"
+      - "-c"
+      - "max_replication_slots=5"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./postgres-init:/docker-entrypoint-initdb.d:ro
+
+  liquibase:
+    image: liquibase/liquibase:4.32
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command:
+      - update
+    environment:
+      LIQUIBASE_COMMAND_CHANGELOG_FILE: changelog.sql
+      LIQUIBASE_COMMAND_DRIVER: org.postgresql.Driver
+      LIQUIBASE_COMMAND_URL: jdbc:postgresql://postgres:5432/postgres
+      LIQUIBASE_COMMAND_USERNAME: postgres
+      LIQUIBASE_COMMAND_PASSWORD: postgres
+      LIQUIBASE_COMMAND_DEFAULT_SCHEMA_NAME: public
+      LIQUIBASE_SEARCH_PATH: /liquibase/changelog
+    volumes:
+      - ./liquibase/pg:/liquibase/changelog
+
+  schema-registry:
+    image: apicurio/apicurio-registry:3.0.9
+    ports:
+      - "8080:8080"
+
+volumes:
+  postgres_data:
