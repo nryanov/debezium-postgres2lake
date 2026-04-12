@@ -12,24 +12,41 @@ Docker Compose stacks that run **debezium-postgres2lake** against **PostgreSQL**
 
    Images are tagged as `local/debezium-postgres2lake-<format>:<version>` (default tag matches the Gradle project version, e.g. `0.1.0`). Override with `IMAGE_TAG` in the environment if you build with a custom tag.
 
-2. **Hive-based examples** (`iceberg-hive`, `paimon-hive`) — JDBC driver for the Hive Metastore container:
+2. **Jupyter image** — the shared Compose file starts a `jupyter` service that uses a **local** image not produced by `build-container-images.sh`. Build it once from the repository root:
+
+   ```bash
+   docker build -t local/jupyter-spark:0.1.0 -f examples/common/jupyter/Dockerfile examples/common/jupyter
+   ```
+
+   The [Dockerfile](common/jupyter/Dockerfile) extends `quay.io/jupyter/pyspark-notebook` (Spark 4.1.x) and adds **psycopg**, **PyIceberg** (with Postgres/Hive extras), PostgreSQL and Hadoop **S3A** jars on Spark’s classpath, **Spark Avro**, and Iceberg/Paimon Spark runtime JARs under `/home/jovyan/extra-jars/`.
+
+   App images honor `IMAGE_TAG`; the Jupyter service is pinned to `local/jupyter-spark:0.1.0` in [common/base-compose.yaml](common/base-compose.yaml). Use that tag when building, or change the image reference in `base-compose.yaml` to match your tag.
+
+3. **Hive-based examples** (`iceberg-hive`, `paimon-hive`) — JDBC driver for the Hive Metastore container:
 
    ```bash
    bash examples/common/fetch-jars.sh
    ```
 
-3. **Python** (load generator and notebooks):
+### Python scripts: fetch, generate, read
 
-   ```bash
-   pip install -r examples/common/requirements-python.txt
-   ```
-   
-3.1. **Python** venv
-```shell
-python3 -m venv stash/venv
-source stash/venv/bin/activate
-python3 -m pip install -r examples/common/requirements-python.txt
+Scripts live under [common/python-scripts/](common/python-scripts/). Several use Compose **service hostnames** (`postgres`, `minio`, `hive-metastore`), so run them **on the Compose network** (for example from the `jupyter` container after copying or bind-mounting the directory), or change the connection URLs to `localhost` and exposed ports when running on the host.
+
+| Purpose                               | How                                                                                                                                                                                        |
+|---------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| JDBC/S3A jars for Hive Metastore      | `bash examples/common/fetch-jars.sh` — writes under `common/ext-jars/` (see prerequisite 3).                                                                                               |
+| Generate CDC source traffic           | [generate_data.py](common/python-scripts/generate_data.py) inserts batches into `public.demo_orders` via psycopg. Tune `batchesCount`, `batchSize`, and `interval` at the top of the file. |
+| Read Avro on MinIO (Spark)            | [read_avro.py](common/python-scripts/read_avro.py) — local Spark, `s3a://` against MinIO.                                                                                                  |
+| Read Iceberg via Hive catalog (Spark) | [read_iceberg_hive.py](common/python-scripts/read_iceberg_hive.py) — needs the **iceberg-hive** stack (Hive Metastore + Iceberg).                                                          |
+
+Example: with a stack up from an example directory, copy scripts into the Jupyter container and run (the image already includes psycopg and Spark):
+
+```bash
+docker compose cp ../common/python-scripts/generate_data.py jupyter:/tmp/generate_data.py
+docker compose exec jupyter python /tmp/generate_data.py
 ```
+
+Use the same pattern for `read_avro.py` or `read_iceberg_hive.py` (paths under `/tmp/` or another directory inside the container).
 
 ## Layout
 
@@ -44,7 +61,7 @@ python3 -m pip install -r examples/common/requirements-python.txt
 | [parquet](parquet/)               | `debezium-postgres2lake-parquet` | Same layout, Parquet                                               |
 | [orc](orc/)                       | `debezium-postgres2lake-orc`     | Same layout, ORC                                                   |
 
-Shared Compose fragments live under [common](common/) (`base-compose.yaml`, `hive-services.yaml`, Liquibase changelog, `scripts/generate_events.py`).
+Shared Compose fragments live under [common](common/) (`base-compose.yaml`, `hive-services.yaml`, Liquibase changelog, [python-scripts/](common/python-scripts/)).
 
 ## Run an example
 
@@ -53,32 +70,18 @@ cd examples/iceberg-jdbc   # or any other example directory
 docker compose up -d
 ```
 
-Wait until `liquibase` has finished and the **app** container is healthy. Then generate CDC traffic (from the same example directory):
+Wait until `liquibase` has finished and the **app** container is healthy. Then generate CDC traffic using [common/python-scripts/generate_data.py](common/python-scripts/generate_data.py) on the Compose network (see **Python scripts** above). For example:
 
 ```bash
-./scripts/load.sh --batches 5 --batch-size 2
+docker compose cp ../common/python-scripts/generate_data.py jupyter:/tmp/generate_data.py
+docker compose exec jupyter python /tmp/generate_data.py
 ```
 
-`load.sh` inserts into `public.demo_orders` on the source database. With `debezium.engine.snapshot.mode=NO_DATA`, only **new** rows are streamed.
+Adjust `batchesCount`, `batchSize`, and `interval` in the script to control load. With `debezium.engine.snapshot.mode=NO_DATA`, only **new** rows are streamed.
 
 ### Iceberg / Paimon table naming
 
-Lake tables use database name **`postgres_public`** and table **`demo_orders`** (Debezium destination encoding in the application).
-
-### Notebooks
-
-- **Iceberg** (`iceberg-* / notebooks/query.ipynb`): PyIceberg against **localhost** ports (catalog DB, MinIO, Nessie, or HMS as appropriate).
-- **Paimon** (`paimon-* / notebooks/minio_layout.ipynb`): lists MinIO keys as a lightweight check.
-- **Avro / ORC**: list objects under the warehouse prefix.
-- **Parquet**: list and read a file with PyArrow.
-
-### Fresh data directory
-
-Postgres and Hive Metastore state are in Docker volumes. To reset:
-
-```bash
-docker compose down -v
-```
+Lake tables use database name **`default_public`** and table **`demo_orders`** (Debezium destination encoding in the application).
 
 ## Compose version
 
