@@ -48,7 +48,6 @@ services:
       - "-c"
       - "max_replication_slots=5"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
       - ./postgres-init:/docker-entrypoint-initdb.d:ro
 
   liquibase:
@@ -74,5 +73,10 @@ services:
     ports:
       - "8080:8080"
 
-volumes:
-  postgres_data:
+  jupyter:
+    image: local/jupyter-spark:0.1.0
+    ports:
+      - "8888:8888"
+      - "4040:4040"
+    environment:
+      AWS_REGION: "none"
