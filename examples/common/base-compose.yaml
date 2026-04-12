@@ -75,7 +75,7 @@ services:
       - "8080:8080"
 
   jupyter:
-    image: quay.io/jupyter/pyspark-notebook:spark-4.1.1
+    image: local/jupyter-spark:0.1.0
     ports:
       - "8888:8888"
       - "4040:4040"
