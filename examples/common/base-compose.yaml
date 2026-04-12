@@ -74,5 +74,11 @@ services:
     ports:
       - "8080:8080"
 
+  jupyter:
+    image: quay.io/jupyter/pyspark-notebook:spark-4.1.1
+    ports:
+      - "8888:8888"
+      - "4040:4040"
+
 volumes:
   postgres_data:

@@ -1,5 +1,0 @@
--- Paimon tables created by this app use database name `postgres_public` and table `demo_orders`
--- (see PaimonTableDdl in the main codebase).
---
--- Interactive SQL is typically run through Apache Flink or a Trino deployment with the Paimon connector.
--- A snapshot plugin link is noted in development/setup.md under "Trino".

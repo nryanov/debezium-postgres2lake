@@ -83,7 +83,3 @@ docker compose down -v
 ## Compose version
 
 Examples use YAML **`include:`** (Docker Compose **v2.20+**). Upgrade Docker Desktop / Compose if `include` is not supported.
-
-## Hive Metastore restarts
-
-The `apache/hive:3.1.3` entrypoint runs schema initialization when `IS_RESUME` is not `true`. On a **second** `docker compose up` with the same `postgres_hms_data` volume, initialization can fail if the schema already exists. Either remove that volume (`docker compose down -v` or delete only the HMS volume), or add a local override for `hive-metastore` with `environment: { IS_RESUME: "true" }` after the first successful start.
