@@ -29,6 +29,8 @@ dependencies {
 
     api("io.quarkus.arc:arc")
     api("io.quarkus:quarkus-core")
+    api("io.quarkus:quarkus-config-yaml")
+    api("io.quarkus:quarkus-logging-json")
     api("io.quarkus:quarkus-micrometer-registry-prometheus")
 
     api("io.debezium:debezium-core")
