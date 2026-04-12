@@ -48,7 +48,6 @@ services:
       - "-c"
       - "max_replication_slots=5"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
       - ./postgres-init:/docker-entrypoint-initdb.d:ro
 
   liquibase:
@@ -79,6 +78,5 @@ services:
     ports:
       - "8888:8888"
       - "4040:4040"
-
-volumes:
-  postgres_data:
+    environment:
+      AWS_REGION: "none"
