@@ -1,4 +1,4 @@
-package io.debezium.postgres2lake.extensions.data.catalog.api.model;
+package io.debezium.postgres2lake.extensions.common.model;
 
 import java.util.Objects;
 

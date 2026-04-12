@@ -7,6 +7,7 @@ dependencies {
     implementation(project(":modules:platform"))
     implementation(project(":modules:domain"))
     api(project(":extensions:data-catalog-api"))
+    api(project(":extensions:commit-event-emitter-api"))
 
     api("software.amazon.awssdk:aws-core")
     api("software.amazon.awssdk:regions")

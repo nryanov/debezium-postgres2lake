@@ -2,7 +2,7 @@ package io.debezium.postgres2lake.extensions.data.catalog.openmetadata;
 
 import io.debezium.postgres2lake.extensions.data.catalog.api.DataCatalogHandler;
 import io.debezium.postgres2lake.extensions.data.catalog.api.model.TableColumnType;
-import io.debezium.postgres2lake.extensions.data.catalog.api.model.TableDestination;
+import io.debezium.postgres2lake.extensions.common.model.TableDestination;
 import io.debezium.postgres2lake.extensions.data.catalog.api.model.TableField;
 import io.debezium.postgres2lake.extensions.data.catalog.api.model.TableSchema;
 import org.openmetadata.client.api.TablesApi;

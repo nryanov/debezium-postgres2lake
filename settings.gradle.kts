@@ -29,9 +29,12 @@ include(
     "modules:test-fixtures:schema-registry",
     "modules:test-fixtures:nessie",
     // extensions
+    "extensions:common",
     "extensions:data-catalog-api",
     "extensions:data-catalog-openmetadata",
     "extensions:data-catalog-datahub",
+    "extensions:commit-event-emitter-api",
+    "extensions:commit-event-emitter-kafka",
 )
 
 project(":modules").projectDir = file("modules")
@@ -54,6 +57,9 @@ project(":modules:test-fixtures:schema-registry").projectDir = file("modules/tes
 project(":modules:test-fixtures:nessie").projectDir = file("modules/test-fixtures/nessie")
 
 project(":extensions").projectDir = file("extensions")
+project(":extensions:common").projectDir = file("extensions/common")
 project(":extensions:data-catalog-api").projectDir = file("extensions/data-catalog-api")
 project(":extensions:data-catalog-openmetadata").projectDir = file("extensions/data-catalog-openmetadata")
 project(":extensions:data-catalog-datahub").projectDir = file("extensions/data-catalog-datahub")
+project(":extensions:commit-event-emitter-api").projectDir = file("extensions/commit-event-emitter-api")
+project(":extensions:commit-event-emitter-kafka").projectDir = file("extensions/commit-event-emitter-kafka")
