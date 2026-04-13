@@ -2,7 +2,7 @@ package io.debezium.postgres2lake.extensions.data.catalog.openmetadata;
 
 import io.debezium.postgres2lake.extensions.data.catalog.api.DataCatalogHandler;
 import io.debezium.postgres2lake.extensions.data.catalog.api.model.TableColumnType;
-import io.debezium.postgres2lake.extensions.data.catalog.api.model.TableDestination;
+import io.debezium.postgres2lake.extensions.common.model.TableDestination;
 import io.debezium.postgres2lake.extensions.data.catalog.api.model.TableField;
 import io.debezium.postgres2lake.extensions.data.catalog.api.model.TableSchema;
 import org.openmetadata.client.api.TablesApi;
@@ -22,7 +22,7 @@ import java.util.Objects;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import static io.debezium.postgres2lake.extensions.data.catalog.api.DataCatalogPropertyReader.required;
+import static io.debezium.postgres2lake.extensions.common.SpiPropertyReader.required;
 
 /**
  * Creates or updates a table in OpenMetadata via {@link TablesApi#createOrUpdateTable}.

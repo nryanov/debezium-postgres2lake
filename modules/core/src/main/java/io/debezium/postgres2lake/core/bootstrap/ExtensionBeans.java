@@ -1,8 +1,14 @@
 package io.debezium.postgres2lake.core.bootstrap;
 
+import io.debezium.postgres2lake.core.config.CommitEventEmitterConfiguration;
 import io.debezium.postgres2lake.core.config.DataCatalogConfiguration;
+import io.debezium.postgres2lake.extensions.commit.event.emitter.api.CommitEventEmitterHandler;
+import io.debezium.postgres2lake.extensions.commit.event.emitter.api.CommitEventEmitterProvider;
+import io.debezium.postgres2lake.extensions.commit.event.emitter.api.NoOpCommitEventEmitterHandler;
+import io.debezium.postgres2lake.extensions.common.SpiProviderSupport;
 import io.debezium.postgres2lake.extensions.data.catalog.api.DataCatalogHandler;
-import io.debezium.postgres2lake.extensions.data.catalog.api.DataCatalogProviderSupport;
+import io.debezium.postgres2lake.extensions.data.catalog.api.DataCatalogProvider;
+import io.debezium.postgres2lake.extensions.data.catalog.api.NoOpDataCatalogHandler;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Produces;
 import jakarta.inject.Inject;
@@ -13,12 +19,39 @@ public class ExtensionBeans {
     @Inject
     DataCatalogConfiguration dataCatalogConfiguration;
 
+    @Inject
+    CommitEventEmitterConfiguration commitEventEmitterConfiguration;
+
     @Singleton
     @Produces
     DataCatalogHandler dataCatalogHandler() {
-        var dataCatalogProviderSupport = new DataCatalogProviderSupport();
+        var dataCatalogProviderSupport = new SpiProviderSupport<DataCatalogHandler, DataCatalogProvider>();
         var classLoader = Thread.currentThread().getContextClassLoader();
-        var handler = dataCatalogProviderSupport.loadAndInitialize(dataCatalogConfiguration.name(), classLoader, dataCatalogConfiguration.properties());
+        var handler = dataCatalogProviderSupport
+                .loadAndInitialize(
+                        dataCatalogConfiguration.name(),
+                        classLoader,
+                        dataCatalogConfiguration.properties(),
+                        DataCatalogProvider.class,
+                        NoOpDataCatalogHandler.INSTANCE
+                );
+
+        return handler;
+    }
+
+    @Singleton
+    @Produces
+    CommitEventEmitterHandler commitEventEmitterHandler() {
+        var spiProvider = new SpiProviderSupport<CommitEventEmitterHandler, CommitEventEmitterProvider>();
+        var classLoader = Thread.currentThread().getContextClassLoader();
+        var handler = spiProvider
+                .loadAndInitialize(
+                        commitEventEmitterConfiguration.name(),
+                        classLoader,
+                        commitEventEmitterConfiguration.properties(),
+                        CommitEventEmitterProvider.class,
+                        NoOpCommitEventEmitterHandler.INSTANCE
+                );
 
         return handler;
     }

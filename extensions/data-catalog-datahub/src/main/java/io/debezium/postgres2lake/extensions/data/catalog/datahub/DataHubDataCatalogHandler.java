@@ -27,7 +27,7 @@ import datahub.client.rest.RestEmitter;
 import datahub.event.MetadataChangeProposalWrapper;
 import io.debezium.postgres2lake.extensions.data.catalog.api.DataCatalogHandler;
 import io.debezium.postgres2lake.extensions.data.catalog.api.model.TableColumnType;
-import io.debezium.postgres2lake.extensions.data.catalog.api.model.TableDestination;
+import io.debezium.postgres2lake.extensions.common.model.TableDestination;
 import io.debezium.postgres2lake.extensions.data.catalog.api.model.TableField;
 import io.debezium.postgres2lake.extensions.data.catalog.api.model.TableSchema;
 import org.slf4j.Logger;
@@ -40,8 +40,8 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 
-import static io.debezium.postgres2lake.extensions.data.catalog.api.DataCatalogPropertyReader.required;
-import static io.debezium.postgres2lake.extensions.data.catalog.api.DataCatalogPropertyReader.optional;
+import static io.debezium.postgres2lake.extensions.common.SpiPropertyReader.required;
+import static io.debezium.postgres2lake.extensions.common.SpiPropertyReader.optional;
 
 /**
  * Publishes dataset properties and schema to DataHub using the REST emitter (datahub-client 1.x).
