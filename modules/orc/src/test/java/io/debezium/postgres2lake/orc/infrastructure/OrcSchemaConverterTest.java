@@ -1,4 +1,4 @@
-package io.debezium.postgres2lake.orc.infrastructure.format.orc;
+package io.debezium.postgres2lake.orc.infrastructure;
 
 import org.apache.avro.LogicalTypes;
 import org.apache.avro.Schema;

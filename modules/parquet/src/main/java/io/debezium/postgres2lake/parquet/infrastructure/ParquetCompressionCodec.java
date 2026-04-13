@@ -1,4 +1,4 @@
-package io.debezium.postgres2lake.parquet.infrastructure.format.parquet;
+package io.debezium.postgres2lake.parquet.infrastructure;
 
 import org.apache.parquet.hadoop.metadata.CompressionCodecName;
 

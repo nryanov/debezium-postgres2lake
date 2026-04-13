@@ -1,7 +1,8 @@
-package io.debezium.postgres2lake.orc.infrastructure.format.orc;
+package io.debezium.postgres2lake.orc.infrastructure.appender;
 
 import io.debezium.postgres2lake.domain.EventAppender;
 import io.debezium.postgres2lake.domain.model.EventRecord;
+import io.debezium.postgres2lake.orc.infrastructure.OrcTableWriter;
 import org.apache.avro.LogicalType;
 import org.apache.avro.LogicalTypes;
 import org.apache.avro.Schema;

@@ -1,14 +1,13 @@
-package io.debezium.postgres2lake.orc.infrastructure.s3;
+package io.debezium.postgres2lake.orc.infrastructure;
 
 import io.debezium.postgres2lake.domain.SchemaConverter;
 import io.debezium.postgres2lake.domain.model.EventRecord;
-import io.debezium.postgres2lake.orc.infrastructure.format.orc.OrcEventAppender;
 import io.debezium.postgres2lake.core.infrastructure.s3.exceptions.S3WriterOpenException;
-import io.debezium.postgres2lake.orc.infrastructure.format.orc.OrcCompressionCodec;
-import io.debezium.postgres2lake.orc.infrastructure.format.orc.OrcTableWriter;
 import io.debezium.postgres2lake.core.service.AbstractEventSaver;
 import io.debezium.postgres2lake.core.config.CommonConfiguration;
 import io.debezium.postgres2lake.core.service.OutputLocationGenerator;
+import io.debezium.postgres2lake.orc.infrastructure.appender.OrcEventAppender;
+import io.debezium.postgres2lake.orc.infrastructure.appender.OrcEventAppenderFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.orc.OrcFile;
@@ -26,13 +25,15 @@ public class S3OrcEventSaver extends AbstractEventSaver<OrcEventAppender> {
     private final CommonConfiguration.FileIO fileIO;
     private final OrcCompressionCodec codec;
     private final SchemaConverter<TypeDescription> schemaConverter;
+    private final OrcEventAppenderFactory appenderFactory;
 
     public S3OrcEventSaver(
             CommonConfiguration.Threshold threshold,
             OutputLocationGenerator outputLocationGenerator,
             CommonConfiguration.FileIO fileIO,
             OrcCompressionCodec codec,
-            SchemaConverter<TypeDescription> schemaConverter
+            SchemaConverter<TypeDescription> schemaConverter,
+            OrcEventAppenderFactory appenderFactory
     ) {
         super(threshold);
 
@@ -40,6 +41,7 @@ public class S3OrcEventSaver extends AbstractEventSaver<OrcEventAppender> {
         this.fileIO = fileIO;
         this.codec = codec;
         this.schemaConverter = schemaConverter;
+        this.appenderFactory = appenderFactory;
     }
 
     @Override
@@ -49,7 +51,7 @@ public class S3OrcEventSaver extends AbstractEventSaver<OrcEventAppender> {
         var batch = writer.getSchema().createRowBatch(); // todo: configure batch size
 
         var tableWriter = new OrcTableWriter(writer, batch, event.valueSchema(), resolvePartition(event));
-        return new OrcEventAppender(tableWriter);
+        return appenderFactory.create(tableWriter);
     }
 
     private Writer createFileWriter(String location, TypeDescription schema) {

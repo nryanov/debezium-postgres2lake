@@ -29,7 +29,7 @@ public class S3AvroEventSaver extends AbstractEventSaver<AvroEventAppender> {
     private final CommonConfiguration.FileIO fileIO;
     private final AvroCompressionCodec codec;
     private final SchemaConverter<Schema> schemaConverter;
-    private final AvroEventAppenderFactory avroEventAppenderFactory;
+    private final AvroEventAppenderFactory appenderFactory;
 
     public S3AvroEventSaver(
             CommonConfiguration.Threshold threshold,
@@ -37,7 +37,7 @@ public class S3AvroEventSaver extends AbstractEventSaver<AvroEventAppender> {
             CommonConfiguration.FileIO fileIO,
             AvroCompressionCodec codec,
             SchemaConverter<Schema> schemaConverter,
-            AvroEventAppenderFactory avroEventAppenderFactory
+            AvroEventAppenderFactory appenderFactory
     ) {
         super(threshold);
         this.outputLocationGenerator = outputLocationGenerator;
@@ -45,7 +45,7 @@ public class S3AvroEventSaver extends AbstractEventSaver<AvroEventAppender> {
         this.codec = codec;
 
         this.schemaConverter = schemaConverter;
-        this.avroEventAppenderFactory = avroEventAppenderFactory;
+        this.appenderFactory = appenderFactory;
     }
 
     @Override
@@ -69,7 +69,7 @@ public class S3AvroEventSaver extends AbstractEventSaver<AvroEventAppender> {
 
             logger.infof("Successfully opened writer for `%s`", location);
 
-            return avroEventAppenderFactory.create(new AvroTableWriter(writer, schema, resolvePartition(event)));
+            return appenderFactory.create(new AvroTableWriter(writer, schema, resolvePartition(event)));
         } catch (URISyntaxException e) {
             logger.errorf("Invalid output URI: %s", location);
             throw new S3InvalidOutputUriException("Invalid output URI: " + location, e);

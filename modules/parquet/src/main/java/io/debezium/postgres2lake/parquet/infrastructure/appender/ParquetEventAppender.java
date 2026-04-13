@@ -1,7 +1,8 @@
-package io.debezium.postgres2lake.parquet.infrastructure.format.parquet;
+package io.debezium.postgres2lake.parquet.infrastructure.appender;
 
 import io.debezium.postgres2lake.domain.EventAppender;
 import io.debezium.postgres2lake.domain.model.EventRecord;
+import io.debezium.postgres2lake.parquet.infrastructure.ParquetTableWriter;
 import org.apache.avro.Schema;
 
 import java.io.IOException;

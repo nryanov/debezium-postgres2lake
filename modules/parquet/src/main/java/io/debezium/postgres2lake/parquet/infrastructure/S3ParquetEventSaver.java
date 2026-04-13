@@ -1,16 +1,15 @@
-package io.debezium.postgres2lake.parquet.infrastructure.s3;
+package io.debezium.postgres2lake.parquet.infrastructure;
 
 import io.debezium.postgres2lake.domain.SchemaConverter;
 import io.debezium.postgres2lake.domain.model.EventRecord;
-import io.debezium.postgres2lake.parquet.infrastructure.format.parquet.ParquetCompressionCodec;
-import io.debezium.postgres2lake.parquet.infrastructure.format.parquet.ParquetEventAppender;
 
-import io.debezium.postgres2lake.parquet.infrastructure.format.parquet.ParquetTableWriter;
 import io.debezium.postgres2lake.core.infrastructure.s3.exceptions.S3InvalidOutputUriException;
 import io.debezium.postgres2lake.core.infrastructure.s3.exceptions.S3WriterOpenException;
 import io.debezium.postgres2lake.core.service.AbstractEventSaver;
 import io.debezium.postgres2lake.core.config.CommonConfiguration;
 import io.debezium.postgres2lake.core.service.OutputLocationGenerator;
+import io.debezium.postgres2lake.parquet.infrastructure.appender.ParquetEventAppender;
+import io.debezium.postgres2lake.parquet.infrastructure.appender.ParquetEventAppenderFactory;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.hadoop.conf.Configuration;
@@ -30,19 +29,22 @@ public class S3ParquetEventSaver extends AbstractEventSaver<ParquetEventAppender
     private final CommonConfiguration.FileIO fileIO;
     private final ParquetCompressionCodec compressionCodec;
     private final SchemaConverter<Schema> schemaConverter;
+    private final ParquetEventAppenderFactory appenderFactory;
 
     public S3ParquetEventSaver(
             CommonConfiguration.Threshold threshold,
             OutputLocationGenerator outputLocationGenerator,
             CommonConfiguration.FileIO fileIO,
             ParquetCompressionCodec compressionCodec,
-            SchemaConverter<Schema> schemaConverter
+            SchemaConverter<Schema> schemaConverter,
+            ParquetEventAppenderFactory appenderFactory
     ) {
         super(threshold);
         this.outputLocationGenerator = outputLocationGenerator;
         this.fileIO = fileIO;
         this.compressionCodec = compressionCodec;
         this.schemaConverter = schemaConverter;
+        this.appenderFactory = appenderFactory;
     }
 
     @Override
@@ -64,7 +66,7 @@ public class S3ParquetEventSaver extends AbstractEventSaver<ParquetEventAppender
 
             var tableWriter = new ParquetTableWriter(writer, event.valueSchema(), resolvePartition(event));
 
-            return new ParquetEventAppender(tableWriter);
+            return appenderFactory.create(tableWriter);
         } catch (URISyntaxException e) {
             logger.errorf("Invalid output URI: %s", location);
             throw new S3InvalidOutputUriException("Invalid output URI: " + location, e);
