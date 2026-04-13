@@ -4,5 +4,5 @@ plugins {
 }
 
 dependencies {
-    api(project(":extensions:common"))
+    api(project(":extensions:extensions-common"))
 }

@@ -29,7 +29,7 @@ include(
     "modules:test-fixtures:schema-registry",
     "modules:test-fixtures:nessie",
     // extensions
-    "extensions:common",
+    "extensions:extensions-common",
     "extensions:data-catalog-api",
     "extensions:data-catalog-openmetadata",
     "extensions:data-catalog-datahub",
@@ -57,7 +57,7 @@ project(":modules:test-fixtures:schema-registry").projectDir = file("modules/tes
 project(":modules:test-fixtures:nessie").projectDir = file("modules/test-fixtures/nessie")
 // extensions
 project(":extensions").projectDir = file("extensions")
-project(":extensions:common").projectDir = file("extensions/common")
+project(":extensions:extensions-common").projectDir = file("extensions/extensions-common")
 project(":extensions:data-catalog-api").projectDir = file("extensions/data-catalog-api")
 project(":extensions:data-catalog-openmetadata").projectDir = file("extensions/data-catalog-openmetadata")
 project(":extensions:data-catalog-datahub").projectDir = file("extensions/data-catalog-datahub")
