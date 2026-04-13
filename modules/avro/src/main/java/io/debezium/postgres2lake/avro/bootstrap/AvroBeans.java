@@ -11,6 +11,7 @@ import io.debezium.postgres2lake.extensions.commit.event.emitter.api.CommitEvent
 import io.debezium.postgres2lake.extensions.commit.event.emitter.api.NoOpCommitEventEmitterHandler;
 import io.debezium.postgres2lake.extensions.data.catalog.api.DataCatalogHandler;
 import io.debezium.postgres2lake.extensions.data.catalog.api.NoOpDataCatalogHandler;
+import io.debezium.postgres2lake.extensions.readiness.marker.event.emitter.api.ReadinessMarkerEventEmitterHandler;
 import io.debezium.postgres2lake.avro.infrastructure.AvroCompressionCodec;
 import io.debezium.postgres2lake.avro.infrastructure.AvroSchemaConverter;
 import io.debezium.postgres2lake.avro.infrastructure.S3AvroEventSaver;
@@ -34,6 +35,9 @@ public class AvroBeans {
     @Inject
     CommitEventEmitterHandler commitEventEmitterHandler;
 
+    @Inject
+    ReadinessMarkerEventEmitterHandler readinessMarkerEventEmitterHandler;
+
     @Singleton
     @Produces
     public EventSaver eventSaver() {
@@ -48,7 +52,8 @@ public class AvroBeans {
                 configuration.fileIO(),
                 configuration.codec().orElse(AvroCompressionCodec.NONE),
                 schemaConverter,
-                appenderFactory
+                appenderFactory,
+                readinessMarkerEventEmitterHandler
         );
     }
 

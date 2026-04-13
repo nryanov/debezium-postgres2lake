@@ -1,0 +1,1 @@
+io.debezium.postgres2lake.extensions.readiness.marker.event.emitter.s3.S3ReadinessMarkerEventEmitterProvider

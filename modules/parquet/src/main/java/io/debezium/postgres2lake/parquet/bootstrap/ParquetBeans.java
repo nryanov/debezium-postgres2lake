@@ -7,6 +7,7 @@ import io.debezium.postgres2lake.domain.EventSaver;
 import io.debezium.postgres2lake.domain.SchemaConverter;
 import io.debezium.postgres2lake.extensions.data.catalog.api.DataCatalogHandler;
 import io.debezium.postgres2lake.extensions.data.catalog.api.NoOpDataCatalogHandler;
+import io.debezium.postgres2lake.extensions.readiness.marker.event.emitter.api.ReadinessMarkerEventEmitterHandler;
 import io.debezium.postgres2lake.parquet.infrastructure.ParquetCompressionCodec;
 import io.debezium.postgres2lake.parquet.infrastructure.ParquetSchemaConverter;
 import io.debezium.postgres2lake.parquet.infrastructure.S3ParquetEventSaver;
@@ -35,6 +36,9 @@ public class ParquetBeans {
     @Inject
     CommitEventEmitterHandler commitEventEmitterHandler;
 
+    @Inject
+    ReadinessMarkerEventEmitterHandler readinessMarkerEventEmitterHandler;
+
     @Singleton
     @Produces
     public EventSaver eventSaver() {
@@ -49,7 +53,8 @@ public class ParquetBeans {
                 configuration.fileIO(),
                 configuration.codec().orElse(ParquetCompressionCodec.NONE),
                 schemaConverter,
-                appenderFactory
+                appenderFactory,
+                readinessMarkerEventEmitterHandler
         );
     }
 

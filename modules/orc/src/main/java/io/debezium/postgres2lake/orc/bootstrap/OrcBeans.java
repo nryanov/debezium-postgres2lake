@@ -8,6 +8,7 @@ import io.debezium.postgres2lake.domain.SchemaConverter;
 import io.debezium.postgres2lake.domain.model.OutputFileFormat;
 import io.debezium.postgres2lake.extensions.data.catalog.api.DataCatalogHandler;
 import io.debezium.postgres2lake.extensions.data.catalog.api.NoOpDataCatalogHandler;
+import io.debezium.postgres2lake.extensions.readiness.marker.event.emitter.api.ReadinessMarkerEventEmitterHandler;
 import io.debezium.postgres2lake.orc.infrastructure.OrcCompressionCodec;
 import io.debezium.postgres2lake.orc.infrastructure.OrcSchemaConverter;
 import io.debezium.postgres2lake.orc.infrastructure.S3OrcEventSaver;
@@ -34,6 +35,9 @@ public class OrcBeans {
     @Inject
     CommitEventEmitterHandler commitEventEmitterHandler;
 
+    @Inject
+    ReadinessMarkerEventEmitterHandler readinessMarkerEventEmitterHandler;
+
     @Singleton
     @Produces
     public EventSaver eventSaver() {
@@ -48,7 +52,8 @@ public class OrcBeans {
                 configuration.fileIO(),
                 configuration.codec().orElse(OrcCompressionCodec.NONE),
                 schemaConverter,
-                appenderFactory
+                appenderFactory,
+                readinessMarkerEventEmitterHandler
         );
     }
 

@@ -8,6 +8,7 @@ import io.debezium.postgres2lake.core.infrastructure.s3.exceptions.S3WriterOpenE
 import io.debezium.postgres2lake.core.service.AbstractEventSaver;
 import io.debezium.postgres2lake.core.config.CommonConfiguration;
 import io.debezium.postgres2lake.core.service.OutputLocationGenerator;
+import io.debezium.postgres2lake.extensions.readiness.marker.event.emitter.api.ReadinessMarkerEventEmitterHandler;
 import io.debezium.postgres2lake.parquet.infrastructure.appender.ParquetEventAppender;
 import io.debezium.postgres2lake.parquet.infrastructure.appender.ParquetEventAppenderFactory;
 import org.apache.avro.Schema;
@@ -37,9 +38,10 @@ public class S3ParquetEventSaver extends AbstractEventSaver<ParquetEventAppender
             CommonConfiguration.FileIO fileIO,
             ParquetCompressionCodec compressionCodec,
             SchemaConverter<Schema> schemaConverter,
-            ParquetEventAppenderFactory appenderFactory
+            ParquetEventAppenderFactory appenderFactory,
+            ReadinessMarkerEventEmitterHandler readinessMarkerEventEmitterHandler
     ) {
-        super(threshold);
+        super(threshold, readinessMarkerEventEmitterHandler);
         this.outputLocationGenerator = outputLocationGenerator;
         this.fileIO = fileIO;
         this.compressionCodec = compressionCodec;

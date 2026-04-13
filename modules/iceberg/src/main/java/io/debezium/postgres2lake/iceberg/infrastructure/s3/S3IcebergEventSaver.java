@@ -10,6 +10,7 @@ import io.debezium.postgres2lake.iceberg.infrastructure.format.iceberg.ddl.Icebe
 import io.debezium.postgres2lake.iceberg.infrastructure.format.iceberg.writer.IcebergWriterFactory;
 import io.debezium.postgres2lake.core.infrastructure.schema.SchemaDiffResolver;
 import io.debezium.postgres2lake.core.service.AbstractEventSaver;
+import io.debezium.postgres2lake.extensions.readiness.marker.event.emitter.api.ReadinessMarkerEventEmitterHandler;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.iceberg.CatalogUtil;
 import org.apache.iceberg.Schema;
@@ -32,9 +33,10 @@ public class S3IcebergEventSaver extends AbstractEventSaver<IcebergEventAppender
 
     public S3IcebergEventSaver(
             IcebergConfiguration configuration,
-            SchemaConverter<Schema> schemaConverter
+            SchemaConverter<Schema> schemaConverter,
+            ReadinessMarkerEventEmitterHandler readinessMarkerEventEmitterHandler
     ) {
-        super(configuration.threshold());
+        super(configuration.threshold(), readinessMarkerEventEmitterHandler);
 
         var catalogProperties = new HashMap<>(configuration.properties());
 
