@@ -1,0 +1,1 @@
+io.debezium.postgres2lake.extensions.commit.event.emitter.kafka.KafkaCommitEventEmitterProvider

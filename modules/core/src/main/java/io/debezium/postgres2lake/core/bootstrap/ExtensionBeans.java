@@ -1,6 +1,10 @@
 package io.debezium.postgres2lake.core.bootstrap;
 
+import io.debezium.postgres2lake.core.config.CommitEventEmitterConfiguration;
 import io.debezium.postgres2lake.core.config.DataCatalogConfiguration;
+import io.debezium.postgres2lake.extensions.commit.event.emitter.api.CommitEventEmitterHandler;
+import io.debezium.postgres2lake.extensions.commit.event.emitter.api.CommitEventEmitterProvider;
+import io.debezium.postgres2lake.extensions.commit.event.emitter.api.NoOpCommitEventEmitterHandler;
 import io.debezium.postgres2lake.extensions.common.SpiProviderSupport;
 import io.debezium.postgres2lake.extensions.data.catalog.api.DataCatalogHandler;
 import io.debezium.postgres2lake.extensions.data.catalog.api.DataCatalogProvider;
@@ -15,6 +19,9 @@ public class ExtensionBeans {
     @Inject
     DataCatalogConfiguration dataCatalogConfiguration;
 
+    @Inject
+    CommitEventEmitterConfiguration commitEventEmitterConfiguration;
+
     @Singleton
     @Produces
     DataCatalogHandler dataCatalogHandler() {
@@ -27,6 +34,23 @@ public class ExtensionBeans {
                         dataCatalogConfiguration.properties(),
                         DataCatalogProvider.class,
                         NoOpDataCatalogHandler.INSTANCE
+                );
+
+        return handler;
+    }
+
+    @Singleton
+    @Produces
+    CommitEventEmitterHandler commitEventEmitterHandler() {
+        var spiProvider = new SpiProviderSupport<CommitEventEmitterHandler, CommitEventEmitterProvider>();
+        var classLoader = Thread.currentThread().getContextClassLoader();
+        var handler = spiProvider
+                .loadAndInitialize(
+                        commitEventEmitterConfiguration.name(),
+                        classLoader,
+                        commitEventEmitterConfiguration.properties(),
+                        CommitEventEmitterProvider.class,
+                        NoOpCommitEventEmitterHandler.INSTANCE
                 );
 
         return handler;

@@ -37,9 +37,8 @@ include(
     "extensions:commit-event-emitter-kafka",
 )
 
+// main modules
 project(":modules").projectDir = file("modules")
-project(":modules:test-fixtures").projectDir = file("modules/test-fixtures")
-
 project(":modules:jib").projectDir = file("modules/jib")
 project(":modules:platform").projectDir = file("modules/platform")
 project(":modules:domain").projectDir = file("modules/domain")
@@ -49,13 +48,14 @@ project(":modules:orc").projectDir = file("modules/orc")
 project(":modules:parquet").projectDir = file("modules/parquet")
 project(":modules:iceberg").projectDir = file("modules/iceberg")
 project(":modules:paimon").projectDir = file("modules/paimon")
-
+// test-fixtures
+project(":modules:test-fixtures").projectDir = file("modules/test-fixtures")
 project(":modules:test-fixtures:common").projectDir = file("modules/test-fixtures/common")
 project(":modules:test-fixtures:s3").projectDir = file("modules/test-fixtures/s3")
 project(":modules:test-fixtures:postgres").projectDir = file("modules/test-fixtures/postgres")
 project(":modules:test-fixtures:schema-registry").projectDir = file("modules/test-fixtures/schema-registry")
 project(":modules:test-fixtures:nessie").projectDir = file("modules/test-fixtures/nessie")
-
+// extensions
 project(":extensions").projectDir = file("extensions")
 project(":extensions:common").projectDir = file("extensions/common")
 project(":extensions:data-catalog-api").projectDir = file("extensions/data-catalog-api")
