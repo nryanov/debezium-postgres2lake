@@ -1,5 +1,6 @@
-package io.debezium.postgres2lake.avro.infrastructure.format.avro;
+package io.debezium.postgres2lake.avro.infrastructure.appender;
 
+import io.debezium.postgres2lake.avro.infrastructure.AvroTableWriter;
 import io.debezium.postgres2lake.domain.EventAppender;
 import io.debezium.postgres2lake.domain.model.EventRecord;
 import org.apache.avro.Schema;

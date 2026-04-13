@@ -1,4 +1,4 @@
-package io.debezium.postgres2lake.avro.infrastructure.format.avro;
+package io.debezium.postgres2lake.avro.infrastructure;
 
 import org.apache.avro.Schema;
 import org.apache.avro.file.DataFileWriter;

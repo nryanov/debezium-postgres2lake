@@ -1,4 +1,4 @@
-package io.debezium.postgres2lake.avro.infrastructure.s3;
+package io.debezium.postgres2lake.avro.infrastructure;
 
 import io.debezium.postgres2lake.domain.EventSaver;
 import io.debezium.postgres2lake.avro.infrastructure.profile.ConfluentAvroOutputFormatProfile;

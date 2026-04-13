@@ -1,10 +1,9 @@
-package io.debezium.postgres2lake.avro.infrastructure.s3;
+package io.debezium.postgres2lake.avro.infrastructure;
 
+import io.debezium.postgres2lake.avro.infrastructure.appender.AvroEventAppender;
+import io.debezium.postgres2lake.avro.infrastructure.appender.AvroEventAppenderFactory;
 import io.debezium.postgres2lake.domain.SchemaConverter;
 import io.debezium.postgres2lake.domain.model.EventRecord;
-import io.debezium.postgres2lake.avro.infrastructure.format.avro.AvroCompressionCodec;
-import io.debezium.postgres2lake.avro.infrastructure.format.avro.AvroEventAppender;
-import io.debezium.postgres2lake.avro.infrastructure.format.avro.AvroTableWriter;
 import io.debezium.postgres2lake.core.infrastructure.s3.exceptions.S3InvalidOutputUriException;
 import io.debezium.postgres2lake.core.infrastructure.s3.exceptions.S3WriterOpenException;
 import io.debezium.postgres2lake.core.service.AbstractEventSaver;
@@ -30,13 +29,15 @@ public class S3AvroEventSaver extends AbstractEventSaver<AvroEventAppender> {
     private final CommonConfiguration.FileIO fileIO;
     private final AvroCompressionCodec codec;
     private final SchemaConverter<Schema> schemaConverter;
+    private final AvroEventAppenderFactory avroEventAppenderFactory;
 
     public S3AvroEventSaver(
             CommonConfiguration.Threshold threshold,
             OutputLocationGenerator outputLocationGenerator,
             CommonConfiguration.FileIO fileIO,
             AvroCompressionCodec codec,
-            SchemaConverter<Schema> schemaConverter
+            SchemaConverter<Schema> schemaConverter,
+            AvroEventAppenderFactory avroEventAppenderFactory
     ) {
         super(threshold);
         this.outputLocationGenerator = outputLocationGenerator;
@@ -44,6 +45,7 @@ public class S3AvroEventSaver extends AbstractEventSaver<AvroEventAppender> {
         this.codec = codec;
 
         this.schemaConverter = schemaConverter;
+        this.avroEventAppenderFactory = avroEventAppenderFactory;
     }
 
     @Override
@@ -67,7 +69,7 @@ public class S3AvroEventSaver extends AbstractEventSaver<AvroEventAppender> {
 
             logger.infof("Successfully opened writer for `%s`", location);
 
-            return new AvroEventAppender(new AvroTableWriter(writer, schema, resolvePartition(event)));
+            return avroEventAppenderFactory.create(new AvroTableWriter(writer, schema, resolvePartition(event)));
         } catch (URISyntaxException e) {
             logger.errorf("Invalid output URI: %s", location);
             throw new S3InvalidOutputUriException("Invalid output URI: " + location, e);
