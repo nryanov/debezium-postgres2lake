@@ -40,8 +40,8 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 
-import static io.debezium.postgres2lake.extensions.data.catalog.api.DataCatalogPropertyReader.required;
-import static io.debezium.postgres2lake.extensions.data.catalog.api.DataCatalogPropertyReader.optional;
+import static io.debezium.postgres2lake.extensions.common.SpiPropertyReader.required;
+import static io.debezium.postgres2lake.extensions.common.SpiPropertyReader.optional;
 
 /**
  * Publishes dataset properties and schema to DataHub using the REST emitter (datahub-client 1.x).

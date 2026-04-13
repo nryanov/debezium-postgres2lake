@@ -22,7 +22,7 @@ import java.util.Objects;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import static io.debezium.postgres2lake.extensions.data.catalog.api.DataCatalogPropertyReader.required;
+import static io.debezium.postgres2lake.extensions.common.SpiPropertyReader.required;
 
 /**
  * Creates or updates a table in OpenMetadata via {@link TablesApi#createOrUpdateTable}.

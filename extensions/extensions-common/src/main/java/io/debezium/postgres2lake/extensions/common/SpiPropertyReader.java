@@ -1,9 +1,9 @@
-package io.debezium.postgres2lake.extensions.data.catalog.api;
+package io.debezium.postgres2lake.extensions.common;
 
 import java.util.Map;
 
-public class DataCatalogPropertyReader {
-    private DataCatalogPropertyReader() {
+public class SpiPropertyReader {
+    private SpiPropertyReader() {
     }
 
     public static String required(Map<String, String> properties, String key) {
