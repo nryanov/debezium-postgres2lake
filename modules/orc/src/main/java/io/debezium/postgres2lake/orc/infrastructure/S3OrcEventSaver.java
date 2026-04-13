@@ -50,7 +50,7 @@ public class S3OrcEventSaver extends AbstractEventSaver<OrcEventAppender> {
         var writer = createFileWriter(location, schemaConverter.extractSchema(event));
         var batch = writer.getSchema().createRowBatch(); // todo: configure batch size
 
-        var tableWriter = new OrcTableWriter(writer, batch, event.valueSchema(), resolvePartition(event));
+        var tableWriter = new OrcTableWriter(writer, batch, event.valueSchema(), resolvePartition(event), location, event.destination());
         return appenderFactory.create(tableWriter);
     }
 

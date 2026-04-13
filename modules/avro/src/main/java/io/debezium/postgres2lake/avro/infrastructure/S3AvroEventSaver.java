@@ -69,7 +69,7 @@ public class S3AvroEventSaver extends AbstractEventSaver<AvroEventAppender> {
 
             logger.infof("Successfully opened writer for `%s`", location);
 
-            return appenderFactory.create(new AvroTableWriter(writer, schema, resolvePartition(event)));
+            return appenderFactory.create(new AvroTableWriter(writer, schema, resolvePartition(event), location, event.destination()));
         } catch (URISyntaxException e) {
             logger.errorf("Invalid output URI: %s", location);
             throw new S3InvalidOutputUriException("Invalid output URI: " + location, e);

@@ -64,7 +64,7 @@ public class S3ParquetEventSaver extends AbstractEventSaver<ParquetEventAppender
 
             logger.infof("Successfully opened writer for `%s`", location);
 
-            var tableWriter = new ParquetTableWriter(writer, event.valueSchema(), resolvePartition(event));
+            var tableWriter = new ParquetTableWriter(writer, event.valueSchema(), resolvePartition(event), location, event.destination());
 
             return appenderFactory.create(tableWriter);
         } catch (URISyntaxException e) {
