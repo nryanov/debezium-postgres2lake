@@ -37,8 +37,6 @@ public class IcebergWriterFactory {
                 TableProperties.WRITE_TARGET_FILE_SIZE_BYTES_DEFAULT
         );
 
-        // todo: allow to choose between (forced) APPEND_ONLY / EQUALITY_DELETE modes
-
         var schema = table.schema();
         if (schema.identifierFieldIds().isEmpty()) {
             // no pk fields -> append only

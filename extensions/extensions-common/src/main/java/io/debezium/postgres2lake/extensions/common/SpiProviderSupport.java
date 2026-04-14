@@ -1,5 +1,8 @@
 package io.debezium.postgres2lake.extensions.common;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -8,6 +11,7 @@ import java.util.Optional;
 import java.util.ServiceLoader;
 
 public final class SpiProviderSupport<H extends SpiHandler, P extends SpiProvider<H>> {
+    private static final Logger logger = LoggerFactory.getLogger(SpiProviderSupport.class);
 
     public SpiProviderSupport() {
     }
@@ -45,7 +49,7 @@ public final class SpiProviderSupport<H extends SpiHandler, P extends SpiProvide
             }
         } else {
             if (providerClassName.isEmpty()) {
-                // todo: add warning: additional providers was found
+                logger.warn("Found multiple SPI providers {} but provider class name is empty. Default NoOp* will be used.", describe(providers));
                 return defaultInstance;
             }
 

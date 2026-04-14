@@ -39,9 +39,7 @@ public class PaimonEventAppender implements EventAppender {
             writer.writer().set(write);
         }
 
-        // todo: fix bucket id resolution
-        var bucket = 0;
-        write.write(createPaimonRecord(writer.paimonSchema(), event), bucket);
+        write.write(createPaimonRecord(writer.paimonSchema(), event));
     }
 
     @Override

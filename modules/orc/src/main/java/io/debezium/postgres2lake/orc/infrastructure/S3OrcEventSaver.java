@@ -27,6 +27,7 @@ public class S3OrcEventSaver extends AbstractEventSaver<OrcEventAppender> {
     private final OrcCompressionCodec codec;
     private final SchemaConverter<TypeDescription> schemaConverter;
     private final OrcEventAppenderFactory appenderFactory;
+    private final int rowBatchSize;
 
     public S3OrcEventSaver(
             CommonConfiguration.Threshold threshold,
@@ -35,7 +36,8 @@ public class S3OrcEventSaver extends AbstractEventSaver<OrcEventAppender> {
             OrcCompressionCodec codec,
             SchemaConverter<TypeDescription> schemaConverter,
             OrcEventAppenderFactory appenderFactory,
-            ReadinessMarkerEventEmitterHandler readinessMarkerEventEmitterHandler
+            ReadinessMarkerEventEmitterHandler readinessMarkerEventEmitterHandler,
+            int rowBatchSize
     ) {
         super(threshold, readinessMarkerEventEmitterHandler);
 
@@ -44,13 +46,14 @@ public class S3OrcEventSaver extends AbstractEventSaver<OrcEventAppender> {
         this.codec = codec;
         this.schemaConverter = schemaConverter;
         this.appenderFactory = appenderFactory;
+        this.rowBatchSize = rowBatchSize;
     }
 
     @Override
     protected OrcEventAppender createEventAppender(EventRecord event) {
         var location = outputLocationGenerator.generateLocation("warehouse", event);
         var writer = createFileWriter(location, schemaConverter.extractSchema(event));
-        var batch = writer.getSchema().createRowBatch(); // todo: configure batch size
+        var batch = writer.getSchema().createRowBatch(rowBatchSize);
 
         var tableWriter = new OrcTableWriter(writer, batch, event.valueSchema(), resolvePartition(event), location, event.destination());
         return appenderFactory.create(tableWriter);

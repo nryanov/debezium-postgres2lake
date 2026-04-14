@@ -6,5 +6,4 @@ plugins {
 dependencies {
     implementation(project(":extensions:commit-event-emitter-api"))
     implementation(libs.kafka.client)
-    implementation(libs.slf4j)
 }

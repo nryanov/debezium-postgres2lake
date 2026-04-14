@@ -148,7 +148,6 @@ public class IcebergEventAppender implements EventAppender {
                                 yield LocalDateTime.ofEpochSecond((int) seconds, (int) microsAndNanos, ZoneOffset.UTC);
                             }
                         }
-                        // todo: fix avro versions. Currently this logical type is ignored
                         case LogicalTypes.LocalTimestampMicros ignored -> {
                             var micros = number.longValue();
                             var seconds = micros / 1_000_000;

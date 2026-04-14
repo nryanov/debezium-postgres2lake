@@ -15,4 +15,6 @@ public interface OrcConfiguration {
     CommonConfiguration.OutputNamingStrategy namingStrategy();
 
     Optional<OrcCompressionCodec> codec();
+
+    Optional<Integer> rowBatchSize();
 }

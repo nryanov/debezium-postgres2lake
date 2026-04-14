@@ -26,6 +26,8 @@ import org.apache.orc.TypeDescription;
 
 @ApplicationScoped
 public class OrcBeans {
+    private final static int DEFAULT_ROW_BATCH_SIZE = 1024;
+
     @Inject
     OrcConfiguration configuration;
 
@@ -53,7 +55,8 @@ public class OrcBeans {
                 configuration.codec().orElse(OrcCompressionCodec.NONE),
                 schemaConverter,
                 appenderFactory,
-                readinessMarkerEventEmitterHandler
+                readinessMarkerEventEmitterHandler,
+                configuration.rowBatchSize().filter(it -> it > 0).orElse(DEFAULT_ROW_BATCH_SIZE)
         );
     }
 

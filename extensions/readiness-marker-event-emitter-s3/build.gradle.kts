@@ -5,7 +5,6 @@ plugins {
 
 dependencies {
     implementation(project(":extensions:readiness-marker-event-emitter-api"))
-    implementation(libs.slf4j)
 
     implementation(enforcedPlatform(libs.aws.platform))
     implementation("software.amazon.awssdk:aws-core")
