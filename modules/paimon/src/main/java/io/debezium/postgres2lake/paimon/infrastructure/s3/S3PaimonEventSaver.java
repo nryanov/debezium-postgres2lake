@@ -10,6 +10,7 @@ import io.debezium.postgres2lake.paimon.infrastructure.format.paimon.PaimonTable
 import io.debezium.postgres2lake.paimon.infrastructure.format.paimon.ddl.PaimonTableDdl;
 import io.debezium.postgres2lake.core.infrastructure.schema.SchemaDiffResolver;
 import io.debezium.postgres2lake.core.service.AbstractEventSaver;
+import io.debezium.postgres2lake.extensions.readiness.marker.event.emitter.api.ReadinessMarkerEventEmitterHandler;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.paimon.catalog.Catalog;
 import org.apache.paimon.catalog.CatalogContext;
@@ -32,9 +33,10 @@ public class S3PaimonEventSaver extends AbstractEventSaver<PaimonEventAppender> 
 
     public S3PaimonEventSaver(
             PaimonConfiguration configuration,
-            SchemaConverter<Schema> schemaConverter
+            SchemaConverter<Schema> schemaConverter,
+            ReadinessMarkerEventEmitterHandler readinessMarkerEventEmitterHandler
             ) {
-        super(configuration.threshold());
+        super(configuration.threshold(), readinessMarkerEventEmitterHandler);
 
         var config = new Configuration();
         configuration.fileIO().properties().forEach(config::set);
@@ -62,6 +64,7 @@ public class S3PaimonEventSaver extends AbstractEventSaver<PaimonEventAppender> 
             var writerBuilder = table.newStreamWriteBuilder();
             var tableWriter = new PaimonTableWriter(
                     tableIdentifier,
+                    event.destination(),
                     table,
                     paimonSchema,
                     event.valueSchema(),

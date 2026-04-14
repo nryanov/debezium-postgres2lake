@@ -35,6 +35,8 @@ include(
     "extensions:data-catalog-datahub",
     "extensions:commit-event-emitter-api",
     "extensions:commit-event-emitter-kafka",
+    "extensions:readiness-marker-event-emitter-api",
+    "extensions:readiness-marker-event-emitter-s3",
 )
 
 // main modules
@@ -63,3 +65,5 @@ project(":extensions:data-catalog-openmetadata").projectDir = file("extensions/d
 project(":extensions:data-catalog-datahub").projectDir = file("extensions/data-catalog-datahub")
 project(":extensions:commit-event-emitter-api").projectDir = file("extensions/commit-event-emitter-api")
 project(":extensions:commit-event-emitter-kafka").projectDir = file("extensions/commit-event-emitter-kafka")
+project(":extensions:readiness-marker-event-emitter-api").projectDir = file("extensions/readiness-marker-event-emitter-api")
+project(":extensions:readiness-marker-event-emitter-s3").projectDir = file("extensions/readiness-marker-event-emitter-s3")

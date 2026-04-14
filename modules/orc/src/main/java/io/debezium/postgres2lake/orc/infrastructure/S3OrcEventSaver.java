@@ -6,6 +6,7 @@ import io.debezium.postgres2lake.core.infrastructure.s3.exceptions.S3WriterOpenE
 import io.debezium.postgres2lake.core.service.AbstractEventSaver;
 import io.debezium.postgres2lake.core.config.CommonConfiguration;
 import io.debezium.postgres2lake.core.service.OutputLocationGenerator;
+import io.debezium.postgres2lake.extensions.readiness.marker.event.emitter.api.ReadinessMarkerEventEmitterHandler;
 import io.debezium.postgres2lake.orc.infrastructure.appender.OrcEventAppender;
 import io.debezium.postgres2lake.orc.infrastructure.appender.OrcEventAppenderFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -33,9 +34,10 @@ public class S3OrcEventSaver extends AbstractEventSaver<OrcEventAppender> {
             CommonConfiguration.FileIO fileIO,
             OrcCompressionCodec codec,
             SchemaConverter<TypeDescription> schemaConverter,
-            OrcEventAppenderFactory appenderFactory
+            OrcEventAppenderFactory appenderFactory,
+            ReadinessMarkerEventEmitterHandler readinessMarkerEventEmitterHandler
     ) {
-        super(threshold);
+        super(threshold, readinessMarkerEventEmitterHandler);
 
         this.outputLocationGenerator = outputLocationGenerator;
         this.fileIO = fileIO;

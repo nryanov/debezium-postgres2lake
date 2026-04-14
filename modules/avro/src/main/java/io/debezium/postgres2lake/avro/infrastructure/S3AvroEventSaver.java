@@ -9,6 +9,7 @@ import io.debezium.postgres2lake.core.infrastructure.s3.exceptions.S3WriterOpenE
 import io.debezium.postgres2lake.core.service.AbstractEventSaver;
 import io.debezium.postgres2lake.core.config.CommonConfiguration;
 import io.debezium.postgres2lake.core.service.OutputLocationGenerator;
+import io.debezium.postgres2lake.extensions.readiness.marker.event.emitter.api.ReadinessMarkerEventEmitterHandler;
 import org.apache.avro.Schema;
 import org.apache.avro.file.DataFileWriter;
 import org.apache.avro.generic.GenericDatumWriter;
@@ -37,9 +38,10 @@ public class S3AvroEventSaver extends AbstractEventSaver<AvroEventAppender> {
             CommonConfiguration.FileIO fileIO,
             AvroCompressionCodec codec,
             SchemaConverter<Schema> schemaConverter,
-            AvroEventAppenderFactory appenderFactory
+            AvroEventAppenderFactory appenderFactory,
+            ReadinessMarkerEventEmitterHandler readinessMarkerEventEmitterHandler
     ) {
-        super(threshold);
+        super(threshold, readinessMarkerEventEmitterHandler);
         this.outputLocationGenerator = outputLocationGenerator;
         this.fileIO = fileIO;
         this.codec = codec;

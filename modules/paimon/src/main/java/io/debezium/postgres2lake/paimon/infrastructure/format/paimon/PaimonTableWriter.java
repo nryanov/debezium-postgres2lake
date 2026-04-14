@@ -1,5 +1,6 @@
 package io.debezium.postgres2lake.paimon.infrastructure.format.paimon;
 
+import io.debezium.postgres2lake.domain.model.EventDestination;
 import org.apache.paimon.catalog.Identifier;
 import org.apache.paimon.schema.Schema;
 import org.apache.paimon.table.Table;
@@ -13,6 +14,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 public record PaimonTableWriter(
         Identifier identifier,
+        EventDestination destination,
         Table table,
         Schema paimonSchema,
         org.apache.avro.Schema avroSchema,

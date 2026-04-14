@@ -4,9 +4,11 @@ import io.debezium.postgres2lake.core.config.CommonConfiguration;
 import io.debezium.postgres2lake.domain.EventAppender;
 import io.debezium.postgres2lake.domain.EventSaver;
 import io.debezium.postgres2lake.domain.model.EventCommitter;
+import io.debezium.postgres2lake.domain.model.EventDestination;
 import io.debezium.postgres2lake.domain.model.EventRecord;
 import io.debezium.postgres2lake.core.service.exceptions.EventAppendException;
 import io.debezium.postgres2lake.core.service.exceptions.EventFlushException;
+import io.debezium.postgres2lake.extensions.readiness.marker.event.emitter.api.ReadinessMarkerEventEmitterHandler;
 import org.jboss.logging.Logger;
 
 import java.util.ArrayList;
@@ -24,13 +26,18 @@ abstract public class AbstractEventSaver<T extends EventAppender> implements Eve
     private final List<EventCommitter> committers;
     private final Map<String, T> openedEventAppender;
     private final ScheduledExecutorService scheduledExecutor;
+    private final ReadinessMarkerEventEmitterHandlerAdapter readinessMarkerEventEmitterHandlerAdapter;
     private final int totalRecordsThreshold;
 
     private int currentRecords;
 
-    public AbstractEventSaver(CommonConfiguration.Threshold threshold) {
+    public AbstractEventSaver(
+            CommonConfiguration.Threshold threshold,
+            ReadinessMarkerEventEmitterHandler readinessMarkerEventEmitterHandler
+    ) {
         this.committers = new ArrayList<>();
         this.openedEventAppender = new HashMap<>();
+        this.readinessMarkerEventEmitterHandlerAdapter = new ReadinessMarkerEventEmitterHandlerAdapter(readinessMarkerEventEmitterHandler);
 
         var timeoutThreshold = threshold.time();
         this.totalRecordsThreshold = threshold.records();
@@ -93,15 +100,18 @@ abstract public class AbstractEventSaver<T extends EventAppender> implements Eve
                     logger.infof("Dump current events by exceeded records threshold");
                 }
 
+                var destinations = new ArrayList<EventDestination>();
                 // save events
                 for (var entry : openedEventAppender.entrySet()) {
                     var appender = entry.getValue();
                     appender.commitPendingEvents();
+                    destinations.add(appender.destination());
                 }
 
                 // commit every hold batch
                 committers.forEach(EventCommitter::commit);
                 logger.infof("Successfully saved %s total records", currentRecords);
+                readinessMarkerEventEmitterHandlerAdapter.emit(destinations);
 
                 openedEventAppender.clear();
                 committers.clear();

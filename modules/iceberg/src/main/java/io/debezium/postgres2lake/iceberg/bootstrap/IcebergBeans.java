@@ -5,6 +5,7 @@ import io.debezium.postgres2lake.domain.EventSaver;
 import io.debezium.postgres2lake.domain.SchemaConverter;
 import io.debezium.postgres2lake.extensions.data.catalog.api.DataCatalogHandler;
 import io.debezium.postgres2lake.extensions.data.catalog.api.NoOpDataCatalogHandler;
+import io.debezium.postgres2lake.extensions.readiness.marker.event.emitter.api.ReadinessMarkerEventEmitterHandler;
 import io.debezium.postgres2lake.iceberg.infrastructure.format.iceberg.IcebergSchemaConverter;
 import io.debezium.postgres2lake.iceberg.infrastructure.s3.S3IcebergEventSaver;
 import io.debezium.postgres2lake.core.infrastructure.schema.CachedSchemaConverter;
@@ -23,6 +24,9 @@ public class IcebergBeans {
     @Inject
     DataCatalogHandler dataCatalogHandler;
 
+    @Inject
+    ReadinessMarkerEventEmitterHandler readinessMarkerEventEmitterHandler;
+
     @Singleton
     @Produces
     public EventSaver eventSaver() {
@@ -36,6 +40,6 @@ public class IcebergBeans {
             );
         }
 
-        return new S3IcebergEventSaver(configuration, schemaConverter);
+        return new S3IcebergEventSaver(configuration, schemaConverter, readinessMarkerEventEmitterHandler);
     }
 }
