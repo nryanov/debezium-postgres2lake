@@ -1,5 +1,6 @@
 package io.debezium.postgres2lake.domain;
 
+import io.debezium.postgres2lake.domain.model.EventDestination;
 import io.debezium.postgres2lake.domain.model.EventRecord;
 import org.apache.avro.Schema;
 
@@ -11,4 +12,6 @@ public interface EventAppender {
     String currentPartition();
 
     Schema currentSchema();
+
+    EventDestination destination();
 }

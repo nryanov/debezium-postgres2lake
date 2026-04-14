@@ -3,6 +3,7 @@ package io.debezium.postgres2lake.core.service;
 import io.debezium.postgres2lake.core.config.CommonConfiguration;
 import io.debezium.postgres2lake.domain.EventAppender;
 import io.debezium.postgres2lake.domain.model.EventCommitter;
+import io.debezium.postgres2lake.domain.model.EventDestination;
 import io.debezium.postgres2lake.domain.model.EventRecord;
 import io.debezium.postgres2lake.domain.model.Operation;
 import io.debezium.postgres2lake.extensions.common.model.TableDestination;
@@ -110,6 +111,11 @@ public class AbstractEventSaverReadinessMarkerTest {
         @Override
         public Schema currentSchema() {
             return schema;
+        }
+
+        @Override
+        public EventDestination destination() {
+            return null;
         }
     }
 

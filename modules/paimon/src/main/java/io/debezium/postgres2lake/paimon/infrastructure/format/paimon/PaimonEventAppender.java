@@ -1,6 +1,7 @@
 package io.debezium.postgres2lake.paimon.infrastructure.format.paimon;
 
 import io.debezium.postgres2lake.domain.EventAppender;
+import io.debezium.postgres2lake.domain.model.EventDestination;
 import io.debezium.postgres2lake.domain.model.EventRecord;
 import org.apache.avro.LogicalType;
 import org.apache.avro.LogicalTypes;
@@ -63,6 +64,11 @@ public class PaimonEventAppender implements EventAppender {
     @Override
     public org.apache.avro.Schema currentSchema() {
         return writer.avroSchema();
+    }
+
+    @Override
+    public EventDestination destination() {
+        return writer.destination();
     }
 
     public Identifier identifier() {

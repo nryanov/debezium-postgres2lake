@@ -1,6 +1,7 @@
 package io.debezium.postgres2lake.iceberg.infrastructure.format.iceberg;
 
 import io.debezium.postgres2lake.domain.EventAppender;
+import io.debezium.postgres2lake.domain.model.EventDestination;
 import io.debezium.postgres2lake.domain.model.EventRecord;
 import org.apache.avro.LogicalTypes;
 import org.apache.iceberg.Schema;
@@ -71,6 +72,11 @@ public class IcebergEventAppender implements EventAppender {
     @Override
     public org.apache.avro.Schema currentSchema() {
         return writer.schema();
+    }
+
+    @Override
+    public EventDestination destination() {
+        return writer.destination();
     }
 
     public Table table() {

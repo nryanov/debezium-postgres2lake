@@ -1,6 +1,7 @@
 package io.debezium.postgres2lake.orc.infrastructure.appender;
 
 import io.debezium.postgres2lake.domain.EventAppender;
+import io.debezium.postgres2lake.domain.model.EventDestination;
 import io.debezium.postgres2lake.domain.model.EventRecord;
 import io.debezium.postgres2lake.orc.infrastructure.OrcTableWriter;
 import org.apache.avro.LogicalType;
@@ -67,6 +68,11 @@ public class OrcEventAppender implements EventAppender {
     @Override
     public Schema currentSchema() {
         return writer.schema();
+    }
+
+    @Override
+    public EventDestination destination() {
+        return writer.destination();
     }
 
     private void saveRecord(GenericRecord record, TypeDescription schema, int rowIdx, VectorizedRowBatch vector) {

@@ -2,6 +2,7 @@ package io.debezium.postgres2lake.avro.infrastructure.appender;
 
 import io.debezium.postgres2lake.avro.infrastructure.AvroTableWriter;
 import io.debezium.postgres2lake.domain.EventAppender;
+import io.debezium.postgres2lake.domain.model.EventDestination;
 import io.debezium.postgres2lake.domain.model.EventRecord;
 import org.apache.avro.Schema;
 
@@ -32,5 +33,10 @@ public class AvroEventAppender implements EventAppender {
     @Override
     public Schema currentSchema() {
         return writer.schema();
+    }
+
+    @Override
+    public EventDestination destination() {
+        return writer.destination();
     }
 }

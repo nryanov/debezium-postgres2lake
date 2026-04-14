@@ -59,7 +59,13 @@ public class S3IcebergEventSaver extends AbstractEventSaver<IcebergEventAppender
         var maybeTableSpec = Optional.ofNullable(tableSpecs.get(tableIdentifier.name()));
 
         var table = tableDdl.createTableIfNotExists(tableIdentifier, tableSchema, maybeTableSpec);
-        var tableWriter = new IcebergTableWriter(table, writerFactory.create(table), tableSchema, event.valueSchema());
+        var tableWriter = new IcebergTableWriter(
+                table,
+                event.destination(),
+                writerFactory.create(table),
+                tableSchema,
+                event.valueSchema()
+        );
 
         return new IcebergEventAppender(tableWriter);
     }

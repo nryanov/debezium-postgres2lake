@@ -64,6 +64,7 @@ public class S3PaimonEventSaver extends AbstractEventSaver<PaimonEventAppender> 
             var writerBuilder = table.newStreamWriteBuilder();
             var tableWriter = new PaimonTableWriter(
                     tableIdentifier,
+                    event.destination(),
                     table,
                     paimonSchema,
                     event.valueSchema(),
