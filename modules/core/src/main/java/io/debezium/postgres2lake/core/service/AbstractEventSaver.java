@@ -4,10 +4,10 @@ import io.debezium.postgres2lake.core.config.CommonConfiguration;
 import io.debezium.postgres2lake.domain.EventAppender;
 import io.debezium.postgres2lake.domain.EventSaver;
 import io.debezium.postgres2lake.domain.model.EventCommitter;
+import io.debezium.postgres2lake.domain.model.EventDestination;
 import io.debezium.postgres2lake.domain.model.EventRecord;
 import io.debezium.postgres2lake.core.service.exceptions.EventAppendException;
 import io.debezium.postgres2lake.core.service.exceptions.EventFlushException;
-import io.debezium.postgres2lake.extensions.common.model.TableDestination;
 import io.debezium.postgres2lake.extensions.readiness.marker.event.emitter.api.ReadinessMarkerEventEmitterHandler;
 import org.jboss.logging.Logger;
 
@@ -26,7 +26,7 @@ abstract public class AbstractEventSaver<T extends EventAppender> implements Eve
     private final List<EventCommitter> committers;
     private final Map<String, T> openedEventAppender;
     private final ScheduledExecutorService scheduledExecutor;
-    private final ReadinessMarkerEventEmitterHandler readinessMarkerEventEmitterHandler;
+    private final ReadinessMarkerEventEmitterHandlerAdapter readinessMarkerEventEmitterHandlerAdapter;
     private final int totalRecordsThreshold;
 
     private int currentRecords;
@@ -37,7 +37,7 @@ abstract public class AbstractEventSaver<T extends EventAppender> implements Eve
     ) {
         this.committers = new ArrayList<>();
         this.openedEventAppender = new HashMap<>();
-        this.readinessMarkerEventEmitterHandler = readinessMarkerEventEmitterHandler;
+        this.readinessMarkerEventEmitterHandlerAdapter = new ReadinessMarkerEventEmitterHandlerAdapter(readinessMarkerEventEmitterHandler);
 
         var timeoutThreshold = threshold.time();
         this.totalRecordsThreshold = threshold.records();
@@ -100,19 +100,18 @@ abstract public class AbstractEventSaver<T extends EventAppender> implements Eve
                     logger.infof("Dump current events by exceeded records threshold");
                 }
 
+                var destinations = new ArrayList<EventDestination>();
                 // save events
                 for (var entry : openedEventAppender.entrySet()) {
                     var appender = entry.getValue();
                     appender.commitPendingEvents();
+                    destinations.add(appender.destination());
                 }
-                var updatedDestinations = collectUpdatedDestinations();
 
                 // commit every hold batch
                 committers.forEach(EventCommitter::commit);
-                if (!updatedDestinations.isEmpty()) {
-                    readinessMarkerEventEmitterHandler.emit(updatedDestinations);
-                }
                 logger.infof("Successfully saved %s total records", currentRecords);
+                readinessMarkerEventEmitterHandlerAdapter.emit(destinations);
 
                 openedEventAppender.clear();
                 committers.clear();
@@ -167,20 +166,6 @@ abstract public class AbstractEventSaver<T extends EventAppender> implements Eve
     protected String resolvePartition(EventRecord event) {
         // if method is not overrided then it means that current eventSaver resolve partition by its own fileIO (e.g. iceberg, paimon)
         return "";
-    }
-
-    private List<TableDestination> collectUpdatedDestinations() {
-        return openedEventAppender.keySet().stream()
-                .map(this::toTableDestination)
-                .toList();
-    }
-
-    private TableDestination toTableDestination(String destination) {
-        var parts = destination.split("[.]");
-        if (parts.length != 3) {
-            throw new IllegalStateException("Unable to map destination to table identity: " + destination);
-        }
-        return new TableDestination(parts[0], parts[1], parts[2]);
     }
 
     protected abstract T createEventAppender(EventRecord event);
