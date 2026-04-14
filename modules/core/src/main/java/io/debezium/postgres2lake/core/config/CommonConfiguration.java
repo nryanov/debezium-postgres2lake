@@ -2,6 +2,7 @@ package io.debezium.postgres2lake.core.config;
 
 import io.debezium.postgres2lake.domain.model.OutputFileNameGenerationStrategy;
 import io.debezium.postgres2lake.domain.model.OutputPartitionStrategy;
+import io.debezium.postgres2lake.domain.model.OutputStorageType;
 
 import java.time.Duration;
 import java.util.Map;
@@ -18,6 +19,10 @@ public interface CommonConfiguration {
         OutputFileNameGenerationStrategy fileName();
 
         Optional<String> recordPartitionField();
+
+        Optional<OutputStorageType> storage();
+
+        Optional<String> targetPath();
     }
 
     interface Threshold {

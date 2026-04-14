@@ -18,7 +18,7 @@ public class RecordFieldEventPartitionerTest {
 
         assertEquals(
                 "s3a://bucket/db/schema/table/us-east",
-                partitioner.resolvePartition("bucket", record));
+                partitioner.resolvePartition("s3a://bucket", record));
     }
 
     @Test
@@ -28,7 +28,7 @@ public class RecordFieldEventPartitionerTest {
 
         assertEquals(
                 "s3a://bucket/db/schema/table/us-west",
-                partitioner.resolvePartition("bucket", record));
+                partitioner.resolvePartition("s3a://bucket", record));
     }
 
     @Test
@@ -38,7 +38,7 @@ public class RecordFieldEventPartitionerTest {
 
         assertEquals(
                 "s3a://bucket/db/schema/table/42",
-                partitioner.resolvePartition("bucket", record));
+                partitioner.resolvePartition("s3a://bucket", record));
     }
 
     @Test
@@ -46,7 +46,7 @@ public class RecordFieldEventPartitionerTest {
         var partitioner = new RecordFieldEventPartitioner(FIELD);
         var record = EventRecordTestSupport.recordWithOnlyOtherField();
 
-        assertThrows(IllegalArgumentException.class, () -> partitioner.resolvePartition("bucket", record));
+        assertThrows(IllegalArgumentException.class, () -> partitioner.resolvePartition("s3a://bucket", record));
     }
 
     @Test
@@ -54,7 +54,7 @@ public class RecordFieldEventPartitionerTest {
         var partitioner = new RecordFieldEventPartitioner(FIELD);
         var record = EventRecordTestSupport.recordWithPartitionField(FIELD, EventRecordTestSupport.nullableString(), null);
 
-        assertThrows(IllegalArgumentException.class, () -> partitioner.resolvePartition("bucket", record));
+        assertThrows(IllegalArgumentException.class, () -> partitioner.resolvePartition("s3a://bucket", record));
     }
 
     @Test
@@ -62,7 +62,7 @@ public class RecordFieldEventPartitionerTest {
         var partitioner = new RecordFieldEventPartitioner(FIELD);
         var record = EventRecordTestSupport.recordWithPartitionField(FIELD, Schema.create(Schema.Type.STRING), "");
 
-        assertThrows(IllegalArgumentException.class, () -> partitioner.resolvePartition("bucket", record));
+        assertThrows(IllegalArgumentException.class, () -> partitioner.resolvePartition("s3a://bucket", record));
     }
 
     @Test
@@ -70,6 +70,6 @@ public class RecordFieldEventPartitionerTest {
         var partitioner = new RecordFieldEventPartitioner(FIELD);
         var record = EventRecordTestSupport.recordWithPartitionField(FIELD, Schema.create(Schema.Type.STRING), "a/b");
 
-        assertThrows(IllegalArgumentException.class, () -> partitioner.resolvePartition("bucket", record));
+        assertThrows(IllegalArgumentException.class, () -> partitioner.resolvePartition("s3a://bucket", record));
     }
 }

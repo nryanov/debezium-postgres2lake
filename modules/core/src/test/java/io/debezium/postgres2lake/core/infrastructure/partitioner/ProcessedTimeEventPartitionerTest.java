@@ -18,6 +18,6 @@ public class ProcessedTimeEventPartitionerTest {
 
         assertEquals(
                 "s3a://bucket/db/schema/table/2024-06-15",
-                partitioner.resolvePartition("bucket", record));
+                partitioner.resolvePartition("s3a://bucket", record));
     }
 }
