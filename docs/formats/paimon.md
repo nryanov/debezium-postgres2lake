@@ -26,27 +26,12 @@ debezium.output.paimon.file-io.properties.fs.s3a.impl=org.apache.hadoop.fs.s3a.S
 
 ## Available Paimon configs
 
-| Property | Required | Description | Values / examples |
-|---|---|---|---|
-| `quarkus.http.port` | No | HTTP/health port for app container | `9090` |
-| `debezium.engine.name` | Yes | Debezium engine name | `examples` |
-| `debezium.engine.database.hostname` | Yes | PostgreSQL host | `postgres` |
-| `debezium.engine.database.dbname` | Yes | PostgreSQL database name | `postgres` |
-| `debezium.engine.database.port` | Yes | PostgreSQL port | `5432` |
-| `debezium.engine.database.user` | Yes | PostgreSQL user | `postgres` |
-| `debezium.engine.database.password` | Yes | PostgreSQL password | `postgres` |
-| `debezium.engine.publication.name` | Yes | Logical replication publication | `debezium` |
-| `debezium.engine.slot.name` | Yes | Logical replication slot | `debezium` |
-| `debezium.engine.plugin.name` | Yes | Debezium Postgres plugin | `pgoutput` |
-| `debezium.engine.snapshot.mode` | Yes | Initial snapshot behavior | `NO_DATA` |
-| `debezium.engine.topic.prefix` | Yes | Kafka Connect topic prefix | `default` |
-| `debezium.engine.offset.storage` | Yes | Offset backing store class | `org.apache.kafka.connect.storage.MemoryOffsetBackingStore` |
-| `debezium.avro.format` | Yes | Avro serialization mode for Debezium payload conversion | `CONFLUENT`, `BINARY` |
-| `debezium.avro.properties.*` | No | Avro serializer properties map | `schema.registry.url=...` |
-| `debezium.output.paimon.threshold.records` | Yes | Flush threshold by record count | `10` |
-| `debezium.output.paimon.threshold.time` | Yes | Flush threshold by elapsed time | `5m`, `30s` |
-| `debezium.output.paimon.properties.*` | Yes | Paimon catalog/runtime properties map | `type=jdbc`, `warehouse=...` |
-| `debezium.output.paimon.file-io.properties.*` | No | Hadoop/S3A file IO properties map | `fs.s3a.endpoint=...` |
+| Property                                      | Required | Description                                             | Values / examples                                           |
+|-----------------------------------------------|----------|---------------------------------------------------------|-------------------------------------------------------------|
+| `debezium.output.paimon.threshold.records`    | Yes      | Flush threshold by record count                         | `10`                                                        |
+| `debezium.output.paimon.threshold.time`       | Yes      | Flush threshold by elapsed time                         | `5m`, `30s`                                                 |
+| `debezium.output.paimon.properties.*`         | Yes      | Paimon catalog/runtime properties map                   | `type=jdbc`, `warehouse=...`                                |
+| `debezium.output.paimon.file-io.properties.*` | No       | Hadoop/S3A file IO properties map                       | `fs.s3a.endpoint=...`                                       |
 
 ## Common catalog patterns
 

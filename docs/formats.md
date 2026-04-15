@@ -9,3 +9,7 @@ This repository is organized as a Gradle multi-module project.
 - `modules/orc` - ORC output ([docs](formats/orc.md))
 - `modules/iceberg` - Iceberg table support ([docs](formats/iceberg.md))
 - `modules/paimon` - Paimon table support ([docs](formats/paimon.md))
+
+## Shared configuration
+
+- Debezium engine and Avro payload serialization settings: [Debezium configuration](debezium-configuration.md)

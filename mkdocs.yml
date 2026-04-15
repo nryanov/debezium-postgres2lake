@@ -10,6 +10,7 @@ theme:
 nav:
   - Home: index.md
   - Requirements: requirements.md
+  - Debezium Configuration: debezium-configuration.md
   - Getting Started: getting-started.md
   - Features: features.md
   - Schema Evolution: schema-evolution.md

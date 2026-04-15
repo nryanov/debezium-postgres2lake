@@ -7,6 +7,7 @@
 - Python (only if you want to run helper scripts outside the `jupyter` container)
 
 For environment details beyond quick-start setup, see [Requirements](requirements.md).
+For shared CDC engine and payload settings, see [Debezium configuration](debezium-configuration.md).
 
 ## Build and test
 
