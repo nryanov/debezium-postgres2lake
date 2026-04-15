@@ -14,3 +14,4 @@ modules/paimon/src/main/jib/
 
 # Fetched for Hive Metastore in examples (run examples/common/fetch-jars.sh)
 examples/common/ext-jars/*.jar
+site/

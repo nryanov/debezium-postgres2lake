@@ -1,0 +1,46 @@
+site_name: debezium-postgres2lake
+site_description: PostgreSQL CDC to data lake formats with Debezium
+site_url: https://nryanov.github.io/debezium-postgres2lake/
+repo_url: https://github.com/nryanov/debezium-postgres2lake
+repo_name: nryanov/debezium-postgres2lake
+
+theme:
+  name: material
+
+nav:
+  - Home: index.md
+  - Requirements: requirements.md
+  - Debezium Configuration: debezium-configuration.md
+  - Getting Started: getting-started.md
+  - Features: features.md
+  - Schema Evolution: schema-evolution.md
+  - Examples:
+      - Overview: examples.md
+      - Avro: examples/avro.md
+      - Parquet: examples/parquet.md
+      - ORC: examples/orc.md
+      - Iceberg JDBC: examples/iceberg-jdbc.md
+      - Iceberg Nessie: examples/iceberg-nessie.md
+      - Iceberg Hive: examples/iceberg-hive.md
+      - Paimon JDBC: examples/paimon-jdbc.md
+      - Paimon Hive: examples/paimon-hive.md
+  - Formats:
+      - Overview: formats.md
+      - Avro: formats/avro.md
+      - Parquet: formats/parquet.md
+      - ORC: formats/orc.md
+      - Iceberg: formats/iceberg.md
+      - Paimon: formats/paimon.md
+  - SPI Extensions:
+      - Overview: spi/overview.md
+      - Implementing Extensions: spi/implementing-extensions.md
+      - Data Catalog API:
+          - API Overview: spi/data-catalog-api.md
+          - OpenMetadata: spi/data-catalog-openmetadata.md
+          - DataHub: spi/data-catalog-datahub.md
+      - Commit Event API:
+          - API Overview: spi/commit-event-api.md
+          - Kafka: spi/commit-event-emitter-kafka.md
+      - Readiness Marker API:
+          - API Overview: spi/readiness-marker-api.md
+          - S3: spi/readiness-marker-s3.md
