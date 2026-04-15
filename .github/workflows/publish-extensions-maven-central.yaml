@@ -1,0 +1,86 @@
+name: publish-extensions-maven-central
+
+on:
+  push:
+    tags:
+      - "v*"
+
+concurrency:
+  group: publish-extensions-maven-central-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
+      ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
+      ORG_GRADLE_PROJECT_mavenCentralPublishUrl: ${{ vars.MAVEN_CENTRAL_PUBLISH_URL }}
+      ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.MAVEN_GPG_PRIVATE_KEY }}
+      ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.MAVEN_GPG_PASSPHRASE }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: "21"
+          distribution: "temurin"
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@af1da67850ed9a4cedd57bfd976089dd991e2582 # v4.0.0
+
+      - name: Resolve and validate release metadata
+        env:
+          GITHUB_REF_NAME: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+
+          RELEASE_TAG="${GITHUB_REF_NAME}"
+          if [[ -z "${RELEASE_TAG}" ]]; then
+            echo "Release tag is empty."
+            exit 1
+          fi
+
+          if [[ ! "${RELEASE_TAG}" =~ ^v[0-9]+(\.[0-9]+){1,2}([.-][0-9A-Za-z.-]+)?$ ]]; then
+            echo "Release tag must start with 'v' and follow a semantic version pattern. Got: ${RELEASE_TAG}"
+            exit 1
+          fi
+
+          RELEASE_VERSION="${RELEASE_TAG#v}"
+          echo "RELEASE_VERSION=${RELEASE_VERSION}" >> "${GITHUB_ENV}"
+
+      - name: Validate publishing secrets
+        run: |
+          set -euo pipefail
+
+          for var in \
+            ORG_GRADLE_PROJECT_mavenCentralUsername \
+            ORG_GRADLE_PROJECT_mavenCentralPassword \
+            ORG_GRADLE_PROJECT_signingInMemoryKey \
+            ORG_GRADLE_PROJECT_signingInMemoryKeyPassword
+          do
+            if [[ -z "${!var}" ]]; then
+              echo "Missing required secret mapped to ${var}."
+              exit 1
+            fi
+          done
+
+      - name: Publish extension SPI modules
+        run: |
+          set -euo pipefail
+
+          ./gradlew --no-daemon \
+            -PreleaseVersion="${RELEASE_VERSION}" \
+            :extensions:extensions-common:publishMavenJavaPublicationToMavenCentralRepository \
+            :extensions:data-catalog-api:publishMavenJavaPublicationToMavenCentralRepository \
+            :extensions:data-catalog-openmetadata:publishMavenJavaPublicationToMavenCentralRepository \
+            :extensions:data-catalog-datahub:publishMavenJavaPublicationToMavenCentralRepository \
+            :extensions:commit-event-emitter-api:publishMavenJavaPublicationToMavenCentralRepository \
+            :extensions:commit-event-emitter-kafka:publishMavenJavaPublicationToMavenCentralRepository \
+            :extensions:readiness-marker-event-emitter-api:publishMavenJavaPublicationToMavenCentralRepository \
+            :extensions:readiness-marker-event-emitter-s3:publishMavenJavaPublicationToMavenCentralRepository

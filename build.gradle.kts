@@ -1,12 +1,15 @@
 import org.gradle.api.plugins.JavaPlugin
 import org.gradle.api.plugins.JavaPluginExtension
+import org.gradle.api.publish.PublishingExtension
+import org.gradle.api.publish.maven.MavenPublication
+import org.gradle.plugins.signing.SigningExtension
 
 plugins {
     java
 }
 
 group = "debezium-postgres2lake"
-version = "0.1.0"
+version = providers.gradleProperty("releaseVersion").orElse("0.1.0").get()
 
 subprojects {
     group = rootProject.group
@@ -81,6 +84,77 @@ subprojects {
                 "io.confluent:kafka-schema-serializer:$confluentAlignVersion",
                 "io.confluent:common-utils:$confluentAlignVersion",
             )
+        }
+    }
+
+    if (path.startsWith(":extensions:")) {
+        apply(plugin = "maven-publish")
+        apply(plugin = "signing")
+
+        plugins.withType<JavaPlugin>().configureEach {
+            extensions.configure<JavaPluginExtension> {
+                withSourcesJar()
+                withJavadocJar()
+            }
+
+            extensions.configure<PublishingExtension> {
+                publications {
+                    create<MavenPublication>("mavenJava") {
+                        from(components["java"])
+                        groupId = project.group.toString()
+                        artifactId = project.name
+                        version = project.version.toString()
+
+                        pom {
+                            name.set(project.name)
+                            description.set(
+                                "SPI extension module for debezium-postgres2lake: ${project.name}",
+                            )
+                            url.set("https://github.com/nryanov/debezium-postgres2lake")
+                            licenses {
+                                license {
+                                    name.set("Apache License, Version 2.0")
+                                    url.set("https://www.apache.org/licenses/LICENSE-2.0")
+                                    distribution.set("repo")
+                                }
+                            }
+                            developers {
+                                developer {
+                                    id.set("nryanov")
+                                    name.set("Nikita Ryanov")
+                                    url.set("https://github.com/nryanov")
+                                }
+                            }
+                            scm {
+                                url.set("https://github.com/nryanov/debezium-postgres2lake")
+                                connection.set("scm:git:git://github.com/nryanov/debezium-postgres2lake.git")
+                                developerConnection.set("scm:git:ssh://git@github.com/nryanov/debezium-postgres2lake.git")
+                            }
+                        }
+                    }
+                }
+                repositories {
+                    maven {
+                        name = "mavenCentral"
+                        url = uri(
+                            providers.gradleProperty("mavenCentralPublishUrl")
+                                .orElse("https://central.sonatype.com/repository/maven-releases/")
+                                .get(),
+                        )
+                        credentials {
+                            username = providers.gradleProperty("mavenCentralUsername").orNull
+                            password = providers.gradleProperty("mavenCentralPassword").orNull
+                        }
+                    }
+                }
+            }
+
+            extensions.configure<SigningExtension> {
+                val signingKey = providers.gradleProperty("signingInMemoryKey").orNull
+                val signingPassword = providers.gradleProperty("signingInMemoryKeyPassword").orNull
+                useInMemoryPgpKeys(signingKey, signingPassword)
+                sign(extensions.getByType(PublishingExtension::class.java).publications)
+            }
         }
     }
 }
