@@ -13,6 +13,8 @@ public class OrcPartitionRolloverProfile implements QuarkusTestProfile {
                 "debezium.output.orc.threshold.time", "30s",
                 "debezium.output.orc.naming-strategy.partitioner", "RECORD_FIELD",
                 "debezium.output.orc.naming-strategy.record-partition-field", "lake_part",
-                "debezium.output.orc.naming-strategy.file-name", "PROCESSING_TIME");
+                "debezium.output.orc.naming-strategy.file-name", "PROCESSING_TIME",
+                "debezium.output.orc.naming-strategy.storage", "S3",
+                "debezium.output.orc.naming-strategy.target-path", "warehouse");
     }
 }

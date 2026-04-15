@@ -11,7 +11,6 @@ import io.debezium.postgres2lake.core.config.CommonConfiguration;
 import io.debezium.postgres2lake.core.service.OutputLocationGenerator;
 
 public final class OutputLocationGeneratorFactory {
-
     private OutputLocationGeneratorFactory() {
     }
 
@@ -34,6 +33,12 @@ public final class OutputLocationGeneratorFactory {
             }
         };
 
-        return new OutputLocationGenerator(partitionStrategy, namingStrategy, format);
+        var targetPath = strategy.targetPath().trim();
+        if (targetPath.isBlank()) {
+            throw new IllegalArgumentException("output.*.naming-strategy.target-path must not be blank");
+        }
+        var storage = strategy.storage();
+
+        return new OutputLocationGenerator(partitionStrategy, namingStrategy, format, targetPath, storage);
     }
 }

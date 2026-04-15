@@ -11,11 +11,17 @@ public class EventTimeEventPartitioner implements EventPartitioner {
     private final static DateTimeFormatter ISO_LOCAL_DATE = DateTimeFormatter.ISO_LOCAL_DATE.withZone(ZoneOffset.UTC);
 
     @Override
-    public String resolvePartition(String bucket, EventRecord record) {
+    public String resolvePartition(String rootPath, EventRecord record) {
         var destination = record.destination();
         var eventTime = record.eventTime();
         var partition = ISO_LOCAL_DATE.format(Instant.ofEpochMilli(eventTime));
 
-        return String.format("s3a://%s/%s/%s/%s/%s", bucket, destination.database(), destination.schema(), destination.table(), partition);
+        return String.format(
+                "%s/%s/%s/%s/%s",
+                rootPath,
+                destination.database(),
+                destination.schema(),
+                destination.table(),
+                partition);
     }
 }

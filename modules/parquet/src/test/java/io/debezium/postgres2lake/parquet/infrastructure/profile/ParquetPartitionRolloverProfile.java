@@ -13,6 +13,8 @@ public class ParquetPartitionRolloverProfile implements QuarkusTestProfile {
                 "debezium.output.parquet.threshold.time", "30s",
                 "debezium.output.parquet.naming-strategy.partitioner", "RECORD_FIELD",
                 "debezium.output.parquet.naming-strategy.record-partition-field", "lake_part",
-                "debezium.output.parquet.naming-strategy.file-name", "PROCESSING_TIME");
+                "debezium.output.parquet.naming-strategy.file-name", "PROCESSING_TIME",
+                "debezium.output.parquet.naming-strategy.storage", "S3",
+                "debezium.output.parquet.naming-strategy.target-path", "warehouse");
     }
 }

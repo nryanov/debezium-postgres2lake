@@ -21,10 +21,16 @@ public class ProcessedTimeEventPartitioner implements EventPartitioner {
     }
 
     @Override
-    public String resolvePartition(String bucket, EventRecord record) {
+    public String resolvePartition(String rootPath, EventRecord record) {
         var destination = record.destination();
         var now = clock.instant();
 
-        return String.format("s3a://%s/%s/%s/%s/%s", bucket, destination.database(), destination.schema(), destination.table(), ISO_LOCAL_DATE.format(now));
+        return String.format(
+                "%s/%s/%s/%s/%s",
+                rootPath,
+                destination.database(),
+                destination.schema(),
+                destination.table(),
+                ISO_LOCAL_DATE.format(now));
     }
 }

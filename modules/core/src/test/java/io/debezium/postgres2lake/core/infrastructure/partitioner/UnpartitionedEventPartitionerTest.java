@@ -20,6 +20,17 @@ public class UnpartitionedEventPartitionerTest {
 
         assertEquals(
                 "s3a://warehouse/db/schema/table",
-                partitioner.resolvePartition("warehouse", record));
+                partitioner.resolvePartition("s3a://warehouse", record));
+    }
+
+    @Test
+    void resolvePartitionSupportsHdfsRootPath() {
+        var partitioner = new UnpartitionedEventPartitioner();
+        var empty = new GenericData.Record(Schema.createRecord("value", null, null, false, List.of()));
+        var record = new EventRecord(Operation.INSERT, empty, empty, EventRecordTestSupport.RAW_DESTINATION);
+
+        assertEquals(
+                "hdfs://namenode:8020/lake/db/schema/table",
+                partitioner.resolvePartition("hdfs://namenode:8020/lake", record));
     }
 }

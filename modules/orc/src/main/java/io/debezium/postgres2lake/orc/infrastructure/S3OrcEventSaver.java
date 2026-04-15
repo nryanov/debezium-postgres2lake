@@ -51,7 +51,7 @@ public class S3OrcEventSaver extends AbstractEventSaver<OrcEventAppender> {
 
     @Override
     protected OrcEventAppender createEventAppender(EventRecord event) {
-        var location = outputLocationGenerator.generateLocation("warehouse", event);
+        var location = outputLocationGenerator.generateLocation(event);
         var writer = createFileWriter(location, schemaConverter.extractSchema(event));
         var batch = writer.getSchema().createRowBatch(rowBatchSize);
 
@@ -80,6 +80,6 @@ public class S3OrcEventSaver extends AbstractEventSaver<OrcEventAppender> {
 
     @Override
     protected String resolvePartition(EventRecord event) {
-        return outputLocationGenerator.getPartition("warehouse", event);
+        return outputLocationGenerator.getPartition(event);
     }
 }

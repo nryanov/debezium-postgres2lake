@@ -12,7 +12,9 @@ public class OrcOutputFormatProfile implements QuarkusTestProfile {
                 "debezium.output.orc.threshold.records", "1",
                 "debezium.output.orc.threshold.time", "30s",
                 "debezium.output.orc.naming-strategy.partitioner", "UNPARTITIONED",
-                "debezium.output.orc.naming-strategy.file-name", "PROCESSING_TIME"
+                "debezium.output.orc.naming-strategy.file-name", "PROCESSING_TIME",
+                "debezium.output.orc.naming-strategy.storage", "S3",
+                "debezium.output.orc.naming-strategy.target-path", "warehouse"
         );
     }
 }

@@ -52,7 +52,7 @@ public class S3AvroEventSaver extends AbstractEventSaver<AvroEventAppender> {
 
     @Override
     protected AvroEventAppender createEventAppender(EventRecord event) {
-        var location = outputLocationGenerator.generateLocation("warehouse", event);
+        var location = outputLocationGenerator.generateLocation(event);
 
         try {
             logger.infof("Opening avro writer for `%s`", location);
@@ -83,6 +83,6 @@ public class S3AvroEventSaver extends AbstractEventSaver<AvroEventAppender> {
 
     @Override
     protected String resolvePartition(EventRecord event) {
-        return outputLocationGenerator.getPartition("warehouse", event);
+        return outputLocationGenerator.getPartition(event);
     }
 }

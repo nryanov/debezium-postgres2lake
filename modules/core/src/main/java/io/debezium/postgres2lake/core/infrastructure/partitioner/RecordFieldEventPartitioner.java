@@ -13,7 +13,7 @@ public final class RecordFieldEventPartitioner implements EventPartitioner {
     }
 
     @Override
-    public String resolvePartition(String bucket, EventRecord record) {
+    public String resolvePartition(String rootPath, EventRecord record) {
         if (!record.value().hasField(fieldName)) {
             throw new IllegalArgumentException(String.format("Partition field `%s` not found in value", fieldName));
         }
@@ -38,8 +38,8 @@ public final class RecordFieldEventPartitioner implements EventPartitioner {
 
         var destination = record.destination();
         return String.format(
-                "s3a://%s/%s/%s/%s/%s",
-                bucket,
+                "%s/%s/%s/%s/%s",
+                rootPath,
                 destination.database(),
                 destination.schema(),
                 destination.table(),

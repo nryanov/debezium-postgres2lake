@@ -51,7 +51,7 @@ public class S3ParquetEventSaver extends AbstractEventSaver<ParquetEventAppender
 
     @Override
     protected ParquetEventAppender createEventAppender(EventRecord event) {
-        var location = outputLocationGenerator.generateLocation("warehouse", event);
+        var location = outputLocationGenerator.generateLocation(event);
         try {
             logger.infof("Opening parquet writer for `%s`", location);
             var path = new Path(new URI(location));
@@ -80,6 +80,6 @@ public class S3ParquetEventSaver extends AbstractEventSaver<ParquetEventAppender
 
     @Override
     protected String resolvePartition(EventRecord event) {
-        return outputLocationGenerator.getPartition("warehouse", event);
+        return outputLocationGenerator.getPartition(event);
     }
 }

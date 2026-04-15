@@ -16,6 +16,6 @@ public class EventTimeEventPartitionerTest {
 
         assertEquals(
                 "s3a://bucket/db/schema/table/2023-01-02",
-                partitioner.resolvePartition("bucket", record));
+                partitioner.resolvePartition("s3a://bucket", record));
     }
 }
