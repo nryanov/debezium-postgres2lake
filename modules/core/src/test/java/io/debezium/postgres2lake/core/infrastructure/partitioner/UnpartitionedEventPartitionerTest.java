@@ -24,7 +24,7 @@ public class UnpartitionedEventPartitionerTest {
     }
 
     @Test
-    void resolvePartition_supportsHdfsRootPath() {
+    void resolvePartitionSupportsHdfsRootPath() {
         var partitioner = new UnpartitionedEventPartitioner();
         var empty = new GenericData.Record(Schema.createRecord("value", null, null, false, List.of()));
         var record = new EventRecord(Operation.INSERT, empty, empty, EventRecordTestSupport.RAW_DESTINATION);

@@ -13,6 +13,8 @@ public class AvroPartitionRolloverProfile implements QuarkusTestProfile {
                 "debezium.output.avro.threshold.time", "30s",
                 "debezium.output.avro.naming-strategy.partitioner", "RECORD_FIELD",
                 "debezium.output.avro.naming-strategy.record-partition-field", "lake_part",
-                "debezium.output.avro.naming-strategy.file-name", "PROCESSING_TIME");
+                "debezium.output.avro.naming-strategy.file-name", "PROCESSING_TIME",
+                "debezium.output.avro.naming-strategy.storage", "S3",
+                "debezium.output.avro.naming-strategy.target-path", "warehouse");
     }
 }

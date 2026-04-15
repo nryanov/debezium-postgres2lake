@@ -12,7 +12,9 @@ public class ParquetOutputFormatProfile implements QuarkusTestProfile {
                 "debezium.output.parquet.threshold.records", "1",
                 "debezium.output.parquet.threshold.time", "30s",
                 "debezium.output.parquet.naming-strategy.partitioner", "UNPARTITIONED",
-                "debezium.output.parquet.naming-strategy.file-name", "PROCESSING_TIME"
+                "debezium.output.parquet.naming-strategy.file-name", "PROCESSING_TIME",
+                "debezium.output.parquet.naming-strategy.storage", "S3",
+                "debezium.output.parquet.naming-strategy.target-path", "warehouse"
         );
     }
 }

@@ -12,7 +12,9 @@ public class AvroOutputFormatProfile implements QuarkusTestProfile {
                 "debezium.output.avro.threshold.records", "1",
                 "debezium.output.avro.threshold.time", "30s",
                 "debezium.output.avro.naming-strategy.partitioner", "UNPARTITIONED",
-                "debezium.output.avro.naming-strategy.file-name", "PROCESSING_TIME"
+                "debezium.output.avro.naming-strategy.file-name", "PROCESSING_TIME",
+                "debezium.output.avro.naming-strategy.storage", "S3",
+                "debezium.output.avro.naming-strategy.target-path", "warehouse"
         );
     }
 }

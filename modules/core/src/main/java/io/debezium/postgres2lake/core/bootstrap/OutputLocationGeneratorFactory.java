@@ -1,7 +1,6 @@
 package io.debezium.postgres2lake.core.bootstrap;
 
 import io.debezium.postgres2lake.domain.model.OutputFileFormat;
-import io.debezium.postgres2lake.domain.model.OutputStorageType;
 import io.debezium.postgres2lake.core.infrastructure.file.ProcessingTimeEventFileNameGenerator;
 import io.debezium.postgres2lake.core.infrastructure.file.UuidEventFileNameGenerator;
 import io.debezium.postgres2lake.core.infrastructure.partitioner.EventTimeEventPartitioner;
@@ -12,9 +11,6 @@ import io.debezium.postgres2lake.core.config.CommonConfiguration;
 import io.debezium.postgres2lake.core.service.OutputLocationGenerator;
 
 public final class OutputLocationGeneratorFactory {
-    private static final String DEFAULT_TARGET_PATH = "warehouse";
-    private static final OutputStorageType DEFAULT_STORAGE = OutputStorageType.S3;
-
     private OutputLocationGeneratorFactory() {
     }
 
@@ -37,11 +33,11 @@ public final class OutputLocationGeneratorFactory {
             }
         };
 
-        var targetPath = strategy.targetPath()
-                .map(String::trim)
-                .filter(value -> !value.isBlank())
-                .orElse(DEFAULT_TARGET_PATH);
-        var storage = strategy.storage().orElse(DEFAULT_STORAGE);
+        var targetPath = strategy.targetPath().trim();
+        if (targetPath.isBlank()) {
+            throw new IllegalArgumentException("output.*.naming-strategy.target-path must not be blank");
+        }
+        var storage = strategy.storage();
 
         return new OutputLocationGenerator(partitionStrategy, namingStrategy, format, targetPath, storage);
     }

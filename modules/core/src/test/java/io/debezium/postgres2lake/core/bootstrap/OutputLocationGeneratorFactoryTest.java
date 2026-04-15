@@ -20,13 +20,13 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 public class OutputLocationGeneratorFactoryTest {
 
     @Test
-    void resolve_usesDefaultS3StorageAndWarehouseTargetPath() {
+    void resolveUsesConfiguredS3StorageAndTargetPath() {
         var strategy = new NamingStrategy(
                 OutputPartitionStrategy.UNPARTITIONED,
                 OutputFileNameGenerationStrategy.UUID,
                 Optional.empty(),
-                Optional.empty(),
-                Optional.empty()
+                OutputStorageType.S3,
+                "warehouse"
         );
 
         var generator = OutputLocationGeneratorFactory.resolve(strategy, OutputFileFormat.avro);
@@ -41,18 +41,18 @@ public class OutputLocationGeneratorFactoryTest {
     }
 
     @Test
-    void resolve_usesConfiguredHdfsTargetPath() {
+    void resolveUsesConfiguredHdfsTargetPath() {
         var strategy = new NamingStrategy(
                 OutputPartitionStrategy.UNPARTITIONED,
                 OutputFileNameGenerationStrategy.UUID,
                 Optional.empty(),
-                Optional.of(OutputStorageType.HDFS),
-                Optional.of("/lake/root/")
+                OutputStorageType.HDFS,
+                "local://tmp/root/"
         );
 
         var generator = OutputLocationGeneratorFactory.resolve(strategy, OutputFileFormat.parquet);
 
-        assertEquals("/lake/root/db/schema/table", generator.getPartition(testRecord()));
+        assertEquals("local://tmp/root/db/schema/table", generator.getPartition(testRecord()));
     }
 
     private static EventRecord testRecord() {
@@ -64,8 +64,8 @@ public class OutputLocationGeneratorFactoryTest {
             OutputPartitionStrategy partitioner,
             OutputFileNameGenerationStrategy fileName,
             Optional<String> recordPartitionField,
-            Optional<OutputStorageType> storage,
-            Optional<String> targetPath
+            OutputStorageType storage,
+            String targetPath
     ) implements CommonConfiguration.OutputNamingStrategy {
     }
 }

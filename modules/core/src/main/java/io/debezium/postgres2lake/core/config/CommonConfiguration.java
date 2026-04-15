@@ -20,9 +20,9 @@ public interface CommonConfiguration {
 
         Optional<String> recordPartitionField();
 
-        Optional<OutputStorageType> storage();
+        OutputStorageType storage();
 
-        Optional<String> targetPath();
+        String targetPath();
     }
 
     interface Threshold {

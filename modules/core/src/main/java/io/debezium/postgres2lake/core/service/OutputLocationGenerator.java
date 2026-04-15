@@ -49,13 +49,6 @@ public class OutputLocationGenerator {
 
     private static String normalizeHdfsPath(String rawPath) {
         var path = rawPath.trim();
-        if (path.startsWith("hdfs://")) {
-            return path.replaceAll("/+$", "");
-        }
-
-        if (!path.startsWith("/")) {
-            path = "/" + path;
-        }
 
         return path.replaceAll("/+$", "");
     }
