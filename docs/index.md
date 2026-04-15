@@ -33,5 +33,5 @@ Teams often need CDC pipelines they can inspect, adapt, and evolve. This project
 - [Getting Started](getting-started.md)
 - [Features](features.md)
 - [Schema evolution](schema-evolution.md)
-- [Formats and Extensions](formats-and-extensions.md)
+- [Formats](formats.md)
 - [SPI extensions overview](spi/overview.md)

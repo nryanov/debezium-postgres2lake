@@ -59,6 +59,6 @@ docker compose exec jupyter python /tmp/generate_data.py
 
 - Review all available examples in `examples/`
 - See [Examples](examples.md) for short format-specific runs
-- Explore [Formats and Extensions](formats-and-extensions.md) for module details
+- Explore [Formats](formats.md) for module details
 - Review [Features](features.md) for supported CDC behavior
 - Review [Schema Evolution](schema-evolution.md) for supported schema change handling

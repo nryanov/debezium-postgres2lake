@@ -48,5 +48,5 @@ Object/file formats:
 ## Related docs
 
 - [Features](features.md)
-- [Formats and Extensions](formats-and-extensions.md)
+- [Formats](formats.md)
 - [SPI extensions overview](spi/overview.md)
