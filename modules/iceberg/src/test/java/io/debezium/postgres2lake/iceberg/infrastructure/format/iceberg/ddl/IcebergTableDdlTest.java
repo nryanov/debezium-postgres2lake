@@ -15,6 +15,7 @@ import org.apache.iceberg.TableProperties;
 import org.apache.iceberg.catalog.Catalog;
 import org.apache.iceberg.catalog.Namespace;
 import org.apache.iceberg.catalog.TableIdentifier;
+import org.apache.iceberg.jdbc.UncheckedSQLException;
 import org.apache.iceberg.types.Types;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -87,7 +88,18 @@ public class IcebergTableDdlTest {
         props.put("s3.path-style-access", "true");
         props.put("s3.client-factory-impl", "io.debezium.postgres2lake.iceberg.infrastructure.format.iceberg.InstrumentedS3FileIOAwsClientFactory");
 
-        return CatalogUtil.buildIcebergCatalog("ddl-test", props, new Configuration());
+        Catalog catalog = null;
+
+        while (catalog == null) {
+            try {
+                catalog = CatalogUtil.buildIcebergCatalog("ddl-test", props, new Configuration());
+            } catch (UncheckedSQLException e) {
+                // In some cases jdbc catalog may throw this error.
+                // ignore
+            }
+        }
+
+        return catalog;
     }
 
     @Test

@@ -20,6 +20,8 @@ import io.quarkus.test.junit.TestProfile;
 import jakarta.inject.Inject;
 import org.apache.iceberg.FileScanTask;
 import org.apache.iceberg.data.Record;
+import org.apache.iceberg.jdbc.JdbcCatalog;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -57,6 +59,22 @@ public class S3IcebergSchemaRolloverTest {
     @InjectPostgresHelper
     PostgresHelper postgresHelper;
 
+    private static IcebergHelper icebergHelper;
+
+    @BeforeEach
+    public void setupIcebergHelper() {
+        if (icebergHelper == null) {
+            icebergHelper = IcebergHelper.jdbc(String.format("s3a://%s", BUCKET), postgresHelper, minioHelper);
+        }
+    }
+
+    @AfterAll
+    public static void cleanup() {
+        if (icebergHelper != null) {
+            ((JdbcCatalog) icebergHelper.getCatalog()).close();
+        }
+    }
+
     @BeforeEach
     void flushPending() {
         eventSaver.flush();
@@ -72,7 +90,6 @@ public class S3IcebergSchemaRolloverTest {
         var saver = (AbstractEventSaver<?>) eventSaver;
         WriterRolloverAssertions.awaitAndFlush(eventSaver, saver);
 
-        var icebergHelper = IcebergHelper.jdbc(String.format("s3a://%s", BUCKET), postgresHelper, minioHelper);
         var icebergTable = icebergHelper.load(ICEBERG_NAMESPACE, "test_schema_rollover_iceberg_files");
         var dataFileCount = countDataFileTasks(icebergTable);
         assertTrue(dataFileCount >= 2,
@@ -89,7 +106,6 @@ public class S3IcebergSchemaRolloverTest {
         var saver = (AbstractEventSaver<?>) eventSaver;
         WriterRolloverAssertions.awaitAndFlush(eventSaver, saver);
 
-        var icebergHelper = IcebergHelper.jdbc(String.format("s3a://%s", BUCKET), postgresHelper, minioHelper);
         var byPk = new HashMap<Long, Record>();
 
         try (var rows = icebergHelper.readTable(ICEBERG_NAMESPACE, "test_schema_rollover_iceberg_rows")) {

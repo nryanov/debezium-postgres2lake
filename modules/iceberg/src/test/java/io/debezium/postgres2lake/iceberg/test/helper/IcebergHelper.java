@@ -94,4 +94,8 @@ public class IcebergHelper {
         var icebergTable = load(namespace, table);
         return readTable(icebergTable);
     }
+
+    public Catalog getCatalog() {
+        return catalog;
+    }
 }

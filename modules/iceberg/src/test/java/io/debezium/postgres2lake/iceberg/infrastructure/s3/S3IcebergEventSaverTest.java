@@ -17,10 +17,13 @@ import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.TestProfile;
 import jakarta.inject.Inject;
 import org.apache.iceberg.data.Record;
+import org.apache.iceberg.jdbc.JdbcCatalog;
 import org.jboss.logging.Logger;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.LocalDate;
@@ -61,12 +64,19 @@ public class S3IcebergEventSaverTest {
     @InjectPostgresHelper
     PostgresHelper postgresHelper;
 
-    private IcebergHelper icebergHelper;
+    private static IcebergHelper icebergHelper;
 
     @BeforeEach
     public void setupIcebergHelper() {
         if (icebergHelper == null) {
             icebergHelper = IcebergHelper.jdbc(String.format("s3a://%s", BUCKET), postgresHelper, minioHelper);
+        }
+    }
+
+    @AfterAll
+    public static void cleanup() {
+        if (icebergHelper != null) {
+            ((JdbcCatalog) icebergHelper.getCatalog()).close();
         }
     }
 
@@ -335,8 +345,14 @@ public class S3IcebergEventSaverTest {
         await().atMost(Duration.ofSeconds(120)).pollInterval(Duration.ofSeconds(1)).until(() -> saver.getCurrentRecords() > 0);
         eventSaver.flush();
 
-        var data = icebergHelper.readTable(schema, table).iterator();
-        assertTrue(data.hasNext(), "No iceberg data found for table: " + schema + "." + table);
-        return data.next();
+        try (var data = icebergHelper.readTable(schema, table)) {
+            var iterator = data.iterator();
+            assertTrue(iterator.hasNext(), "No iceberg data found for table: " + schema + "." + table);
+            var record = iterator.next();
+            iterator.close();
+            return record;
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 }

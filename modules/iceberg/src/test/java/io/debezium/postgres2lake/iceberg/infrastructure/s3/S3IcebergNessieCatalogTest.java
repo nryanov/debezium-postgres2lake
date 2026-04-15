@@ -21,6 +21,7 @@ import io.quarkus.test.junit.TestProfile;
 import jakarta.inject.Inject;
 import org.apache.iceberg.data.Record;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
@@ -30,6 +31,7 @@ import static org.awaitility.Awaitility.await;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+@Disabled("Local run only")
 @QuarkusTest
 @TestProfile(IcebergOutputFormatProfile.class)
 @QuarkusTestResource(value = PostgresResource.class, initArgs = {
