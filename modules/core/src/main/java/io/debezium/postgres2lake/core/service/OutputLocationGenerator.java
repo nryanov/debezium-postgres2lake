@@ -43,11 +43,11 @@ public class OutputLocationGenerator {
         };
     }
 
-    private static String trimSlashes(String path) {
+    private String trimSlashes(String path) {
         return path.replaceAll("^/+", "").replaceAll("/+$", "");
     }
 
-    private static String normalizeHdfsPath(String rawPath) {
+    private String normalizeHdfsPath(String rawPath) {
         var path = rawPath.trim();
 
         return path.replaceAll("/+$", "");
