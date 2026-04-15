@@ -24,7 +24,7 @@ nav:
       - Paimon JDBC: examples/paimon-jdbc.md
       - Paimon Hive: examples/paimon-hive.md
   - Formats:
-      - Overview: formats-and-extensions.md
+      - Overview: formats.md
       - Avro: formats/avro.md
       - Parquet: formats/parquet.md
       - ORC: formats/orc.md
