@@ -1,0 +1,1 @@
+./.venv-docs/bin/mkdocs build --strict

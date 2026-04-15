@@ -6,6 +6,8 @@
 - Docker + Docker Compose v2.20+
 - Python (only if you want to run helper scripts outside the `jupyter` container)
 
+For environment details beyond quick-start setup, see [Requirements](requirements.md).
+
 ## Build and test
 
 Build all modules:
@@ -57,3 +59,5 @@ docker compose exec jupyter python /tmp/generate_data.py
 - Review all available examples in `examples/`
 - See [Examples](examples.md) for short format-specific runs
 - Explore [Formats and Extensions](formats-and-extensions.md) for module details
+- Review [Features](features.md) for supported CDC behavior
+- Review [Schema Evolution](schema-evolution.md) for supported schema change handling

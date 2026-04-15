@@ -9,7 +9,10 @@ theme:
 
 nav:
   - Home: index.md
+  - Requirements: requirements.md
   - Getting Started: getting-started.md
+  - Features: features.md
+  - Schema Evolution: schema-evolution.md
   - Examples:
       - Overview: examples.md
       - Avro: examples/avro.md
@@ -29,6 +32,7 @@ nav:
       - Paimon: formats/paimon.md
   - SPI Extensions:
       - Overview: spi/overview.md
+      - Implementing Extensions: spi/implementing-extensions.md
       - Data Catalog API:
           - API Overview: spi/data-catalog-api.md
           - OpenMetadata: spi/data-catalog-openmetadata.md

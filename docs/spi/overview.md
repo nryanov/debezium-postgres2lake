@@ -2,6 +2,8 @@
 
 SPI extensions let you plug optional behaviors into the processing pipeline.
 
+If you want to build your own extension module, see [Implementing SPI extensions](implementing-extensions.md).
+
 ## Global SPI key pattern
 
 | Key pattern | Description |
