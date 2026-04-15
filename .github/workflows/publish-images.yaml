@@ -1,0 +1,123 @@
+name: publish-docker-images
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: "Release tag to publish (for example: v0.2.0)"
+        required: true
+        type: string
+
+concurrency:
+  group: publish-docker-images-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - module: avro
+            image: debezium-postgres2lake-avro
+          - module: orc
+            image: debezium-postgres2lake-orc
+          - module: parquet
+            image: debezium-postgres2lake-parquet
+          - module: paimon
+            image: debezium-postgres2lake-paimon
+          - module: iceberg
+            image: debezium-postgres2lake-iceberg
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: "21"
+          distribution: "temurin"
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@af1da67850ed9a4cedd57bfd976089dd991e2582 # v4.0.0
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Resolve release metadata
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          GITHUB_REF_NAME: ${{ github.ref_name }}
+          INPUT_RELEASE_TAG: ${{ github.event.inputs.release_tag }}
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKERHUB_NAMESPACE_VAR: ${{ vars.DOCKERHUB_NAMESPACE }}
+        run: |
+          set -euo pipefail
+
+          if [[ "${EVENT_NAME}" == "workflow_dispatch" ]]; then
+            RELEASE_TAG="${INPUT_RELEASE_TAG}"
+          else
+            RELEASE_TAG="${GITHUB_REF_NAME}"
+          fi
+
+          if [[ -z "${DOCKERHUB_USERNAME}" ]]; then
+            echo "DOCKERHUB_USERNAME secret is required."
+            exit 1
+          fi
+
+          if [[ -z "${RELEASE_TAG}" ]]; then
+            echo "Release tag is empty."
+            exit 1
+          fi
+
+          if [[ ! "${RELEASE_TAG}" =~ ^v[0-9]+(\.[0-9]+){1,2}([.-][0-9A-Za-z.-]+)?$ ]]; then
+            echo "Release tag must start with 'v' and follow a semantic version pattern. Got: ${RELEASE_TAG}"
+            exit 1
+          fi
+
+          if [[ -n "${DOCKERHUB_NAMESPACE_VAR}" ]]; then
+            DOCKERHUB_NAMESPACE="${DOCKERHUB_NAMESPACE_VAR}"
+          else
+            DOCKERHUB_NAMESPACE="${DOCKERHUB_USERNAME}"
+          fi
+
+          echo "RELEASE_TAG=${RELEASE_TAG}" >> "${GITHUB_ENV}"
+          echo "DOCKERHUB_NAMESPACE=${DOCKERHUB_NAMESPACE}" >> "${GITHUB_ENV}"
+
+      - name: Validate Docker Hub token
+        env:
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${DOCKERHUB_TOKEN}" ]]; then
+            echo "DOCKERHUB_TOKEN secret is required."
+            exit 1
+          fi
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Publish image (${{ matrix.module }})
+        env:
+          QUARKUS_CONTAINER_IMAGE_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          QUARKUS_CONTAINER_IMAGE_PASSWORD: ${{ secrets.DOCKERHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          ./gradlew ":modules:${{ matrix.module }}:build" -x test \
+            -Dquarkus.container-image.build=true \
+            -Dquarkus.container-image.push=true \
+            -Dquarkus.container-image.registry=docker.io \
+            -Dquarkus.container-image.group="${DOCKERHUB_NAMESPACE}" \
+            -Dquarkus.container-image.tag="${RELEASE_TAG}" \
+            -Dquarkus.container-image.additional-tags=latest \
+            -Dquarkus.jib.platforms=linux/amd64,linux/arm64/v8
