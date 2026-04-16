@@ -5,13 +5,13 @@ import org.apache.orc.CompressionKind;
 import java.util.Optional;
 
 public enum OrcCompressionCodec {
+    // TODO add support for BROTLI
     NONE(CompressionKind.NONE),
     ZLIB(CompressionKind.ZLIB),
     SNAPPY(CompressionKind.SNAPPY),
     LZO(CompressionKind.LZO),
     LZ4(CompressionKind.LZ4),
-    ZSTD(CompressionKind.ZSTD),
-    BROTLI(CompressionKind.BROTLI);
+    ZSTD(CompressionKind.ZSTD);
 
     public final CompressionKind codec;
 

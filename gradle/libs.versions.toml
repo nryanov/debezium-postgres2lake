@@ -8,7 +8,10 @@ orc = "2.2.2" # todo: return to 1.9.8?
 confluent = "8.1.1"
 awssdk = "2.41.24"
 hadoop = "3.4.1"
+hive = "2.3.10"
 slf4j = "2.0.17"
+xzCodec = "1.12"
+lz4Codec = "1.11.0"
 # test dependencies
 junit = "5.12.2"
 testcontsiners = "1.21.4"
@@ -32,6 +35,9 @@ orc-core = { group = "org.apache.orc", name = "orc-core", version.ref = "orc" }
 
 slf4j = { group = "org.slf4j", name = "slf4j-api", version.ref = "slf4j" }
 
+codec-xz = { group = "org.tukaani", name = "xz", version.ref = "xzCodec" }
+codec-lz4 = { group = "at.yawk.lz4", name = "lz4-java", version.ref = "lz4Codec" }
+
 # paimon
 paimon-core = { group = "org.apache.paimon", name = "paimon-core", version.ref = "paimon" }
 paimon-common = { group = "org.apache.paimon", name = "paimon-common", version.ref = "paimon" }
@@ -42,6 +48,8 @@ paimon-hive-catalog = { group = "org.apache.paimon", name = "paimon-hive-catalog
 hadoop-common = { group = "org.apache.hadoop", name = "hadoop-common", version.ref = "hadoop" }
 hadoop-client = { group = "org.apache.hadoop", name = "hadoop-client", version.ref = "hadoop" }
 hadoop-aws = { group = "org.apache.hadoop", name = "hadoop-aws", version.ref = "hadoop" }
+
+hive-metastore = { group = "org.apache.hive", name = "hive-metastore", version.ref = "hive" }
 
 # test dependencies
 junit-bom = { group = "org.junit", name = "junit-bom", version.ref = "junit" }

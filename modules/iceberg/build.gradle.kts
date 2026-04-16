@@ -22,7 +22,7 @@ dependencies {
     implementation("org.apache.iceberg:iceberg-nessie")
     implementation("org.apache.iceberg:iceberg-hive-metastore")
 
-    implementation("org.apache.hive:hive-metastore:2.3.10") {
+    implementation(libs.hive.metastore) {
         exclude(group = "org.slf4j", module = "slf4j-api")
         exclude(group = "asm")
         exclude(group = "org.ow2.asm", module = "asm-all")
