@@ -1,7 +1,7 @@
-package io.debezium.postgres2lake.paimon.infrastructure.format.paimon.ddl;
+package io.debezium.postgres2lake.paimon.infrastructure.ddl;
 
 import io.debezium.postgres2lake.domain.model.AvroSchemaChanges;
-import io.debezium.postgres2lake.paimon.infrastructure.format.paimon.PaimonSchemaConverter;
+import io.debezium.postgres2lake.paimon.infrastructure.PaimonSchemaConverter;
 import io.debezium.postgres2lake.test.avro.AvroTestFixtures;
 import io.debezium.postgres2lake.test.container.MinioTestContainer;
 import io.debezium.postgres2lake.test.container.PostgresTestContainer;

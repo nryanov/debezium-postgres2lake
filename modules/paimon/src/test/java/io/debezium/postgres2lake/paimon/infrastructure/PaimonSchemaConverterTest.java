@@ -1,4 +1,4 @@
-package io.debezium.postgres2lake.paimon.infrastructure.format.paimon;
+package io.debezium.postgres2lake.paimon.infrastructure;
 
 import org.apache.avro.LogicalTypes;
 import org.apache.avro.Schema;

@@ -1,4 +1,4 @@
-package io.debezium.postgres2lake.paimon.infrastructure.format.paimon;
+package io.debezium.postgres2lake.paimon.infrastructure;
 
 import io.debezium.postgres2lake.domain.model.EventDestination;
 import org.apache.paimon.catalog.Identifier;

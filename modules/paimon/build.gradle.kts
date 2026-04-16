@@ -9,7 +9,6 @@ dependencies {
     implementation(project(":modules:domain"))
     implementation(project(":modules:core"))
 
-    implementation(libs.codec.lz4)
     implementation(libs.paimon.core) {
         exclude(group = "org.slf4j", module = "slf4j-api")
     }

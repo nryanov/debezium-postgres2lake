@@ -1,9 +1,9 @@
-package io.debezium.postgres2lake.paimon.infrastructure.format.paimon.ddl;
+package io.debezium.postgres2lake.paimon.infrastructure.ddl;
 
 import io.debezium.postgres2lake.domain.model.AvroSchemaChanges;
 import io.debezium.postgres2lake.domain.model.EventRecord;
-import io.debezium.postgres2lake.paimon.infrastructure.format.paimon.PaimonSchemaConverter;
-import io.debezium.postgres2lake.paimon.infrastructure.format.paimon.exceptions.PaimonTableAlterException;
+import io.debezium.postgres2lake.paimon.infrastructure.PaimonSchemaConverter;
+import io.debezium.postgres2lake.paimon.infrastructure.exceptions.PaimonTableAlterException;
 import org.apache.paimon.catalog.Catalog;
 import org.apache.paimon.catalog.Identifier;
 import org.apache.paimon.schema.Schema;

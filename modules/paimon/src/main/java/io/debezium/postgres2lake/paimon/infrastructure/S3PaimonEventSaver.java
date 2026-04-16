@@ -1,13 +1,10 @@
-package io.debezium.postgres2lake.paimon.infrastructure.s3;
+package io.debezium.postgres2lake.paimon.infrastructure;
 
 import io.debezium.postgres2lake.paimon.config.PaimonConfiguration;
 import io.debezium.postgres2lake.domain.SchemaConverter;
 import io.debezium.postgres2lake.domain.model.EventRecord;
-import io.debezium.postgres2lake.paimon.infrastructure.format.paimon.PaimonEventAppender;
-import io.debezium.postgres2lake.paimon.infrastructure.format.paimon.PaimonSchemaConverter;
 import io.debezium.postgres2lake.core.infrastructure.s3.exceptions.S3PaimonTableAccessException;
-import io.debezium.postgres2lake.paimon.infrastructure.format.paimon.PaimonTableWriter;
-import io.debezium.postgres2lake.paimon.infrastructure.format.paimon.ddl.PaimonTableDdl;
+import io.debezium.postgres2lake.paimon.infrastructure.ddl.PaimonTableDdl;
 import io.debezium.postgres2lake.core.infrastructure.schema.SchemaDiffResolver;
 import io.debezium.postgres2lake.core.service.AbstractEventSaver;
 import io.debezium.postgres2lake.extensions.readiness.marker.event.emitter.api.ReadinessMarkerEventEmitterHandler;
