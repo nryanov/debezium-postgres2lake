@@ -1,4 +1,4 @@
-package io.debezium.postgres2lake.iceberg.infrastructure.format.iceberg.writer;
+package io.debezium.postgres2lake.iceberg.infrastructure.writer;
 
 import org.apache.iceberg.FileFormat;
 import org.apache.iceberg.PartitionKey;

@@ -2,7 +2,6 @@ package io.debezium.postgres2lake.iceberg.infrastructure.ddl;
 
 import io.debezium.postgres2lake.iceberg.config.IcebergConfiguration;
 import io.debezium.postgres2lake.domain.model.AvroSchemaChanges;
-import io.debezium.postgres2lake.iceberg.infrastructure.format.iceberg.ddl.IcebergTableDdl;
 import io.debezium.postgres2lake.test.avro.AvroTestFixtures;
 import io.debezium.postgres2lake.test.container.MinioTestContainer;
 import io.debezium.postgres2lake.test.container.PostgresTestContainer;
@@ -87,7 +86,7 @@ public class IcebergTableDdlTest {
         props.put("s3.access-key-id", minioHelper.getAccessKey());
         props.put("s3.secret-access-key", minioHelper.getSecretAccessKey());
         props.put("s3.path-style-access", "true");
-        props.put("s3.client-factory-impl", "io.debezium.postgres2lake.iceberg.infrastructure.format.iceberg.InstrumentedS3FileIOAwsClientFactory");
+        props.put("s3.client-factory-impl", "io.debezium.postgres2lake.iceberg.infrastructure.InstrumentedS3FileIOAwsClientFactory");
 
         Catalog catalog = null;
 

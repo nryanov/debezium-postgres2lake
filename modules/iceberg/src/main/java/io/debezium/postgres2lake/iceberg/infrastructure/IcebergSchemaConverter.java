@@ -1,4 +1,4 @@
-package io.debezium.postgres2lake.iceberg.infrastructure.format.iceberg;
+package io.debezium.postgres2lake.iceberg.infrastructure;
 
 import io.debezium.postgres2lake.domain.SchemaConverter;
 import io.debezium.postgres2lake.domain.model.EventRecord;

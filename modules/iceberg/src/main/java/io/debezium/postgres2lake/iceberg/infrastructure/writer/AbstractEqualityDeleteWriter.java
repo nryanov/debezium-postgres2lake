@@ -1,7 +1,7 @@
-package io.debezium.postgres2lake.iceberg.infrastructure.format.iceberg.writer;
+package io.debezium.postgres2lake.iceberg.infrastructure.writer;
 
-import io.debezium.postgres2lake.iceberg.infrastructure.format.iceberg.EnrichedRecordWrapper;
-import io.debezium.postgres2lake.iceberg.infrastructure.format.iceberg.RecordProjection;
+import io.debezium.postgres2lake.iceberg.infrastructure.EnrichedRecordWrapper;
+import io.debezium.postgres2lake.iceberg.infrastructure.RecordProjection;
 import org.apache.iceberg.FileFormat;
 import org.apache.iceberg.PartitionKey;
 import org.apache.iceberg.PartitionSpec;

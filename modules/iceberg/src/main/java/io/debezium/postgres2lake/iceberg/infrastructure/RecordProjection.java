@@ -1,4 +1,4 @@
-package io.debezium.postgres2lake.iceberg.infrastructure.format.iceberg;
+package io.debezium.postgres2lake.iceberg.infrastructure;
 
 import java.util.List;
 import java.util.Map;

@@ -1,4 +1,4 @@
-package io.debezium.postgres2lake.iceberg.infrastructure.format.iceberg.ddl;
+package io.debezium.postgres2lake.iceberg.infrastructure.ddl;
 
 import io.debezium.postgres2lake.iceberg.config.IcebergConfiguration;
 import io.debezium.postgres2lake.domain.model.AvroSchemaChanges;

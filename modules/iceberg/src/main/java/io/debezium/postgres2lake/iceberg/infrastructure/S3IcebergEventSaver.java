@@ -1,13 +1,11 @@
-package io.debezium.postgres2lake.iceberg.infrastructure.s3;
+package io.debezium.postgres2lake.iceberg.infrastructure;
 
 import io.debezium.postgres2lake.iceberg.config.IcebergConfiguration;
 import io.debezium.postgres2lake.domain.SchemaConverter;
 import io.debezium.postgres2lake.domain.model.EventRecord;
-import io.debezium.postgres2lake.iceberg.infrastructure.format.iceberg.exceptions.IcebergTableAlterException;
-import io.debezium.postgres2lake.iceberg.infrastructure.format.iceberg.IcebergEventAppender;
-import io.debezium.postgres2lake.iceberg.infrastructure.format.iceberg.IcebergTableWriter;
-import io.debezium.postgres2lake.iceberg.infrastructure.format.iceberg.ddl.IcebergTableDdl;
-import io.debezium.postgres2lake.iceberg.infrastructure.format.iceberg.writer.IcebergWriterFactory;
+import io.debezium.postgres2lake.iceberg.infrastructure.exceptions.IcebergTableAlterException;
+import io.debezium.postgres2lake.iceberg.infrastructure.ddl.IcebergTableDdl;
+import io.debezium.postgres2lake.iceberg.infrastructure.writer.IcebergWriterFactory;
 import io.debezium.postgres2lake.core.infrastructure.schema.SchemaDiffResolver;
 import io.debezium.postgres2lake.core.service.AbstractEventSaver;
 import io.debezium.postgres2lake.extensions.readiness.marker.event.emitter.api.ReadinessMarkerEventEmitterHandler;

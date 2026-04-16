@@ -1,4 +1,4 @@
-package io.debezium.postgres2lake.iceberg.infrastructure.format.iceberg.exceptions;
+package io.debezium.postgres2lake.iceberg.infrastructure.exceptions;
 
 public class IcebergTableAlterException extends RuntimeException {
     public IcebergTableAlterException(Throwable cause) {

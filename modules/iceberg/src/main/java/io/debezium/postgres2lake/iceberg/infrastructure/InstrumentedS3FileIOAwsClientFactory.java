@@ -1,4 +1,4 @@
-package io.debezium.postgres2lake.iceberg.infrastructure.format.iceberg;
+package io.debezium.postgres2lake.iceberg.infrastructure;
 
 import org.apache.iceberg.aws.AwsClientProperties;
 import org.apache.iceberg.aws.HttpClientProperties;
