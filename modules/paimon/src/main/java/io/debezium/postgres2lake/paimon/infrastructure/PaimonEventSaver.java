@@ -3,7 +3,7 @@ package io.debezium.postgres2lake.paimon.infrastructure;
 import io.debezium.postgres2lake.paimon.config.PaimonConfiguration;
 import io.debezium.postgres2lake.domain.SchemaConverter;
 import io.debezium.postgres2lake.domain.model.EventRecord;
-import io.debezium.postgres2lake.core.infrastructure.s3.exceptions.S3PaimonTableAccessException;
+import io.debezium.postgres2lake.paimon.infrastructure.exceptions.PaimonTableAccessException;
 import io.debezium.postgres2lake.paimon.infrastructure.ddl.PaimonTableDdl;
 import io.debezium.postgres2lake.core.infrastructure.schema.SchemaDiffResolver;
 import io.debezium.postgres2lake.core.service.AbstractEventSaver;
@@ -85,7 +85,7 @@ public class PaimonEventSaver extends AbstractEventSaver<PaimonEventAppender> {
             return new PaimonEventAppender(tableWriter);
         } catch (Catalog.TableNotExistException e) {
             logger.errorf("Paimon table not found after createTableIfNotExists: %s", tableIdentifier);
-            throw new S3PaimonTableAccessException("Paimon table not found after createTableIfNotExists: " + tableIdentifier, e);
+            throw new PaimonTableAccessException("Paimon table not found after createTableIfNotExists: " + tableIdentifier, e);
         }
     }
 

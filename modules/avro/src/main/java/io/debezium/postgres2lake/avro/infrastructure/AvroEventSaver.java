@@ -4,8 +4,8 @@ import io.debezium.postgres2lake.avro.infrastructure.appender.AvroEventAppender;
 import io.debezium.postgres2lake.avro.infrastructure.appender.AvroEventAppenderFactory;
 import io.debezium.postgres2lake.domain.SchemaConverter;
 import io.debezium.postgres2lake.domain.model.EventRecord;
-import io.debezium.postgres2lake.core.infrastructure.s3.exceptions.S3InvalidOutputUriException;
-import io.debezium.postgres2lake.core.infrastructure.s3.exceptions.S3WriterOpenException;
+import io.debezium.postgres2lake.core.infrastructure.exceptions.InvalidOutputUriException;
+import io.debezium.postgres2lake.core.infrastructure.exceptions.WriterOpenException;
 import io.debezium.postgres2lake.core.service.AbstractEventSaver;
 import io.debezium.postgres2lake.core.config.CommonConfiguration;
 import io.debezium.postgres2lake.core.service.OutputLocationGenerator;
@@ -74,10 +74,10 @@ public class AvroEventSaver extends AbstractEventSaver<AvroEventAppender> {
             return appenderFactory.create(new AvroTableWriter(writer, schema, resolvePartition(event), location, event.destination()));
         } catch (URISyntaxException e) {
             logger.errorf("Invalid output URI: %s", location);
-            throw new S3InvalidOutputUriException("Invalid output URI: " + location, e);
+            throw new InvalidOutputUriException("Invalid output URI: " + location, e);
         } catch (IOException e) {
             logger.errorf(e, "Error happened while creating avro writer: %s", e.getLocalizedMessage());
-            throw new S3WriterOpenException("Failed to open Avro writer for: " + location, e);
+            throw new WriterOpenException("Failed to open Avro writer for: " + location, e);
         }
     }
 

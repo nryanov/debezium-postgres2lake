@@ -3,8 +3,8 @@ package io.debezium.postgres2lake.parquet.infrastructure;
 import io.debezium.postgres2lake.domain.SchemaConverter;
 import io.debezium.postgres2lake.domain.model.EventRecord;
 
-import io.debezium.postgres2lake.core.infrastructure.s3.exceptions.S3InvalidOutputUriException;
-import io.debezium.postgres2lake.core.infrastructure.s3.exceptions.S3WriterOpenException;
+import io.debezium.postgres2lake.core.infrastructure.exceptions.InvalidOutputUriException;
+import io.debezium.postgres2lake.core.infrastructure.exceptions.WriterOpenException;
 import io.debezium.postgres2lake.core.service.AbstractEventSaver;
 import io.debezium.postgres2lake.core.config.CommonConfiguration;
 import io.debezium.postgres2lake.core.service.OutputLocationGenerator;
@@ -71,10 +71,10 @@ public class ParquetEventSaver extends AbstractEventSaver<ParquetEventAppender> 
             return appenderFactory.create(tableWriter);
         } catch (URISyntaxException e) {
             logger.errorf("Invalid output URI: %s", location);
-            throw new S3InvalidOutputUriException("Invalid output URI: " + location, e);
+            throw new InvalidOutputUriException("Invalid output URI: " + location, e);
         } catch (IOException e) {
             logger.errorf(e, "Error happened while creating parquet writer: %s", e.getLocalizedMessage());
-            throw new S3WriterOpenException("Failed to open Parquet writer for: " + location, e);
+            throw new WriterOpenException("Failed to open Parquet writer for: " + location, e);
         }
     }
 
