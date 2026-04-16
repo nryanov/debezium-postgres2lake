@@ -1,7 +1,8 @@
-package io.debezium.postgres2lake.iceberg.infrastructure.format.iceberg.ddl;
+package io.debezium.postgres2lake.iceberg.infrastructure.ddl;
 
 import io.debezium.postgres2lake.iceberg.config.IcebergConfiguration;
 import io.debezium.postgres2lake.domain.model.AvroSchemaChanges;
+import io.debezium.postgres2lake.iceberg.infrastructure.format.iceberg.ddl.IcebergTableDdl;
 import io.debezium.postgres2lake.test.avro.AvroTestFixtures;
 import io.debezium.postgres2lake.test.container.MinioTestContainer;
 import io.debezium.postgres2lake.test.container.PostgresTestContainer;

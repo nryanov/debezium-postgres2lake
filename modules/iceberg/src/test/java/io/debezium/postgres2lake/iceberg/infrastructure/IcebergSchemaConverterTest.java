@@ -1,5 +1,6 @@
-package io.debezium.postgres2lake.iceberg.infrastructure.format.iceberg;
+package io.debezium.postgres2lake.iceberg.infrastructure;
 
+import io.debezium.postgres2lake.iceberg.infrastructure.format.iceberg.IcebergSchemaConverter;
 import org.apache.avro.LogicalTypes;
 import org.apache.avro.Schema;
 import org.apache.avro.SchemaBuilder;
