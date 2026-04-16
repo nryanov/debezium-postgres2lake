@@ -1,4 +1,4 @@
-package io.debezium.postgres2lake.iceberg.infrastructure.s3;
+package io.debezium.postgres2lake.iceberg.infrastructure;
 
 import io.debezium.postgres2lake.domain.EventSaver;
 import io.debezium.postgres2lake.iceberg.infrastructure.profile.IcebergOutputFormatProfile;
