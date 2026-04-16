@@ -9,6 +9,7 @@ confluent = "8.1.1"
 awssdk = "2.41.24"
 hadoop = "3.4.1"
 hive = "2.3.10"
+hiveExec = "4.2.0"
 slf4j = "2.0.17"
 xzCodec = "1.12"
 lz4Codec = "1.11.0"
@@ -50,6 +51,7 @@ hadoop-client = { group = "org.apache.hadoop", name = "hadoop-client", version.r
 hadoop-aws = { group = "org.apache.hadoop", name = "hadoop-aws", version.ref = "hadoop" }
 
 hive-metastore = { group = "org.apache.hive", name = "hive-metastore", version.ref = "hive" }
+hive-exec = { group = "org.apache.hive", name = "hive-exec", version.ref = "hiveExec" }
 
 # test dependencies
 junit-bom = { group = "org.junit", name = "junit-bom", version.ref = "junit" }

@@ -7,8 +7,11 @@ dependencies {
     implementation(project(":modules:platform"))
     implementation(project(":modules:jib"))
     implementation(project(":modules:domain"))
-    implementation(project(":modules:core"))
+    implementation(project(":modules:core")) {
+        exclude(group = "org.apache.parquet")
+    }
 
+    implementation(libs.codec.lz4)
     implementation(enforcedPlatform(libs.iceberg.platform)) {
         exclude(group = "org.slf4j", module = "slf4j-api")
     }
@@ -27,6 +30,8 @@ dependencies {
         exclude(group = "asm")
         exclude(group = "org.ow2.asm", module = "asm-all")
         exclude(group = "org.apache.logging.log4j")
+        exclude(group = "org.apache.parquet")
+        exclude(group = "org.apache.orc")
     }
 
     testImplementation(testFixtures(project(":modules:test-fixtures:common")))
