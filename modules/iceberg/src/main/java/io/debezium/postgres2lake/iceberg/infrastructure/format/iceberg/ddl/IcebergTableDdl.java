@@ -81,8 +81,8 @@ public class IcebergTableDdl {
 
                 tableSpec.properties().forEach(tableBuilder::withProperty);
 
-                tableBuilder.withSortOrder(resolveSortOrder(schema, tableSpec.sortBy()));
-                tableBuilder.withPartitionSpec(resolvePartitionSpec(schema, tableSpec.partitionBy()));
+                tableBuilder.withSortOrder(resolveSortOrder(schema, tableSpec.sortBy().orElse(List.of())));
+                tableBuilder.withPartitionSpec(resolvePartitionSpec(schema, tableSpec.partitionBy().orElse(List.of())));
             }
 
             table = tableBuilder.create();

@@ -1,0 +1,25 @@
+name: debezium-examples-avro-spi-s3-readiness
+
+include:
+  - path: ../common/base-compose.yaml
+
+services:
+  app:
+    image: local/debezium-postgres2lake-avro:${IMAGE_TAG:-0.1.0}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      liquibase:
+        condition: service_completed_successfully
+      schema-registry:
+        condition: service_started
+      mc:
+        condition: service_started
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./config/application.properties:/work/config/application.properties:ro
+      - ./extensions-jars:/work/spi:ro
+    environment:
+      SPI_EXT_DIR: /work/spi
+      JVM_OPTS: "-Xms1024m -Xmx2048m"

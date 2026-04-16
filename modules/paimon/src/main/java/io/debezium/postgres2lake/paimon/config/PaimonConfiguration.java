@@ -2,6 +2,7 @@ package io.debezium.postgres2lake.paimon.config;
 
 import io.debezium.postgres2lake.core.config.CommonConfiguration;
 import io.smallrye.config.ConfigMapping;
+import io.smallrye.config.WithName;
 
 import java.util.Map;
 
@@ -12,4 +13,14 @@ public interface PaimonConfiguration {
     Map<String, String> properties();
 
     CommonConfiguration.FileIO fileIO();
+
+    Map<String, String> defaultTableProperties();
+
+    @WithName("tableSpecs")
+    Map<String, PaimonTableSpec> tableSpecs();
+
+    interface PaimonTableSpec {
+        Map<String, String> properties();
+
+    }
 }

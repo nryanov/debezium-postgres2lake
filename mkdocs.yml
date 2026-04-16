@@ -17,6 +17,7 @@ nav:
   - Examples:
       - Overview: examples.md
       - Avro: examples/avro.md
+      - Avro + External SPI JAR: examples/avro-spi-s3-readiness.md
       - Parquet: examples/parquet.md
       - ORC: examples/orc.md
       - Iceberg JDBC: examples/iceberg-jdbc.md

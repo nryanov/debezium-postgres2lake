@@ -12,6 +12,7 @@ dependencies {
     implementation(libs.parquet.avro) {
         exclude(group = "org.slf4j", module = "slf4j-api")
     }
+    implementation(libs.codec.lz4)
 
     testImplementation(testFixtures(project(":modules:test-fixtures:common")))
     testImplementation(testFixtures(project(":modules:test-fixtures:s3")))

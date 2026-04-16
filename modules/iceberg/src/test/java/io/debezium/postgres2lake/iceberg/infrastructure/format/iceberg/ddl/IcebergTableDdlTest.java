@@ -68,8 +68,8 @@ public class IcebergTableDdlTest {
     private record TestIcebergTableSpec(
             Optional<String> location,
             Map<String, String> properties,
-            List<String> partitionBy,
-            List<String> sortBy
+            Optional<List<String>> partitionBy,
+            Optional<List<String>> sortBy
     ) implements IcebergConfiguration.IcebergTableSpec {}
 
     private Catalog newCatalog(String warehouseSubdir) {
@@ -237,8 +237,8 @@ public class IcebergTableDdlTest {
         var spec = new TestIcebergTableSpec(
                 Optional.empty(),
                 Map.of(),
-                List.of("day(event_ts)"),
-                List.of("id:asc")
+                Optional.of(List.of("day(event_ts)")),
+                Optional.of(List.of("id:asc"))
         );
 
         var table = ddl.createTableIfNotExists(tableId, schema, Optional.of(spec));

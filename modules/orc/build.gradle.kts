@@ -12,7 +12,7 @@ dependencies {
     implementation(libs.orc.core) {
         exclude(group = "org.slf4j", module = "slf4j-api")
     }
-    implementation("org.apache.hive:hive-exec:4.2.0") {
+    implementation(libs.hive.exec) {
         exclude(group = "org.slf4j", module = "slf4j-api")
         exclude(group = "asm")
         exclude(group = "org.apache.logging.log4j")

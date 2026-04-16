@@ -28,7 +28,6 @@ public class IcebergWriterFactory {
         var fileFormat = resolveTableFormat(table);
         var appender = createTableAppender(table);
         var fileFactory = createTableOutputFileFactory(table, fileFormat);
-
         var tableProperties = table.properties();
 
         var fileSize = PropertyUtil.propertyAsLong(

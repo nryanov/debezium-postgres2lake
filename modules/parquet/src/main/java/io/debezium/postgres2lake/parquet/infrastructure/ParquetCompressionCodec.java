@@ -5,11 +5,10 @@ import org.apache.parquet.hadoop.metadata.CompressionCodecName;
 import java.util.Optional;
 
 public enum ParquetCompressionCodec {
+    // TODO: add LZO, BROTLI support
     NONE(CompressionCodecName.UNCOMPRESSED),
     SNAPPY(CompressionCodecName.SNAPPY),
     GZIP(CompressionCodecName.GZIP),
-    LZO(CompressionCodecName.LZO),
-    BROTLI(CompressionCodecName.BROTLI),
     LZ4(CompressionCodecName.LZ4),
     ZSTD(CompressionCodecName.ZSTD);
 

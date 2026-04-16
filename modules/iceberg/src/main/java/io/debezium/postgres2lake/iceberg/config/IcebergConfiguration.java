@@ -2,6 +2,7 @@ package io.debezium.postgres2lake.iceberg.config;
 
 import io.debezium.postgres2lake.core.config.CommonConfiguration;
 import io.smallrye.config.ConfigMapping;
+import io.smallrye.config.WithName;
 
 import java.util.List;
 import java.util.Map;
@@ -17,6 +18,7 @@ public interface IcebergConfiguration {
 
     CommonConfiguration.FileIO fileIO();
 
+    @WithName("tableSpecs")
     Map<String, IcebergTableSpec> tableSpecs();
 
     interface IcebergTableSpec {
@@ -24,8 +26,8 @@ public interface IcebergConfiguration {
 
         Map<String, String> properties();
 
-        List<String> partitionBy();
+        Optional<List<String>> partitionBy();
 
-        List<String> sortBy();
+        Optional<List<String>> sortBy();
     }
 }

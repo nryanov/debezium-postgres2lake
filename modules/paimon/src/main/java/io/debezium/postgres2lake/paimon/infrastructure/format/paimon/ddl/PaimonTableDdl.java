@@ -10,14 +10,29 @@ import org.apache.paimon.schema.Schema;
 import org.apache.paimon.schema.SchemaChange;
 
 import java.util.ArrayList;
+import java.util.Map;
 
 public class PaimonTableDdl {
     private final Catalog catalog;
     private final PaimonSchemaConverter converter;
 
+    private final Map<String, String> defaultTableProperties;
+    private final Map<String, Map<String, String>> tableProperties;
+
     public PaimonTableDdl(Catalog catalog, PaimonSchemaConverter converter) {
+        this(catalog, converter, Map.of(), Map.of());
+    }
+
+    public PaimonTableDdl(
+            Catalog catalog,
+            PaimonSchemaConverter converter,
+            Map<String, String> defaultTableProperties,
+            Map<String, Map<String, String>> tableProperties
+    ) {
         this.catalog = catalog;
         this.converter = converter;
+        this.defaultTableProperties = defaultTableProperties;
+        this.tableProperties = tableProperties;
     }
 
     public Identifier tableIdentifier(EventRecord event) {
@@ -30,6 +45,8 @@ public class PaimonTableDdl {
     public void createTableIfNotExists(Identifier identifier, Schema schema) {
         createDatabaseIfNotExists(identifier.getDatabaseName());
         try {
+            defaultTableProperties.forEach((key, value) -> schema.options().put(key, value));
+            tableProperties.getOrDefault(identifier.getFullName(), Map.of()).forEach((key, value) -> schema.options().put(key, value));
             catalog.createTable(identifier, schema, true);
         } catch (Catalog.TableAlreadyExistException | Catalog.DatabaseNotExistException e) {
             throw new RuntimeException(e);
