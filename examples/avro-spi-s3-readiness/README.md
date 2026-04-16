@@ -1,7 +1,8 @@
 # AVRO example with external SPI JAR (S3 readiness marker)
 
 This example runs the AVRO output pipeline and loads the readiness-marker S3 implementation from a separate extension JAR mounted on the runtime classpath.
-The app container enables SPI classpath mode by setting `SPI_EXT_DIR=/work/spi`.
+The images use Quarkus `legacy-jar` packaging so external SPI JARs can be appended to JVM classpath at startup.
+The app container enables SPI classpath mode by setting `SPI_EXT_DIR=/work/spi` and `APP_MAIN_CLASS=io.debezium.postgres2lake.avro.bootstrap.Application`.
 
 ## Prerequisites
 
@@ -26,8 +27,8 @@ cp extensions/readiness-marker-event-emitter-s3/build/libs/*.jar examples/avro-s
 ```
 
 At runtime, `docker-compose.yml` mounts this directory into the container at `/work/spi`,
-and the shared container entrypoint automatically prepends `/work/spi/*` to the classpath
-when `SPI_EXT_DIR` points to that directory.
+and the shared container entrypoint prepends `/work/spi/*` to the classpath
+before starting `io.debezium.postgres2lake.avro.bootstrap.Application`.
 
 ## Run
 
@@ -43,22 +44,4 @@ docker compose cp ../common/python-scripts/generate_data.py jupyter:/tmp/generat
 docker compose exec jupyter python /tmp/generate_data.py
 ```
 
-## Verify
-
-Check app logs for readiness-marker provider startup:
-
-```bash
-docker compose logs app | rg "readiness|S3ReadinessMarkerEventEmitterProvider"
-```
-
-List marker files in MinIO:
-
-```bash
-docker compose exec mc mc ls --recursive local/warehouse/readiness-markers
-```
-
-You should also see AVRO data files in the same bucket:
-
-```bash
-docker compose exec mc mc ls --recursive local/warehouse/postgres/public/demo_orders
-```
+Or you can paste script via Jupyter WEB-UI.
