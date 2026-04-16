@@ -40,7 +40,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
         @ResourceArg(name = MinioResource.BUCKET_NAME_ARG, value = "warehouse"),
         @ResourceArg(name = MinioResource.FORMAT_TYPE_ARG, value = "paimon")
 })
-public class S3PaimonSchemaRolloverTest {
+public class PaimonSchemaRolloverTest {
 
     private static final String BUCKET = "warehouse";
     private static final String PUBLICATION = "debezium_publication";

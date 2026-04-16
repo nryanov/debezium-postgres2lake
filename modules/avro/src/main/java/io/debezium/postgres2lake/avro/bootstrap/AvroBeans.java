@@ -14,7 +14,7 @@ import io.debezium.postgres2lake.extensions.data.catalog.api.NoOpDataCatalogHand
 import io.debezium.postgres2lake.extensions.readiness.marker.event.emitter.api.ReadinessMarkerEventEmitterHandler;
 import io.debezium.postgres2lake.avro.infrastructure.AvroCompressionCodec;
 import io.debezium.postgres2lake.avro.infrastructure.AvroSchemaConverter;
-import io.debezium.postgres2lake.avro.infrastructure.S3AvroEventSaver;
+import io.debezium.postgres2lake.avro.infrastructure.AvroEventSaver;
 import io.debezium.postgres2lake.core.bootstrap.OutputLocationGeneratorFactory;
 import io.debezium.postgres2lake.core.infrastructure.schema.CachedSchemaConverter;
 import io.debezium.postgres2lake.core.infrastructure.schema.DataCatalogAwareSchemaConverter;
@@ -46,7 +46,7 @@ public class AvroBeans {
         var schemaConverter = resolveSchemaConverter();
         var appenderFactory = resolveAppenderFactory();
 
-        return new S3AvroEventSaver(
+        return new AvroEventSaver(
                 configuration.threshold(),
                 locationGenerator,
                 configuration.fileIO(),

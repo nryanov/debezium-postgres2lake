@@ -18,9 +18,9 @@ import org.jboss.logging.Logger;
 
 import java.io.IOException;
 
-public class S3OrcEventSaver extends AbstractEventSaver<OrcEventAppender> {
+public class OrcEventSaver extends AbstractEventSaver<OrcEventAppender> {
 
-    private static final Logger logger = Logger.getLogger(S3OrcEventSaver.class);
+    private static final Logger logger = Logger.getLogger(OrcEventSaver.class);
 
     private final OutputLocationGenerator outputLocationGenerator;
     private final CommonConfiguration.FileIO fileIO;
@@ -29,7 +29,7 @@ public class S3OrcEventSaver extends AbstractEventSaver<OrcEventAppender> {
     private final OrcEventAppenderFactory appenderFactory;
     private final int rowBatchSize;
 
-    public S3OrcEventSaver(
+    public OrcEventSaver(
             CommonConfiguration.Threshold threshold,
             OutputLocationGenerator outputLocationGenerator,
             CommonConfiguration.FileIO fileIO,

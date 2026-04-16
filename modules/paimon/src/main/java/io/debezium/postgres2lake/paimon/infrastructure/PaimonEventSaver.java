@@ -22,15 +22,15 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
-public class S3PaimonEventSaver extends AbstractEventSaver<PaimonEventAppender> {
-    private static final Logger logger = Logger.getLogger(S3PaimonEventSaver.class);
+public class PaimonEventSaver extends AbstractEventSaver<PaimonEventAppender> {
+    private static final Logger logger = Logger.getLogger(PaimonEventSaver.class);
 
     private final Catalog catalog;
     private final PaimonTableDdl tableDdl;
     private final SchemaConverter<org.apache.paimon.schema.Schema> schemaConverter;
     private final SchemaDiffResolver schemaDiffResolver;
 
-    public S3PaimonEventSaver(
+    public PaimonEventSaver(
             PaimonConfiguration configuration,
             SchemaConverter<Schema> schemaConverter,
             ReadinessMarkerEventEmitterHandler readinessMarkerEventEmitterHandler

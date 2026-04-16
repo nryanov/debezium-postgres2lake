@@ -49,8 +49,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
         @ResourceArg(name = MinioResource.BUCKET_NAME_ARG, value = "warehouse"),
         @ResourceArg(name = MinioResource.FORMAT_TYPE_ARG, value = "iceberg")
 })
-public class S3IcebergEventSaverTest {
-    private final static Logger logger = Logger.getLogger(S3IcebergEventSaverTest.class);
+public class IcebergEventSaverTest {
+    private final static Logger logger = Logger.getLogger(IcebergEventSaverTest.class);
 
     private static final String BUCKET = "warehouse";
     private static final String PUBLICATION = "debezium_publication";

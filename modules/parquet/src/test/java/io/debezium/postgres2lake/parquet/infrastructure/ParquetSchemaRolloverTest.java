@@ -34,7 +34,7 @@ import org.junit.jupiter.api.Test;
         @ResourceArg(name = MinioResource.BUCKET_NAME_ARG, value = "warehouse"),
         @ResourceArg(name = MinioResource.FORMAT_TYPE_ARG, value = "parquet")
 })
-public class S3ParquetSchemaRolloverTest {
+public class ParquetSchemaRolloverTest {
 
     private static final String BUCKET = "warehouse";
     private static final String PUBLICATION = "debezium_publication";

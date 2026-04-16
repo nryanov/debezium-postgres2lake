@@ -19,8 +19,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
-public class S3IcebergEventSaver extends AbstractEventSaver<IcebergEventAppender> {
-    private static final Logger logger = Logger.getLogger(S3IcebergEventSaver.class);
+public class IcebergEventSaver extends AbstractEventSaver<IcebergEventAppender> {
+    private static final Logger logger = Logger.getLogger(IcebergEventSaver.class);
 
     private final Catalog catalog;
     private final IcebergWriterFactory writerFactory;
@@ -29,7 +29,7 @@ public class S3IcebergEventSaver extends AbstractEventSaver<IcebergEventAppender
     private final SchemaConverter<org.apache.iceberg.Schema> schemaConverter;
     private final SchemaDiffResolver schemaDiffResolver;
 
-    public S3IcebergEventSaver(
+    public IcebergEventSaver(
             IcebergConfiguration configuration,
             SchemaConverter<Schema> schemaConverter,
             ReadinessMarkerEventEmitterHandler readinessMarkerEventEmitterHandler

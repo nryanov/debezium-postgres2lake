@@ -7,7 +7,7 @@ import io.debezium.postgres2lake.extensions.data.catalog.api.DataCatalogHandler;
 import io.debezium.postgres2lake.extensions.data.catalog.api.NoOpDataCatalogHandler;
 import io.debezium.postgres2lake.extensions.readiness.marker.event.emitter.api.ReadinessMarkerEventEmitterHandler;
 import io.debezium.postgres2lake.iceberg.infrastructure.IcebergSchemaConverter;
-import io.debezium.postgres2lake.iceberg.infrastructure.S3IcebergEventSaver;
+import io.debezium.postgres2lake.iceberg.infrastructure.IcebergEventSaver;
 import io.debezium.postgres2lake.core.infrastructure.schema.CachedSchemaConverter;
 import io.debezium.postgres2lake.core.infrastructure.schema.DataCatalogAwareSchemaConverter;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -40,6 +40,6 @@ public class IcebergBeans {
             );
         }
 
-        return new S3IcebergEventSaver(configuration, schemaConverter, readinessMarkerEventEmitterHandler);
+        return new IcebergEventSaver(configuration, schemaConverter, readinessMarkerEventEmitterHandler);
     }
 }

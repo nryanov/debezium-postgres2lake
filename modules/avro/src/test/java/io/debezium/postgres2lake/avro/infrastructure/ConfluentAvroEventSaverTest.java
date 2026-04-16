@@ -1,56 +1,69 @@
-package io.debezium.postgres2lake.paimon.infrastructure;
+package io.debezium.postgres2lake.avro.infrastructure;
 
 import io.debezium.postgres2lake.domain.EventSaver;
-import io.debezium.postgres2lake.paimon.infrastructure.profile.PaimonOutputFormatProfile;
+import io.debezium.postgres2lake.avro.infrastructure.profile.ConfluentAvroOutputFormatProfile;
 import io.debezium.postgres2lake.core.service.AbstractEventSaver;
-import io.debezium.postgres2lake.paimon.test.helper.PaimonHelper;
 import io.debezium.postgres2lake.test.annotation.InjectMinioHelper;
 import io.debezium.postgres2lake.test.annotation.InjectPostgresHelper;
 import io.debezium.postgres2lake.test.helper.MinioHelper;
 import io.debezium.postgres2lake.test.helper.PostgresHelper;
 import io.debezium.postgres2lake.test.helper.PostgresQueries;
+import io.debezium.postgres2lake.test.resource.ApicurioRegistryResource;
 import io.debezium.postgres2lake.test.resource.MinioResource;
 import io.debezium.postgres2lake.test.resource.PostgresResource;
+import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.common.ResourceArg;
 import io.quarkus.test.junit.QuarkusTest;
-import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.TestProfile;
 import jakarta.inject.Inject;
-import org.jboss.logging.Logger;
+import org.apache.avro.Conversions;
+import org.apache.avro.data.TimeConversions;
+import org.apache.avro.file.DataFileReader;
+import org.apache.avro.file.SeekableByteArrayInput;
+import org.apache.avro.generic.GenericData;
+import org.apache.avro.generic.GenericDatumReader;
+import org.apache.avro.generic.GenericRecord;
+import org.apache.avro.util.Utf8;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.Duration;
+import java.time.Instant;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.time.OffsetDateTime;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 import static org.awaitility.Awaitility.await;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 @QuarkusTest
-@TestProfile(PaimonOutputFormatProfile.class)
+@TestProfile(ConfluentAvroOutputFormatProfile.class)
 @QuarkusTestResource(value = PostgresResource.class, initArgs = {
         @ResourceArg(name = PostgresResource.PREFIX_NAME_ARG, value = "default"),
         @ResourceArg(name = PostgresResource.PUBLICATION_NAME_ARG, value = "debezium_publication"),
-        @ResourceArg(name = PostgresResource.SLOT_NAME_ARG, value = "debezium_slot"),
-        @ResourceArg(name = PostgresResource.CATALOG_TYPE_ARG, value = "paimon")
+        @ResourceArg(name = PostgresResource.SLOT_NAME_ARG, value = "debezium_slot")
 })
 @QuarkusTestResource(value = MinioResource.class, initArgs = {
         @ResourceArg(name = MinioResource.BUCKET_NAME_ARG, value = "warehouse"),
-        @ResourceArg(name = MinioResource.FORMAT_TYPE_ARG, value = "paimon")
+        @ResourceArg(name = MinioResource.FORMAT_TYPE_ARG, value = "avro")
 })
-public class S3PaimonEventSaverTest {
-    private final static Logger logger = Logger.getLogger(S3PaimonEventSaverTest.class);
-
+@QuarkusTestResource(ApicurioRegistryResource.class)
+public class ConfluentAvroEventSaverTest {
     private static final String BUCKET = "warehouse";
     private static final String PUBLICATION = "debezium_publication";
+
+    static {
+        var data = GenericData.get();
+        data.addLogicalTypeConversion(new Conversions.DecimalConversion());
+        data.addLogicalTypeConversion(new Conversions.UUIDConversion());
+        data.addLogicalTypeConversion(new TimeConversions.DateConversion());
+        data.addLogicalTypeConversion(new TimeConversions.TimeMicrosConversion());
+        data.addLogicalTypeConversion(new TimeConversions.TimestampMicrosConversion());
+    }
 
     @Inject
     private EventSaver eventSaver;
@@ -61,16 +74,10 @@ public class S3PaimonEventSaverTest {
     @InjectPostgresHelper
     PostgresHelper postgresHelper;
 
-    private PaimonHelper paimonHelper;
-
-    public S3PaimonEventSaverTest() {
-    }
-
     @BeforeEach
-    public void setupPaimonHelper() {
-        if (paimonHelper == null) {
-            paimonHelper = PaimonHelper.forJdbc(String.format("s3a://%s", BUCKET), postgresHelper, minioHelper);
-        }
+    public void cleanup() {
+        eventSaver.flush();
+        minioHelper.clearBucket(BUCKET);
     }
 
     @Test
@@ -80,7 +87,7 @@ public class S3PaimonEventSaverTest {
         postgresHelper.executeSql(PostgresQueries.addTableToPublication(PUBLICATION, table));
         postgresHelper.executeSql(PostgresQueries.insertSmallintRow(table, 1));
 
-        var row = waitAndReadPaimonRecord("default_public", "test_smallint");
+        var row = waitAndReadAvroRecord("default/public/test_smallint/");
 
         assertEquals(row.get("required_field"), 1);
         assertEquals(row.get("optional_field"), 2);
@@ -95,7 +102,7 @@ public class S3PaimonEventSaverTest {
         postgresHelper.executeSql(PostgresQueries.addTableToPublication(PUBLICATION, table));
         postgresHelper.executeSql(PostgresQueries.insertIntegerRow(table, 1));
 
-        var row = waitAndReadPaimonRecord("default_public", "test_integer");
+        var row = waitAndReadAvroRecord("default/public/test_integer/");
 
         assertEquals(row.get("required_field"), 1);
         assertEquals(row.get("optional_field"), 2);
@@ -110,7 +117,7 @@ public class S3PaimonEventSaverTest {
         postgresHelper.executeSql(PostgresQueries.addTableToPublication(PUBLICATION, table));
         postgresHelper.executeSql(PostgresQueries.insertBigintRow(table, 1));
 
-        var row = waitAndReadPaimonRecord("default_public", "test_bigint");
+        var row = waitAndReadAvroRecord("default/public/test_bigint/");
 
         assertEquals(row.get("required_field"), 1L);
         assertEquals(row.get("optional_field"), 2L);
@@ -125,7 +132,7 @@ public class S3PaimonEventSaverTest {
         postgresHelper.executeSql(PostgresQueries.addTableToPublication(PUBLICATION, table));
         postgresHelper.executeSql(PostgresQueries.insertDecimalRow(table, 1));
 
-        var row = waitAndReadPaimonRecord("default_public", "test_decimal");
+        var row = waitAndReadAvroRecord("default/public/test_decimal/");
 
         assertEquals(row.get("required_field"), 1.5);
         assertEquals(row.get("optional_field"), 2.5);
@@ -140,7 +147,7 @@ public class S3PaimonEventSaverTest {
         postgresHelper.executeSql(PostgresQueries.addTableToPublication(PUBLICATION, table));
         postgresHelper.executeSql(PostgresQueries.insertNumericRow(table, 1));
 
-        var row = waitAndReadPaimonRecord("default_public", "test_numeric");
+        var row = waitAndReadAvroRecord("default/public/test_numeric/");
 
         assertEquals(row.get("required_field"), new BigDecimal("1.1234567890"));
         assertEquals(row.get("optional_field"), new BigDecimal("2.1234567890"));
@@ -155,7 +162,7 @@ public class S3PaimonEventSaverTest {
         postgresHelper.executeSql(PostgresQueries.addTableToPublication(PUBLICATION, table));
         postgresHelper.executeSql(PostgresQueries.insertRealRow(table, 1));
 
-        var row = waitAndReadPaimonRecord("default_public", "test_real");
+        var row = waitAndReadAvroRecord("default/public/test_real/");
 
         assertEquals(row.get("required_field"), 1.5f);
         assertEquals(row.get("optional_field"), 2.5f);
@@ -170,7 +177,7 @@ public class S3PaimonEventSaverTest {
         postgresHelper.executeSql(PostgresQueries.addTableToPublication(PUBLICATION, table));
         postgresHelper.executeSql(PostgresQueries.insertDoublePrecisionRow(table, 1));
 
-        var row = waitAndReadPaimonRecord("default_public", "test_double_precision");
+        var row = waitAndReadAvroRecord("default/public/test_double_precision/");
 
         assertEquals(row.get("required_field"), 1.5);
         assertEquals(row.get("optional_field"), 2.5);
@@ -185,12 +192,12 @@ public class S3PaimonEventSaverTest {
         postgresHelper.executeSql(PostgresQueries.addTableToPublication(PUBLICATION, table));
         postgresHelper.executeSql(PostgresQueries.insertCharRow(table, 1));
 
-        var row = waitAndReadPaimonRecord("default_public", "test_char");
+        var row = waitAndReadAvroRecord("default/public/test_char/");
 
-        assertEquals(row.get("required_field"), "a");
-        assertEquals(row.get("optional_field"), "b");
-        assertEquals(row.get("required_array_field"), List.of("a", "b"));
-        assertEquals(row.get("optional_array_field"), List.of("c", "d"));
+        assertEquals(row.get("required_field"), new Utf8("a"));
+        assertEquals(row.get("optional_field"), new Utf8("b"));
+        assertEquals(row.get("required_array_field"), List.of(new Utf8("a"), new Utf8("b")));
+        assertEquals(row.get("optional_array_field"), List.of(new Utf8("c"), new Utf8("d")));
     }
 
     @Test
@@ -200,12 +207,12 @@ public class S3PaimonEventSaverTest {
         postgresHelper.executeSql(PostgresQueries.addTableToPublication(PUBLICATION, table));
         postgresHelper.executeSql(PostgresQueries.insertVarcharRow(table, 1));
 
-        var row = waitAndReadPaimonRecord("default_public", "test_varchar");
+        var row = waitAndReadAvroRecord("default/public/test_varchar/");
 
-        assertEquals(row.get("required_field"), "abc");
-        assertEquals(row.get("optional_field"), "def");
-        assertEquals(row.get("required_array_field"), List.of("abc", "def"));
-        assertEquals(row.get("optional_array_field"), List.of("ghi", "jkl"));
+        assertEquals(row.get("required_field"), new Utf8("abc"));
+        assertEquals(row.get("optional_field"), new Utf8("def"));
+        assertEquals(row.get("required_array_field"), List.of(new Utf8("abc"), new Utf8("def")));
+        assertEquals(row.get("optional_array_field"), List.of(new Utf8("ghi"), new Utf8("jkl")));
     }
 
     @Test
@@ -215,12 +222,12 @@ public class S3PaimonEventSaverTest {
         postgresHelper.executeSql(PostgresQueries.addTableToPublication(PUBLICATION, table));
         postgresHelper.executeSql(PostgresQueries.insertTextRow(table, 1));
 
-        var row = waitAndReadPaimonRecord("default_public", "test_text");
+        var row = waitAndReadAvroRecord("default/public/test_text/");
 
-        assertEquals(row.get("required_field"), "hello");
-        assertEquals(row.get("optional_field"), "world");
-        assertEquals(row.get("required_array_field"), List.of("hello", "world"));
-        assertEquals(row.get("optional_array_field"), List.of("foo", "bar"));
+        assertEquals(row.get("required_field"), new Utf8("hello"));
+        assertEquals(row.get("optional_field"), new Utf8("world"));
+        assertEquals(row.get("required_array_field"), List.of(new Utf8("hello"), new Utf8("world")));
+        assertEquals(row.get("optional_array_field"), List.of(new Utf8("foo"), new Utf8("bar")));
     }
 
     @Test
@@ -230,16 +237,16 @@ public class S3PaimonEventSaverTest {
         postgresHelper.executeSql(PostgresQueries.addTableToPublication(PUBLICATION, table));
         postgresHelper.executeSql(PostgresQueries.insertTimestampRow(table, 1));
 
-        var row = waitAndReadPaimonRecord("default_public", "test_timestamp");
+        var row = waitAndReadAvroRecord("default/public/test_timestamp/");
 
-        assertEquals(row.get("required_field"), LocalDateTime.parse("2020-01-01T12:00:00"));
-        assertEquals(row.get("optional_field"), LocalDateTime.parse("2020-06-15T18:30:00"));
+        assertEquals(row.get("required_field"), Instant.parse("2020-01-01T12:00:00Z"));
+        assertEquals(row.get("optional_field"), Instant.parse("2020-06-15T18:30:00Z"));
         assertEquals(row.get("required_array_field"), List.of(
-                LocalDateTime.parse("2020-01-01T12:00:00"),
-                LocalDateTime.parse("2020-01-02T12:00:00")));
+                Instant.parse("2020-01-01T12:00:00Z"),
+                Instant.parse("2020-01-02T12:00:00Z")));
         assertEquals(row.get("optional_array_field"), List.of(
-                LocalDateTime.parse("2020-06-15T18:30:00"),
-                LocalDateTime.parse("2020-06-16T18:30:00")));
+                Instant.parse("2020-06-15T18:30:00Z"),
+                Instant.parse("2020-06-16T18:30:00Z")));
     }
 
     @Test
@@ -249,16 +256,16 @@ public class S3PaimonEventSaverTest {
         postgresHelper.executeSql(PostgresQueries.addTableToPublication(PUBLICATION, table));
         postgresHelper.executeSql(PostgresQueries.insertTimestampTzRow(table, 1));
 
-        var row = waitAndReadPaimonRecord("default_public", "test_timestamp_tz");
+        var row = waitAndReadAvroRecord("default/public/test_timestamp_tz/");
 
-        assertEquals(row.get("required_field"), OffsetDateTime.parse("2020-01-01T12:00:00Z"));
-        assertEquals(row.get("optional_field"), OffsetDateTime.parse("2020-06-15T18:30:00Z"));
+        assertEquals(row.get("required_field"), Instant.parse("2020-01-01T12:00:00Z"));
+        assertEquals(row.get("optional_field"), Instant.parse("2020-06-15T18:30:00Z"));
         assertEquals(row.get("required_array_field"), List.of(
-                OffsetDateTime.parse("2020-01-01T12:00:00Z"),
-                OffsetDateTime.parse("2020-01-02T12:00:00Z")));
+                Instant.parse("2020-01-01T12:00:00Z"),
+                Instant.parse("2020-01-02T12:00:00Z")));
         assertEquals(row.get("optional_array_field"), List.of(
-                OffsetDateTime.parse("2020-06-15T18:30:00Z"),
-                OffsetDateTime.parse("2020-06-16T18:30:00Z")));
+                Instant.parse("2020-06-15T18:30:00Z"),
+                Instant.parse("2020-06-16T18:30:00Z")));
     }
 
     @Test
@@ -268,7 +275,7 @@ public class S3PaimonEventSaverTest {
         postgresHelper.executeSql(PostgresQueries.addTableToPublication(PUBLICATION, table));
         postgresHelper.executeSql(PostgresQueries.insertDateRow(table, 1));
 
-        var row = waitAndReadPaimonRecord("default_public", "test_date");
+        var row = waitAndReadAvroRecord("default/public/test_date/");
 
         assertEquals(row.get("required_field"), LocalDate.of(2020, 1, 1));
         assertEquals(row.get("optional_field"), LocalDate.of(2020, 6, 15));
@@ -287,7 +294,7 @@ public class S3PaimonEventSaverTest {
         postgresHelper.executeSql(PostgresQueries.addTableToPublication(PUBLICATION, table));
         postgresHelper.executeSql(PostgresQueries.insertTimeRow(table, 1));
 
-        var row = waitAndReadPaimonRecord("default_public", "test_time");
+        var row = waitAndReadAvroRecord("default/public/test_time/");
 
         assertEquals(row.get("required_field"), LocalTime.of(12, 34, 56));
         assertEquals(row.get("optional_field"), LocalTime.of(8, 15, 30));
@@ -306,7 +313,7 @@ public class S3PaimonEventSaverTest {
         postgresHelper.executeSql(PostgresQueries.addTableToPublication(PUBLICATION, table));
         postgresHelper.executeSql(PostgresQueries.insertBooleanRow(table, 1));
 
-        var row = waitAndReadPaimonRecord("default_public", "test_boolean");
+        var row = waitAndReadAvroRecord("default/public/test_boolean/");
 
         assertEquals(row.get("required_field"), true);
         assertEquals(row.get("optional_field"), false);
@@ -321,7 +328,7 @@ public class S3PaimonEventSaverTest {
         postgresHelper.executeSql(PostgresQueries.addTableToPublication(PUBLICATION, table));
         postgresHelper.executeSql(PostgresQueries.insertUuidRow(table, 1));
 
-        var row = waitAndReadPaimonRecord("default_public", "test_uuid");
+        var row = waitAndReadAvroRecord("default/public/test_uuid/");
 
         assertEquals(row.get("required_field"), UUID.fromString("550e8400-e29b-41d4-a716-446655440000"));
         assertEquals(row.get("optional_field"), UUID.fromString("650e8400-e29b-41d4-a716-446655440000"));
@@ -333,13 +340,21 @@ public class S3PaimonEventSaverTest {
                 UUID.fromString("850e8400-e29b-41d4-a716-446655440000")));
     }
 
-    private Map<String, Object> waitAndReadPaimonRecord(String schema, String table) {
+    private GenericRecord waitAndReadAvroRecord(String prefix) {
         var saver = (AbstractEventSaver<?>) eventSaver;
         await().atMost(Duration.ofSeconds(120)).pollInterval(Duration.ofSeconds(1)).until(() -> saver.getCurrentRecords() > 0);
         eventSaver.flush();
 
-        var data = paimonHelper.readTable(schema, table);
-        assertTrue(data.iterator().hasNext(), "No paimon data found for table: " + schema + "." + table);
-        return PaimonHelper.readRowAsMap(data.fields(), data.iterator().next());
+        var keys = minioHelper.listObjectKeys(BUCKET, prefix);
+        assertFalse(keys.isEmpty(), "No Avro files found for prefix: " + prefix);
+        var bytes = minioHelper.getObjectBytes(BUCKET, keys.getFirst());
+
+        try {
+            var datumReader = new GenericDatumReader<GenericRecord>();
+            var reader = new DataFileReader<>(new SeekableByteArrayInput(bytes), datumReader);
+            return reader.next();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 }
