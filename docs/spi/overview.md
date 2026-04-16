@@ -13,6 +13,16 @@ If you want to build your own extension module, see [Implementing SPI extensions
 
 If `name` is omitted, the default no-op handler is used.
 
+## Runtime extension JARs in Docker
+
+Container images support loading SPI providers from a runtime directory without rebuilding the app image.
+
+- Set `SPI_EXT_DIR` to a directory inside the container (for example `/work/spi`)
+- Mount or copy extension JARs into that directory
+- Keep using `debezium.extensions.<extension>.name=<provider.FQCN>` in application config
+
+When `SPI_EXT_DIR` points to an existing directory, the container entrypoint starts Quarkus in classpath mode and prepends `${SPI_EXT_DIR}/*` before the application libraries so `ServiceLoader` can discover provider registrations.
+
 ## Grouped by API module
 
 | API module                                      | Purpose                                              | API docs                                        | Implementations                                                                  |

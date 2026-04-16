@@ -7,6 +7,7 @@ The `examples/` directory contains Docker Compose stacks for running `debezium-p
 | Stack                     | Format  | Catalog | Docs page                                    |
 |---------------------------|---------|---------|----------------------------------------------|
 | `examples/avro`           | Avro    | N/A     | [Avro](examples/avro.md)                     |
+| `examples/avro-spi-s3-readiness` | Avro | N/A | [Avro + external SPI JAR](examples/avro-spi-s3-readiness.md) |
 | `examples/parquet`        | Parquet | N/A     | [Parquet](examples/parquet.md)               |
 | `examples/orc`            | ORC     | N/A     | [ORC](examples/orc.md)                       |
 | `examples/iceberg-jdbc`   | Iceberg | JDBC    | [Iceberg JDBC](examples/iceberg-jdbc.md)     |
