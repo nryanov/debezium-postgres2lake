@@ -20,6 +20,8 @@ import org.apache.paimon.schema.Schema;
 import org.jboss.logging.Logger;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -49,7 +51,16 @@ public class S3PaimonEventSaver extends AbstractEventSaver<PaimonEventAppender> 
 
         var innerSchemaConverter = new PaimonSchemaConverter();
         this.schemaConverter = schemaConverter;
-        this.tableDdl = new PaimonTableDdl(catalog, innerSchemaConverter);
+
+        var tableSpecs = new HashMap<String, Map<String, String>>();
+        configuration.tableSpecs().forEach((key, specs) -> tableSpecs.put(key, specs.properties()));
+
+        this.tableDdl = new PaimonTableDdl(
+                catalog,
+                innerSchemaConverter,
+                configuration.defaultTableProperties(),
+                tableSpecs
+        );
         this.schemaDiffResolver = new SchemaDiffResolver();
     }
 
