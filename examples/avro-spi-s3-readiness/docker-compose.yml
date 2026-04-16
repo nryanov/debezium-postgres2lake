@@ -22,5 +22,4 @@ services:
       - ./extensions-jars:/work/spi:ro
     environment:
       SPI_EXT_DIR: /work/spi
-      APP_MAIN_CLASS: io.debezium.postgres2lake.avro.bootstrap.Application
       JVM_OPTS: "-Xms1024m -Xmx2048m"

@@ -2,7 +2,8 @@
 
 Runs the Avro output pipeline with PostgreSQL CDC, Schema Registry, MinIO, and the Avro app image while loading readiness-marker SPI implementation from a separate JAR mounted on the runtime classpath.
 The AVRO image is built with Quarkus `legacy-jar` packaging so SPI JARs can be added at startup classpath time.
-The container enables SPI classpath loading via `SPI_EXT_DIR=/work/spi` and `APP_MAIN_CLASS=io.debezium.postgres2lake.avro.bootstrap.Application`.
+The container enables SPI classpath loading via `SPI_EXT_DIR=/work/spi`.
+`APP_MAIN_CLASS` is injected into each format image at build time from module configuration.
 
 ## Stack details
 

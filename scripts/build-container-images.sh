@@ -21,8 +21,7 @@ if [[ -z "${IMAGE_TAG}" ]]; then
   IMAGE_TAG="0.1.0"
 fi
 
-#MODULES=(avro orc parquet iceberg paimon)
-MODULES=(avro)
+MODULES=(avro orc parquet iceberg paimon)
 
 GRADLE_ARGS=(
   -Dquarkus.container-image.build=true
