@@ -22,10 +22,11 @@ debezium.output.iceberg.properties.s3.secret-access-key=password
 debezium.output.iceberg.properties.s3.path-style-access=true
 
 # Optional per-table spec
-debezium.output.iceberg.table-specs.demo_orders.partition-by=lake_part
-debezium.output.iceberg.table-specs.demo_orders.sort-by=id
-debezium.output.iceberg.table-specs.demo_orders.location=s3a://warehouse/iceberg-jdbc/demo_orders
-debezium.output.iceberg.table-specs.demo_orders.properties.format-version=2
+debezium.output.iceberg.table-specs.default_public.demo_orders.partition-by=lake_part
+debezium.output.iceberg.table-specs.default_public.demo_orders.sort-by=id
+debezium.output.iceberg.table-specs.default_public.demo_orders.location=s3a://warehouse/iceberg-jdbc/demo_orders
+debezium.output.iceberg.table-specs.default_public.demo_orders.properties.format-version=2
+debezium.output.iceberg.table-specs.default_public.demo_orders.properties.write.target-file-size-bytes=134217728
 
 debezium.output.iceberg.file-io.properties.fs.s3a.endpoint=http://minio:9000
 debezium.output.iceberg.file-io.properties.fs.s3a.access.key=admin
@@ -36,17 +37,31 @@ debezium.output.iceberg.file-io.properties.fs.s3a.impl=org.apache.hadoop.fs.s3a.
 
 ## Available Iceberg configs
 
-| Property                                                   | Required | Description                                             | Values / examples                                           |
-|------------------------------------------------------------|----------|---------------------------------------------------------|-------------------------------------------------------------|
-| `debezium.output.iceberg.threshold.records`                | Yes      | Flush threshold by record count                         | `10`                                                        |
-| `debezium.output.iceberg.threshold.time`                   | Yes      | Flush threshold by elapsed time                         | `5m`, `30s`                                                 |
-| `debezium.output.iceberg.name`                             | Yes      | Logical Iceberg writer name                             | `examples`                                                  |
-| `debezium.output.iceberg.properties.*`                     | Yes      | Catalog and Iceberg runtime properties map              | `type=jdbc`, `warehouse=...`                                |
-| `debezium.output.iceberg.file-io.properties.*`             | No       | Hadoop/S3A file IO properties map                       | `fs.s3a.endpoint=...`                                       |
-| `debezium.output.iceberg.table-specs.<table>.location`     | No       | Per-table location override                             | `s3a://warehouse/iceberg-jdbc/demo_orders`                  |
-| `debezium.output.iceberg.table-specs.<table>.properties.*` | No       | Per-table Iceberg table properties                      | `format-version=2`                                          |
-| `debezium.output.iceberg.table-specs.<table>.partition-by` | No       | Per-table partition columns list                        | `lake_part`                                                 |
-| `debezium.output.iceberg.table-specs.<table>.sort-by`      | No       | Per-table sort columns list                             | `id`                                                        |
+| Property                                                             | Required | Description                                             | Values / examples                                           |
+|----------------------------------------------------------------------|----------|---------------------------------------------------------|-------------------------------------------------------------|
+| `debezium.output.iceberg.threshold.records`                          | Yes      | Flush threshold by record count                         | `10`                                                        |
+| `debezium.output.iceberg.threshold.time`                             | Yes      | Flush threshold by elapsed time                         | `5m`, `30s`                                                 |
+| `debezium.output.iceberg.name`                                       | Yes      | Logical Iceberg writer name                             | `examples`                                                  |
+| `debezium.output.iceberg.properties.*`                               | Yes      | Catalog and Iceberg runtime properties map              | `type=jdbc`, `warehouse=...`                                |
+| `debezium.output.iceberg.file-io.properties.*`                       | No       | Hadoop/S3A file IO properties map                       | `debezium.output.iceberg.file-io.properties.fs.s3a.endpoint=...` |
+| `debezium.output.iceberg.table-specs.<tableIdentifier>.location`     | No       | Per-table location override                             | `s3a://warehouse/iceberg-jdbc/demo_orders`                  |
+| `debezium.output.iceberg.table-specs.<tableIdentifier>.properties.*` | No       | Per-table Iceberg table properties                      | `format-version=2`, `write.target-file-size-bytes=134217728` |
+| `debezium.output.iceberg.table-specs.<tableIdentifier>.partition-by` | No       | Per-table partition columns list                        | `lake_part`                                                 |
+| `debezium.output.iceberg.table-specs.<tableIdentifier>.sort-by`      | No       | Per-table sort columns list                             | `id`                                                        |
+
+## Custom table properties
+
+Use `table-specs.<tableIdentifier>` keys for table-level overrides. The `<tableIdentifier>` value must match the runtime Iceberg table identifier string (for example `default_public.demo_orders`).
+
+```properties
+debezium.output.iceberg.table-specs.default_public.demo_orders.location=s3a://warehouse/iceberg-jdbc/demo_orders
+debezium.output.iceberg.table-specs.default_public.demo_orders.partition-by=lake_part
+debezium.output.iceberg.table-specs.default_public.demo_orders.sort-by=id
+debezium.output.iceberg.table-specs.default_public.demo_orders.properties.format-version=2
+debezium.output.iceberg.table-specs.default_public.demo_orders.properties.write.target-file-size-bytes=134217728
+debezium.output.iceberg.table-specs.default_public.demo_orders.properties.delete.mode=merge-on-read
+debezium.output.iceberg.table-specs.default_public.demo_orders.properties.update.mode=merge-on-read
+```
 
 ## Common catalog patterns
 

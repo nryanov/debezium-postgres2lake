@@ -39,3 +39,9 @@ docker compose exec jupyter python /tmp/generate_data.py
 
 ## Notes
 - For full details, prerequisites, and scripts, see `examples/README.md`.
+- For output-specific configuration keys and examples, see:
+  - [Avro format config](formats/avro.md)
+  - [Parquet format config](formats/parquet.md)
+  - [ORC format config](formats/orc.md)
+  - [Iceberg format config](formats/iceberg.md)
+  - [Paimon format config](formats/paimon.md)
