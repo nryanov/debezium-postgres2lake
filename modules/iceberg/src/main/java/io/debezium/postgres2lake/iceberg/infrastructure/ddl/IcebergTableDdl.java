@@ -3,7 +3,6 @@ package io.debezium.postgres2lake.iceberg.infrastructure.ddl;
 import io.debezium.postgres2lake.iceberg.config.IcebergConfiguration;
 import io.debezium.postgres2lake.domain.model.AvroSchemaChanges;
 import io.debezium.postgres2lake.domain.model.EventRecord;
-import io.debezium.postgres2lake.core.config.CommonConfiguration;
 import org.apache.avro.LogicalType;
 import org.apache.avro.LogicalTypes;
 import org.apache.iceberg.NullOrder;
