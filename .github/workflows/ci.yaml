@@ -7,7 +7,6 @@ on:
     branches: [ "master" ]
 
 jobs:
-  if: false # temporary disable
   test-format:
     runs-on: ubuntu-latest
     permissions:
