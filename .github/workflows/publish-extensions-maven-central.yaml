@@ -17,7 +17,6 @@ jobs:
     env:
       ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
       ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
-      ORG_GRADLE_PROJECT_mavenCentralPublishUrl: ${{ vars.MAVEN_CENTRAL_PUBLISH_URL }}
       ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.MAVEN_GPG_PRIVATE_KEY }}
       ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.MAVEN_GPG_PASSPHRASE }}
 
@@ -76,11 +75,11 @@ jobs:
 
           ./gradlew --no-daemon \
             -PreleaseVersion="${RELEASE_VERSION}" \
-            :extensions:extensions-common:publishMavenJavaPublicationToMavenCentralRepository \
-            :extensions:data-catalog-api:publishMavenJavaPublicationToMavenCentralRepository \
-            :extensions:data-catalog-openmetadata:publishMavenJavaPublicationToMavenCentralRepository \
-            :extensions:data-catalog-datahub:publishMavenJavaPublicationToMavenCentralRepository \
-            :extensions:commit-event-emitter-api:publishMavenJavaPublicationToMavenCentralRepository \
-            :extensions:commit-event-emitter-kafka:publishMavenJavaPublicationToMavenCentralRepository \
-            :extensions:readiness-marker-event-emitter-api:publishMavenJavaPublicationToMavenCentralRepository \
-            :extensions:readiness-marker-event-emitter-s3:publishMavenJavaPublicationToMavenCentralRepository
+            :extensions:extensions-common:publishToMavenCentral \
+            :extensions:data-catalog-api:publishToMavenCentral \
+            :extensions:data-catalog-openmetadata:publishToMavenCentral \
+            :extensions:data-catalog-datahub:publishToMavenCentral \
+            :extensions:commit-event-emitter-api:publishToMavenCentral \
+            :extensions:commit-event-emitter-kafka:publishToMavenCentral \
+            :extensions:readiness-marker-event-emitter-api:publishToMavenCentral \
+            :extensions:readiness-marker-event-emitter-s3:publishToMavenCentral
