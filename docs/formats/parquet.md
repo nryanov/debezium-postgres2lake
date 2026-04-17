@@ -26,13 +26,13 @@ debezium.output.parquet.file-io.properties.fs.s3a.impl=org.apache.hadoop.fs.s3a.
 |------------------------------------------------------------------|-------------|---------------------------------------------------------|------------------------------------------------------------------|
 | `debezium.output.parquet.threshold.records`                      | Yes         | Flush threshold by record count                         | `10`                                                             |
 | `debezium.output.parquet.threshold.time`                         | Yes         | Flush threshold by elapsed time                         | `5m`, `30s`                                                      |
-| `debezium.output.parquet.file-io.properties.*`                   | No          | Hadoop/S3A file IO properties map                       | `fs.s3a.endpoint=...`                                            |
+| `debezium.output.parquet.file-io.properties.*`                   | No          | Hadoop/S3A file IO properties map                       | `debezium.output.parquet.file-io.properties.fs.s3a.endpoint=...` |
 | `debezium.output.parquet.naming-strategy.partitioner`            | Yes         | Output partition path strategy                          | `UNPARTITIONED`, `EVENT_TIME`, `PROCESSING_TIME`, `RECORD_FIELD` |
 | `debezium.output.parquet.naming-strategy.file-name`              | Yes         | Output file naming strategy                             | `PROCESSING_TIME`, `UUID`                                        |
 | `debezium.output.parquet.naming-strategy.record-partition-field` | Conditional | Source field for `RECORD_FIELD` partitioner             | `lake_part`                                                      |
 | `debezium.output.parquet.naming-strategy.storage`                | Yes         | Output storage backend                                  | `S3`, `HDFS`                                                     |
 | `debezium.output.parquet.naming-strategy.target-path`            | Yes         | Target bucket/path prefix                               | `warehouse`                                                      |
-| `debezium.output.parquet.codec`                                  | No          | Parquet compression codec                               | `NONE`, `SNAPPY`, `GZIP`, `LZO`, `BROTLI`, `LZ4`, `ZSTD`         |
+| `debezium.output.parquet.codec`                                  | No          | Parquet compression codec                               | `NONE`, `SNAPPY`, `GZIP`, `LZ4`, `ZSTD`                          |
 
 ## Partitioner strategies
 

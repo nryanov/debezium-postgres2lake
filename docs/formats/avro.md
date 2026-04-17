@@ -25,10 +25,9 @@ debezium.output.avro.file-io.properties.fs.s3a.impl=org.apache.hadoop.fs.s3a.S3A
 
 | Property                                                      | Required    | Description                                 | Values / examples                                                |
 |---------------------------------------------------------------|-------------|---------------------------------------------|------------------------------------------------------------------|
-| `quarkus.http.port`                                           | No          | HTTP/health port for app container          | `9090`                                                           |
 | `debezium.output.avro.threshold.records`                      | Yes         | Flush threshold by record count             | `10`                                                             |
 | `debezium.output.avro.threshold.time`                         | Yes         | Flush threshold by elapsed time             | `5m`, `30s`                                                      |
-| `debezium.output.avro.file-io.properties.*`                   | No          | Hadoop/S3A file IO properties map           | `fs.s3a.endpoint=...`                                            |
+| `debezium.output.avro.file-io.properties.*`                   | No          | Hadoop/S3A file IO properties map           | `debezium.output.avro.file-io.properties.fs.s3a.endpoint=...`    |
 | `debezium.output.avro.naming-strategy.partitioner`            | Yes         | Output partition path strategy              | `UNPARTITIONED`, `EVENT_TIME`, `PROCESSING_TIME`, `RECORD_FIELD` |
 | `debezium.output.avro.naming-strategy.file-name`              | Yes         | Output file naming strategy                 | `PROCESSING_TIME`, `UUID`                                        |
 | `debezium.output.avro.naming-strategy.record-partition-field` | Conditional | Source field for `RECORD_FIELD` partitioner | `lake_part`                                                      |

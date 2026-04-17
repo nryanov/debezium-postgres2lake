@@ -11,7 +11,7 @@ import io.debezium.postgres2lake.extensions.data.catalog.api.NoOpDataCatalogHand
 import io.debezium.postgres2lake.extensions.readiness.marker.event.emitter.api.ReadinessMarkerEventEmitterHandler;
 import io.debezium.postgres2lake.orc.infrastructure.OrcCompressionCodec;
 import io.debezium.postgres2lake.orc.infrastructure.OrcSchemaConverter;
-import io.debezium.postgres2lake.orc.infrastructure.S3OrcEventSaver;
+import io.debezium.postgres2lake.orc.infrastructure.OrcEventSaver;
 import io.debezium.postgres2lake.core.bootstrap.OutputLocationGeneratorFactory;
 import io.debezium.postgres2lake.core.infrastructure.schema.CachedSchemaConverter;
 import io.debezium.postgres2lake.core.infrastructure.schema.DataCatalogAwareSchemaConverter;
@@ -48,7 +48,7 @@ public class OrcBeans {
         var schemaConverter = resolveSchemaConverter();
         var appenderFactory = resolveAppenderFactory();
 
-        return new S3OrcEventSaver(
+        return new OrcEventSaver(
                 configuration.threshold(),
                 locationGenerator,
                 configuration.fileIO(),

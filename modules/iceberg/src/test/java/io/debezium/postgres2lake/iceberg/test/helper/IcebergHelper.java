@@ -69,7 +69,7 @@ public class IcebergHelper {
         props.put("s3.access-key-id", minioHelper.getAccessKey());
         props.put("s3.secret-access-key", minioHelper.getSecretAccessKey());
         props.put("s3.path-style-access", "true");
-        props.put("s3.client-factory-impl", "io.debezium.postgres2lake.iceberg.infrastructure.format.iceberg.InstrumentedS3FileIOAwsClientFactory");
+        props.put("s3.client-factory-impl", "io.debezium.postgres2lake.iceberg.infrastructure.InstrumentedS3FileIOAwsClientFactory");
     }
 
     private static Configuration s3aHadoopConfiguration(MinioHelper minioHelper) {

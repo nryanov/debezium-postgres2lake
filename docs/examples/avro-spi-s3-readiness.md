@@ -1,19 +1,17 @@
 # Example: Avro + external SPI JAR (S3 readiness marker)
 
 Runs the Avro output pipeline with PostgreSQL CDC, Schema Registry, MinIO, and the Avro app image while loading readiness-marker SPI implementation from a separate JAR mounted on the runtime classpath.
-The AVRO image is built with Quarkus `legacy-jar` packaging so SPI JARs can be added at startup classpath time.
 The container enables SPI classpath loading via `SPI_EXT_DIR=/work/spi`.
-`APP_MAIN_CLASS` is injected into each format image at build time from module configuration.
 
 ## Stack details
 
-| Item | Value |
-|---|---|
-| Example directory | `examples/avro-spi-s3-readiness` |
-| Compose file | `examples/avro-spi-s3-readiness/docker-compose.yml` |
-| App image | `local/debezium-postgres2lake-avro:${IMAGE_TAG:-0.1.0}` |
-| App config file | `examples/avro-spi-s3-readiness/config/application.properties` |
-| SPI extension JAR source | `extensions/readiness-marker-event-emitter-s3` |
+| Item                     | Value                                                          |
+|--------------------------|----------------------------------------------------------------|
+| Example directory        | `examples/avro-spi-s3-readiness`                               |
+| Compose file             | `examples/avro-spi-s3-readiness/docker-compose.yml`            |
+| App image                | `local/debezium-postgres2lake-avro:${IMAGE_TAG:-0.1.0}`        |
+| App config file          | `examples/avro-spi-s3-readiness/config/application.properties` |
+| SPI extension JAR source | `extensions/readiness-marker-event-emitter-s3`                 |
 
 ## Build SPI JAR and place it on classpath
 

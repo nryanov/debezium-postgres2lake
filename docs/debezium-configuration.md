@@ -8,7 +8,7 @@ This page contains shared Debezium-related configuration used by all format modu
 - `debezium.avro.format` selects how Avro payloads are serialized/deserialized
 - `debezium.avro.properties.*` passes serializer/deserializer properties (mainly for Confluent mode)
 
-## Minimal shared example
+## Minimal example
 
 ```properties
 debezium.engine.name=examples

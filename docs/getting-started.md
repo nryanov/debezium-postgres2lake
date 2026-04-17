@@ -29,7 +29,7 @@ Run one format module build:
 ./gradlew :modules:iceberg:build
 ```
 
-## Build demo images
+## Build application images
 
 From repository root:
 

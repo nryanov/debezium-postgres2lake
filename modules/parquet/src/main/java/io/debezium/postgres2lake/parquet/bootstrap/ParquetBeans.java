@@ -10,7 +10,7 @@ import io.debezium.postgres2lake.extensions.data.catalog.api.NoOpDataCatalogHand
 import io.debezium.postgres2lake.extensions.readiness.marker.event.emitter.api.ReadinessMarkerEventEmitterHandler;
 import io.debezium.postgres2lake.parquet.infrastructure.ParquetCompressionCodec;
 import io.debezium.postgres2lake.parquet.infrastructure.ParquetSchemaConverter;
-import io.debezium.postgres2lake.parquet.infrastructure.S3ParquetEventSaver;
+import io.debezium.postgres2lake.parquet.infrastructure.ParquetEventSaver;
 import io.debezium.postgres2lake.core.bootstrap.OutputLocationGeneratorFactory;
 import io.debezium.postgres2lake.core.infrastructure.schema.CachedSchemaConverter;
 import io.debezium.postgres2lake.core.infrastructure.schema.DataCatalogAwareSchemaConverter;
@@ -47,7 +47,7 @@ public class ParquetBeans {
         var schemaConverter = resolveSchemaConverter();
         var appenderFactory = resolveAppenderFactory();
 
-        return new S3ParquetEventSaver(
+        return new ParquetEventSaver(
                 configuration.threshold(),
                 locationGenerator,
                 configuration.fileIO(),
