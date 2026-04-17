@@ -1,14 +1,13 @@
+import com.vanniktech.maven.publish.MavenPublishBaseExtension
 import org.gradle.api.plugins.JavaPlugin
 import org.gradle.api.plugins.JavaPluginExtension
-import org.gradle.api.publish.PublishingExtension
-import org.gradle.api.publish.maven.MavenPublication
-import org.gradle.plugins.signing.SigningExtension
 
 plugins {
     java
+    id("com.vanniktech.maven.publish") version "0.36.0" apply false
 }
 
-group = "debezium-postgres2lake"
+group = "com.nryanov.debezium-postgres2lake"
 version = providers.gradleProperty("releaseVersion").orElse("0.1.0").get()
 
 subprojects {
@@ -87,73 +86,60 @@ subprojects {
         }
     }
 
-    if (path.startsWith(":extensions:")) {
-        apply(plugin = "maven-publish")
-        apply(plugin = "signing")
+    if (path.startsWith(":extensions")) {
+        apply(plugin = "com.vanniktech.maven.publish")
 
-        plugins.withType<JavaPlugin>().configureEach {
-            extensions.configure<JavaPluginExtension> {
-                withSourcesJar()
-                withJavadocJar()
+        plugins.withId("org.kordamp.gradle.jandex") {
+            tasks.named("javadoc") {
+                dependsOn(tasks.named("jandex"))
             }
+        }
 
-            extensions.configure<PublishingExtension> {
-                publications {
-                    create<MavenPublication>("mavenJava") {
-                        from(components["java"])
-                        groupId = project.group.toString()
-                        artifactId = project.name
-                        version = project.version.toString()
+        tasks.withType<GenerateModuleMetadata>().configureEach {
+            // S3 SPI plugin
+            suppressedValidationErrors.add("enforced-platform")
+        }
 
-                        pom {
-                            name.set(project.name)
-                            description.set(
-                                "SPI extension module for debezium-postgres2lake: ${project.name}",
-                            )
-                            url.set("https://github.com/nryanov/debezium-postgres2lake")
-                            licenses {
-                                license {
-                                    name.set("Apache License, Version 2.0")
-                                    url.set("https://www.apache.org/licenses/LICENSE-2.0")
-                                    distribution.set("repo")
-                                }
-                            }
-                            developers {
-                                developer {
-                                    id.set("nryanov")
-                                    name.set("Nikita Ryanov")
-                                    url.set("https://github.com/nryanov")
-                                }
-                            }
-                            scm {
-                                url.set("https://github.com/nryanov/debezium-postgres2lake")
-                                connection.set("scm:git:git://github.com/nryanov/debezium-postgres2lake.git")
-                                developerConnection.set("scm:git:ssh://git@github.com/nryanov/debezium-postgres2lake.git")
-                            }
-                        }
+        extensions.configure<MavenPublishBaseExtension> {
+            publishToMavenCentral(automaticRelease = true)
+            signAllPublications()
+
+            coordinates(
+                project.group.toString(),
+                project.name,
+                project.version.toString(),
+            )
+
+            pom {
+                name.set(project.name)
+
+                description.set(
+                    "SPI extension module for debezium-postgres2lake: ${project.name}",
+                )
+
+                url.set("https://github.com/nryanov/debezium-postgres2lake")
+
+                licenses {
+                    license {
+                        name.set("Apache License, Version 2.0")
+                        url.set("https://www.apache.org/licenses/LICENSE-2.0")
+                        distribution.set("repo")
                     }
                 }
-                repositories {
-                    maven {
-                        name = "mavenCentral"
-                        url = uri(
-                            providers.gradleProperty("mavenCentralPublishUrl")
-                                .orElse("https://central.sonatype.com/repository/maven-releases/")
-                                .get(),
-                        )
-                        credentials {
-                            username = providers.gradleProperty("mavenCentralUsername").orNull
-                            password = providers.gradleProperty("mavenCentralPassword").orNull
-                        }
+
+                developers {
+                    developer {
+                        id.set("nryanov")
+                        name.set("Nikita Ryanov")
+                        url.set("https://github.com/nryanov")
                     }
                 }
-            }
 
-            extensions.configure<SigningExtension> {
-                val signingKey = providers.gradleProperty("signingInMemoryKey").orNull
-                val signingPassword = providers.gradleProperty("signingInMemoryKeyPassword").orNull
-                useInMemoryPgpKeys(signingKey, signingPassword)
-                sign(extensions.getByType(PublishingExtension::class.java).publications)
+                scm {
+                    url.set("https://github.com/nryanov/debezium-postgres2lake")
+                    connection.set("scm:git:git://github.com/nryanov/debezium-postgres2lake.git")
+                    developerConnection.set("scm:git:ssh://git@github.com/nryanov/debezium-postgres2lake.git")
+                }
             }
         }
     }

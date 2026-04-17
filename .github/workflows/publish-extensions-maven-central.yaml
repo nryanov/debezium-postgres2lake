@@ -1,4 +1,4 @@
-name: publish-extensions-maven-central
+name: publish-modules-maven-central
 
 on:
   push:
@@ -6,7 +6,7 @@ on:
       - "v*"
 
 concurrency:
-  group: publish-extensions-maven-central-${{ github.ref }}
+  group: publish-modules-maven-central-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
@@ -17,7 +17,6 @@ jobs:
     env:
       ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
       ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
-      ORG_GRADLE_PROJECT_mavenCentralPublishUrl: ${{ vars.MAVEN_CENTRAL_PUBLISH_URL }}
       ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.MAVEN_GPG_PRIVATE_KEY }}
       ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.MAVEN_GPG_PASSPHRASE }}
 
@@ -70,17 +69,8 @@ jobs:
             fi
           done
 
-      - name: Publish extension SPI modules
+      - name: Publish all modules
         run: |
           set -euo pipefail
 
-          ./gradlew --no-daemon \
-            -PreleaseVersion="${RELEASE_VERSION}" \
-            :extensions:extensions-common:publishMavenJavaPublicationToMavenCentralRepository \
-            :extensions:data-catalog-api:publishMavenJavaPublicationToMavenCentralRepository \
-            :extensions:data-catalog-openmetadata:publishMavenJavaPublicationToMavenCentralRepository \
-            :extensions:data-catalog-datahub:publishMavenJavaPublicationToMavenCentralRepository \
-            :extensions:commit-event-emitter-api:publishMavenJavaPublicationToMavenCentralRepository \
-            :extensions:commit-event-emitter-kafka:publishMavenJavaPublicationToMavenCentralRepository \
-            :extensions:readiness-marker-event-emitter-api:publishMavenJavaPublicationToMavenCentralRepository \
-            :extensions:readiness-marker-event-emitter-s3:publishMavenJavaPublicationToMavenCentralRepository
+          ./gradlew --no-daemon -PreleaseVersion="${RELEASE_VERSION}" publishToMavenCentral
