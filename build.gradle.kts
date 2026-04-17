@@ -7,7 +7,7 @@ plugins {
     id("com.vanniktech.maven.publish") version "0.36.0" apply false
 }
 
-group = "debezium-postgres2lake"
+group = "com.nryanov.debezium-postgres2lake"
 version = providers.gradleProperty("releaseVersion").orElse("0.1.0").get()
 
 subprojects {
@@ -86,53 +86,60 @@ subprojects {
         }
     }
 
-    apply(plugin = "com.vanniktech.maven.publish")
+    if (path.startsWith(":extensions")) {
+        apply(plugin = "com.vanniktech.maven.publish")
 
-    plugins.withId("org.kordamp.gradle.jandex") {
-        tasks.named("javadoc") {
-            dependsOn(tasks.named("jandex"))
+        plugins.withId("org.kordamp.gradle.jandex") {
+            tasks.named("javadoc") {
+                dependsOn(tasks.named("jandex"))
+            }
         }
-    }
 
-    tasks.withType<GenerateModuleMetadata>().configureEach {
-        // S3 SPI plugin
-        suppressedValidationErrors.add("enforced-platform")
-    }
+        tasks.withType<GenerateModuleMetadata>().configureEach {
+            // S3 SPI plugin
+            suppressedValidationErrors.add("enforced-platform")
+        }
 
-    extensions.configure<MavenPublishBaseExtension> {
-        publishToMavenCentral(automaticRelease = true)
-        signAllPublications()
+        extensions.configure<MavenPublishBaseExtension> {
+            publishToMavenCentral(automaticRelease = true)
+            signAllPublications()
 
-        coordinates(
-            "com.nryanov.debezium-postgres2lake",
-            project.name,
-            project.version.toString(),
-        )
-
-        pom {
-            name.set(project.name)
-            description.set(
-                "SPI extension module for debezium-postgres2lake: ${project.name}",
+            coordinates(
+                project.group.toString(),
+                project.name,
+                project.version.toString(),
             )
-            url.set("https://github.com/nryanov/debezium-postgres2lake")
-            licenses {
-                license {
-                    name.set("Apache License, Version 2.0")
-                    url.set("https://www.apache.org/licenses/LICENSE-2.0")
-                    distribution.set("repo")
-                }
-            }
-            developers {
-                developer {
-                    id.set("nryanov")
-                    name.set("Nikita Ryanov")
-                    url.set("https://github.com/nryanov")
-                }
-            }
-            scm {
+
+            pom {
+                name.set(project.name)
+
+                description.set(
+                    "SPI extension module for debezium-postgres2lake: ${project.name}",
+                )
+
                 url.set("https://github.com/nryanov/debezium-postgres2lake")
-                connection.set("scm:git:git://github.com/nryanov/debezium-postgres2lake.git")
-                developerConnection.set("scm:git:ssh://git@github.com/nryanov/debezium-postgres2lake.git")
+
+                licenses {
+                    license {
+                        name.set("Apache License, Version 2.0")
+                        url.set("https://www.apache.org/licenses/LICENSE-2.0")
+                        distribution.set("repo")
+                    }
+                }
+
+                developers {
+                    developer {
+                        id.set("nryanov")
+                        name.set("Nikita Ryanov")
+                        url.set("https://github.com/nryanov")
+                    }
+                }
+
+                scm {
+                    url.set("https://github.com/nryanov/debezium-postgres2lake")
+                    connection.set("scm:git:git://github.com/nryanov/debezium-postgres2lake.git")
+                    developerConnection.set("scm:git:ssh://git@github.com/nryanov/debezium-postgres2lake.git")
+                }
             }
         }
     }

@@ -1,4 +1,4 @@
-name: publish-extensions-maven-central
+name: publish-modules-maven-central
 
 on:
   push:
@@ -6,7 +6,7 @@ on:
       - "v*"
 
 concurrency:
-  group: publish-extensions-maven-central-${{ github.ref }}
+  group: publish-modules-maven-central-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
@@ -69,17 +69,8 @@ jobs:
             fi
           done
 
-      - name: Publish extension SPI modules
+      - name: Publish all modules
         run: |
           set -euo pipefail
 
-          ./gradlew --no-daemon \
-            -PreleaseVersion="${RELEASE_VERSION}" \
-            :extensions:extensions-common:publishToMavenCentral \
-            :extensions:data-catalog-api:publishToMavenCentral \
-            :extensions:data-catalog-openmetadata:publishToMavenCentral \
-            :extensions:data-catalog-datahub:publishToMavenCentral \
-            :extensions:commit-event-emitter-api:publishToMavenCentral \
-            :extensions:commit-event-emitter-kafka:publishToMavenCentral \
-            :extensions:readiness-marker-event-emitter-api:publishToMavenCentral \
-            :extensions:readiness-marker-event-emitter-s3:publishToMavenCentral
+          ./gradlew --no-daemon -PreleaseVersion="${RELEASE_VERSION}" publishToMavenCentral
