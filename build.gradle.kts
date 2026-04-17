@@ -91,6 +91,17 @@ subprojects {
         apply(plugin = "maven-publish")
         apply(plugin = "signing")
 
+        plugins.withId("org.kordamp.gradle.jandex") {
+            tasks.named("javadoc") {
+                dependsOn(tasks.named("jandex"))
+            }
+        }
+
+        tasks.withType<GenerateModuleMetadata>().configureEach {
+            // S3 SPI plugin
+            suppressedValidationErrors.add("enforced-platform")
+        }
+
         plugins.withType<JavaPlugin>().configureEach {
             extensions.configure<JavaPluginExtension> {
                 withSourcesJar()
@@ -101,7 +112,7 @@ subprojects {
                 publications {
                     create<MavenPublication>("mavenJava") {
                         from(components["java"])
-                        groupId = project.group.toString()
+                        groupId = "com.nryanov.debezium-postgres2lake"
                         artifactId = project.name
                         version = project.version.toString()
 
@@ -136,11 +147,8 @@ subprojects {
                 repositories {
                     maven {
                         name = "mavenCentral"
-                        url = uri(
-                            providers.gradleProperty("mavenCentralPublishUrl")
-                                .orElse("https://central.sonatype.com/repository/maven-releases/")
-                                .get(),
-                        )
+                        // https://central.sonatype.org/publish/publish-portal-ossrh-staging-api/
+                        url = uri("https://ossrh-staging-api.central.sonatype.com/service/local/staging/deploy/maven2/")
                         credentials {
                             username = providers.gradleProperty("mavenCentralUsername").orNull
                             password = providers.gradleProperty("mavenCentralPassword").orNull

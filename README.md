@@ -4,6 +4,10 @@
 
 It provides an opinionated, extensible foundation for running CDC ingestion flows from source database capture to durable analytical storage.
 
+## Documentation
+
+- Docs site: https://nryanov.com/debezium-postgres2lake/
+
 ## Quick start
 
 From repository root:
@@ -25,11 +29,3 @@ docker compose exec jupyter python /tmp/generate_data.py
 
 Examples use Docker Compose `include:` syntax, so use Docker Compose v2.20+.
 For prerequisites and environment requirements, see `docs/requirements.md`.
-
-## Documentation
-
-- Docs site: TODO
-- Getting started: `docs/getting-started.md`
-- Examples: `docs/examples.md`
-- Formats: `docs/formats.md`
-- SPI/extensions: `docs/spi/overview.md`
